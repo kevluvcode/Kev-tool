@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""KevTool — KevBin Educational Security & Utilities Suite"""
+"""
+KevTool — KevBin Educational Security & Utilities Suite
+Modern UI inspired by navi-multitool
+"""
 
 import os
 import sys
@@ -8,21 +11,21 @@ import time
 import importlib
 import getpass
 import subprocess
+import shutil
+import random
+import re
 
+# Ensure UTF-8
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 os.system('')
-try:
-    import colorama
-    colorama.init()
-except ImportError:
-    pass
 
-AUTHOR = "KevBin"
-GITHUB_REPO = "kevluvcode/Kev-tool"
-GITHUB_API = f"https://api.github.com/repos/{GITHUB_REPO}"
-GITHUB_CLONE = f"https://github.com/{GITHUB_REPO}.git"
-GITHUB_RAW_VERSION = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
+try:
+    from pystyle import Colors, Colorate, Center, System
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "pystyle", "-q"])
+    from pystyle import Colors, Colorate, Center, System
+
 PC_USER = getpass.getuser()
 
 VERSION_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'version.txt')
@@ -32,19 +35,111 @@ def _read_version():
         with open(VERSION_PATH, 'r', encoding='utf-8') as f:
             return f.read().strip()
     except Exception:
-        return "0.0.0"
+        return "1.0.0"
 
 VERSION = _read_version()
 
-BANNER = r"""
-  ____  ____  _____ _____ ____    _____ _____ ____  ____
- / __ \|  _ \| ____|_   _/ ___|  |_   _| ____|  _ \| ___|
-| |  | | |_) |  _|   | | \___ \    | | |  _| | |_) |___ \
-| |__| |  _ <| |___  | |  ___) |   | | | |___|  _ < ___) |
- \____/|_| \_\_____| |_| |____/    |_| |_____|_| \_\____/
-"""
+AUTHOR = "KevBin"
+GITHUB_REPO = "kevluvcode/Kev-tool"
+GITHUB_API = f"https://api.github.com/repos/{GITHUB_REPO}"
+GITHUB_CLONE = f"https://github.com/{GITHUB_REPO}.git"
+GITHUB_RAW_VERSION = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 
-TOOLS_PER_PAGE = 14
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG_DIR = os.path.join(BASE_DIR, 'config')
+MODULES_DIR = os.path.join(BASE_DIR, 'modules')
+CONFIG_PATH = os.path.join(CONFIG_DIR, 'settings.json')
+
+THEMES = {
+    "modern": {
+        "banner": Colors.white_to_blue,
+        "head": Colors.white,
+        "num": Colors.white_to_blue,
+        "txt": Colors.white,
+        "sub": Colors.white_to_blue,
+        "inp": Colors.white_to_blue
+    },
+    "modern_red": {
+        "banner": Colors.white_to_red,
+        "head": Colors.white,
+        "num": Colors.white_to_red,
+        "txt": Colors.white,
+        "sub": Colors.white_to_red,
+        "inp": Colors.white_to_red
+    },
+    "modern_purple": {
+        "banner": Colors.blue_to_purple,
+        "head": Colors.white,
+        "num": Colors.blue_to_purple,
+        "txt": Colors.white,
+        "sub": Colors.blue_to_purple,
+        "inp": Colors.blue_to_purple
+    },
+    "blue": {
+        "banner": Colors.white_to_blue,
+        "head": Colors.blue_to_cyan,
+        "num": Colors.cyan_to_blue,
+        "txt": Colors.white_to_blue,
+        "sub": Colors.blue_to_cyan,
+        "inp": Colors.blue_to_cyan
+    },
+    "red": {
+        "banner": Colors.red_to_white,
+        "head": Colors.white_to_red,
+        "num": Colors.white_to_red,
+        "txt": Colors.white,
+        "sub": Colors.red_to_white,
+        "inp": Colors.white_to_red
+    },
+    "purple": {
+        "banner": Colors.blue_to_purple,
+        "head": Colors.purple_to_blue,
+        "num": Colors.purple_to_blue,
+        "txt": Colors.white,
+        "sub": Colors.purple_to_blue,
+        "inp": Colors.purple_to_blue
+    },
+    "green": {
+        "banner": Colors.green_to_white,
+        "head": Colors.white_to_green,
+        "num": Colors.white_to_green,
+        "txt": Colors.white,
+        "sub": Colors.green_to_white,
+        "inp": Colors.white_to_green
+    },
+    "yellow": {
+        "banner": Colors.yellow_to_red,
+        "head": Colors.red_to_yellow,
+        "num": Colors.yellow_to_red,
+        "txt": Colors.white,
+        "sub": Colors.red_to_yellow,
+        "inp": Colors.red_to_yellow
+    },
+    "rainbow": {
+        "banner": Colors.rainbow,
+        "head": Colors.rainbow,
+        "num": Colors.rainbow,
+        "txt": Colors.white,
+        "sub": Colors.rainbow,
+        "inp": Colors.rainbow
+    },
+}
+
+BANNER_LINES = [
+    r"  ____  ____  _____ _____ ____    _____ _____ ____  ____",
+    r" / __ \|  _ \| ____|_   _/ ___|  |_   _| ____|  _ \| ___|",
+    r"| |  | | |_) |  _|   | | \___ \    | | |  _| | |_) |___ \ ",
+    r"| |__| |  _ <| |___  | |  ___) |   | | | |___|  _ < ___) |",
+    r" \____/|_| \_\_____| |_| |____/    |_| |_____|_| \_\____/ ",
+]
+
+BANNER_SMALL = [
+    r" _   _    _ __     _____ ",
+    r"| \ | |  / \\ \   / /_ _|",
+    r"|  \| | / _ \\ \ / / | | ",
+    r"| |\  |/ ___ \\ V /  | | ",
+    r"|_| \_/_/   \_\\_/  |___|",
+]
 
 def load_json(path):
     try:
@@ -60,143 +155,290 @@ def save_json(path, data):
     except Exception:
         pass
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CONFIG_DIR = os.path.join(BASE_DIR, 'config')
-MODULES_DIR = os.path.join(BASE_DIR, 'modules')
-SETTINGS_PATH = os.path.join(CONFIG_DIR, 'settings.json')
-THEMES_PATH = os.path.join(CONFIG_DIR, 'themes.json')
+def _strip_ansi(text):
+    return re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])').sub('', text)
 
-class Theme:
-    def __init__(self, data=None):
-        d = data or {}
-        self.primary = d.get('primary', '\033[38;2;88;101;242m')
-        self.secondary = d.get('secondary', '\033[38;2;185;187;190m')
-        self.accent = d.get('accent', '\033[38;2;87;242;134m')
-        self.highlight = d.get('highlight', '\033[38;2;255;255;255m')
-        self.dim = d.get('dim', '\033[38;2;120;123;130m')
-        self.error = d.get('error', '\033[38;2;237;66;69m')
-        self.success = d.get('success', '\033[38;2;87;242;134m')
-        self.warning = d.get('warning', '\033[38;2;254;231;92m')
-        self.banner = d.get('banner', '\033[38;2;88;101;242m')
-        self.border = d.get('border', '\033[38;2;60;63;70m')
-        self.R = d.get('reset', '\033[0m')
-        self.B = d.get('bold', '\033[1m')
+def get_config():
+    return load_json(CONFIG_PATH)
+
+def get_theme():
+    cfg = get_config()
+    theme_name = cfg.get('current_theme', 'modern').lower()
+    return THEMES.get(theme_name, THEMES['modern'])
+
+def clr():
+    System.Clear()
+
+def get_colors():
+    return get_theme()
+
+def cprint_horizontal(color, text):
+    cfg = get_config()
+    if cfg.get('current_theme', 'modern').lower() == 'rainbow':
+        return Colorate.Horizontal(Colors.rainbow, text)
+    if isinstance(color, str):
+        return f"{color}{text}{Colors.reset}"
+    return Colorate.Horizontal(color, text)
+
+def print_banner():
+    cfg = get_config()
+    theme_name = cfg.get('current_theme', 'modern').lower()
+    cl = get_colors()
+    
+    if theme_name.startswith('modern'):
+        clr()
+        tw = shutil.get_terminal_size().columns
+        for i, line in enumerate(BANNER_LINES):
+            if i == 4:
+                left = "~ present day "
+                right = "present time ~"
+                pad = 5
+                total_w = len(left) + pad + len(line) + pad + len(right)
+                start_p = max(0, (tw - total_w) // 2)
+                res = " " * start_p
+                res += cprint_horizontal(cl['num'], left)
+                res += " " * pad
+                res += cprint_horizontal(cl['banner'], line)
+                res += " " * pad
+                res += cprint_horizontal(cl['num'], right)
+                print(res)
+            else:
+                print(cprint_horizontal(cl['banner'], Center.XCenter(line)))
+        print()
+    else:
+        clr()
+        cl = get_colors()
+        bn = random.choice(BANNER_SMALL)
+        print(cprint_horizontal(cl['banner'], Center.XCenter(bn)))
+        print(cprint_horizontal(cl['sub'], Center.XCenter("\n~ Present Day, Present Time ~")))
+        print()
+        clr()
+        cl = get_colors()
+        bn = random.choice(BANNER_SMALL)
+        print(cprint_horizontal(cl['banner'], Center.XCenter(bn)))
+        print(cprint_horizontal(cl['sub'], Center.XCenter("\n~ Present Day, Present Time ~")))
+        print()
+
+def matrix_effect(cycles=1, color_id=27):
+    s = shutil.get_terminal_size()
+    cols, rows = s.columns, s.lines
+    chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$+-*/=%\"'#&_(),.;:?!\\|{}<>[]^~"
+    d = [0 for _ in range(cols)]
+    sys.stdout.write("\033[?25l")
+    done, stps = 0, 0
+    while done < cycles:
+        out = "\033[H"
+        for r in range(rows):
+            l = ""
+            for c in range(cols):
+                if d[c] == r:
+                    l += "\033[38;5;15m" + random.choice(chars)
+                elif d[c] > r and d[c] - 10 < r:
+                    cid = random.choice([27, 196, 93, 46, 226, 201, 51]) if color_id == -1 else color_id
+                    l += f"\033[38;5;{cid}m" + random.choice(chars)
+                else:
+                    l += " "
+            out += l + "\n"
+        for i in range(cols):
+            if d[i] > rows:
+                d[i] = 0
+                if i == 0:
+                    done += 1
+            elif d[i] == 0:
+                if random.random() > 0.95:
+                    d[i] = 1
+            else:
+                d[i] += 1
+        sys.stdout.write(out)
+        sys.stdout.flush()
+        time.sleep(0.03)
+        stps += 1
+        if stps > (rows * cycles * 2) + 100:
+            break
+    sys.stdout.write("\033[?25h\033[0m\033[2J\033[H")
+
+def draw_card_box(title, items):
+    """Draw a card-style box like navi"""
+    cl = get_colors()
+    tw = shutil.get_terminal_size().columns
+    box_w = min(38, (tw - 4) // 3)
+    inner = box_w - 2
+    
+    # Title centered
+    bd_len = max(2, (inner - len(title)) // 2)
+    bd_ext = "─" if (inner - len(title)) % 2 != 0 else ""
+    print(cprint_horizontal(cl['head'], " " * 2 + "┌" + "─" * bd_len + title + "─" * bd_len + bd_ext + "┐"))
+    
+    # Items in 3 columns
+    item_list = list(items.items())
+    for i in range(0, len(item_list), 3):
+        row_items = item_list[i:i+3]
+        line = "  "
+        for k, v in row_items:
+            slot = f"  [{k}] {v}"
+            line += cprint_horizontal(cl['num'], f"  [{k}] ") + cprint_horizontal(cl['txt'], f"{v:<{box_w - len(f'  [{k}] ')}}")
+        print(line)
+    
+    print(cprint_horizontal(cl['head'], " " * 2 + "└" + "─" * inner + "┘"))
+
+def draw_menu_grid(categories):
+    """Draw horizontal card grid for main menu"""
+    cl = get_colors()
+    tw = shutil.get_terminal_size().columns
+    nc = len(categories)
+    cw = 38 if nc == 3 else 32
+    tot = (cw * nc) + ((nc - 1) * 2)
+    p = " " * max(0, (tw - tot) // 2)
+    
+    # Header numbers
+    hl = p
+    for n, _ in categories:
+        hl += n.center(cw) + "  "
+    print(cprint_horizontal(cl['head'], hl))
+    
+    # Top borders
+    tl = p
+    for _ in categories:
+        tl += "┌" + "─" * (cw - 2) + "┐" + "  "
+    print(cprint_horizontal(cl['num'], tl))
+    
+    # Content rows
+    mx = max(len(it) for _, it in categories)
+    for i in range(mx):
+        rl = p
+        for _, items in categories:
+            if i < len(items) and items[i]:
+                f = items[i]
+                if "]" in f:
+                    f = f"({f[f.find('[')+1:f.find(']')].zfill(2)}) > {f[f.find(']')+1:].strip()}"
+                pl = cw - 4 - len(_strip_ansi(f))
+                rl += cprint_horizontal(cl['num'], "│ ") + cprint_horizontal(cl['txt'], f) + " " * pl + cprint_horizontal(cl['num'], " │") + "  "
+            else:
+                rl += cprint_horizontal(cl['num'], "│" + " " * (cw - 2) + "│") + "  "
+        print(rl)
+    
+    # Bottom borders
+    bl = p
+    for _ in categories:
+        bl += "└" + "─" * (cw - 2) + "┘" + "  "
+    print(cprint_horizontal(cl['num'], bl))
+
+def get_input(prompt=None):
+    if prompt is None:
+        prompt = f"{PC_USER}@kevbin:~#"
+    else:
+        prompt = prompt.replace("kevbin@root/", f"{PC_USER}@kevbin/")
+        prompt = prompt.replace("kevbin@", f"{PC_USER}@kevbin/")
+    
+    cl = get_colors()
+    _prmpt = f"\n  {prompt} "
+    return input(cprint_horizontal(cl['inp'], _prmpt)).strip()
+
+def type_print(text, delay=0.02):
+    cl = get_colors()
+    sys.stdout.write(cprint_horizontal(cl['num'], "  [*] "))
+    for c in text:
+        sys.stdout.write(cprint_horizontal(cl['txt'], c))
+        sys.stdout.flush()
+        time.sleep(delay)
+    sys.stdout.write("\n")
+
+def loading_screen():
+    cl = get_colors()
+    for _ in range(2):
+        clr()
+        for line in BANNER_LINES:
+            print(cprint_horizontal(cl['banner'], Center.XCenter(line)))
+        time.sleep(0.25)
+        clr()
+        for line in BANNER_LINES:
+            print(cprint_horizontal(cl['head'], Center.XCenter(line)))
+        time.sleep(0.25)
+    
+    print("\n")
+    seq = [
+        f"Booting KevBin OS [ Node: {PC_USER} ]...",
+        "Connecting to KevBin Network...",
+        "Initializing KevTool protocol..."
+    ]
+    for s in seq:
+        type_print(s)
+        time.sleep(0.1)
+    time.sleep(0.4)
+
+def check_update():
+    try:
+        import requests
+        cl = get_colors()
+        print(cprint_horizontal(cl['sub'], "  Checking for updates..."))
+        resp = requests.get(GITHUB_RAW_VERSION, timeout=8)
+        if resp.status_code == 200:
+            remote_ver = resp.text.strip()
+            if remote_ver and remote_ver != VERSION:
+                print(cprint_horizontal(cl['head'], f"\n  [!] New Version Detected: {remote_ver} (you have {VERSION})"))
+                print(cprint_horizontal(cl['txt'], f"  Download: https://github.com/{GITHUB_REPO}"))
+                choice = get_input("  Clone update now? (y/n): ")
+                if choice.lower() == 'y':
+                    print(cprint_horizontal(cl['txt'], "  Cloning repo..."))
+                    install_dir = os.path.join(BASE_DIR, f"KevTool_{remote_ver}")
+                    result = subprocess.run(
+                        ['git', 'clone', GITHUB_CLONE, install_dir],
+                        capture_output=True, text=True, timeout=60
+                    )
+                    if result.returncode == 0:
+                        print(cprint_horizontal(cl['head'], f"  [+] Cloned to: {install_dir}"))
+                        print(cprint_horizontal(cl['txt'], "  Run install.bat in the new folder to set it up"))
+                    else:
+                        print(cprint_horizontal(cl['num'], f"  [!] Clone failed: {result.stderr.strip()}"))
+                get_input("  Press Enter...")
+            else:
+                print(cprint_horizontal(cl['head'], "  Already up to date"))
+                time.sleep(0.5)
+        else:
+            print(cprint_horizontal(cl['txt'], "  Couldn't check for updates"))
+            time.sleep(0.5)
+    except Exception:
+        pass
 
 class KevTool:
     def __init__(self):
-        self.settings = load_json(SETTINGS_PATH)
-        self.themes = load_json(THEMES_PATH)
-        theme_name = self.settings.get('current_theme', 'modern')
-        self.t = Theme(self.themes.get(theme_name, self.themes.get('modern', {})))
-        self.theme_name = theme_name
-        self.prompt = f"{PC_USER}@kevbin> "
+        self.settings = load_json(CONFIG_PATH)
+        self.theme_name = self.settings.get('current_theme', 'modern')
+        self.prompt = f"{PC_USER}@kevbin:~#"
 
     def clear(self):
-        os.system('cls' if os.name == 'nt' else 'clear')
-
-    def cprint(self, color, text, end='\n'):
-        sys.stdout.write(f"{color}{text}{self.t.R}{end}")
-        sys.stdout.flush()
-
-    def box_line(self, left, middle, right, width=64, char='─'):
-        self.cprint(self.t.border, f"  {left}{char * width}{right}")
-
-    def box_top(self, width=64):
-        self.box_line('┌', '', '┐', width)
-
-    def box_bottom(self, width=64):
-        self.box_line('└', '', '┘', width)
-
-    def box_mid(self, width=64):
-        self.box_line('├', '', '┤', width)
-
-    def box_row(self, left, content, right='│', width=64):
-        self.cprint(self.t.border, f"  {left} {content:<{width-2}} {right}")
+        clr()
 
     def section_header(self, icon, title):
-        self.box_top()
-        self.box_row('│', f"{icon}  {title}")
-        self.box_mid()
+        cl = get_colors()
+        clr()
+        print(cprint_horizontal(cl['head'], " " * 2 + "┌" + "─" * 2 + f" {icon}  {title} " + "─" * (50 - len(title)) + "┐"))
+        print()
+
+    def box_top(self, width=54):
+        cl = get_colors()
+        print(cprint_horizontal(cl['head'], " " * 2 + "┌" + "─" * width + "┐"))
+
+    def box_mid(self, width=54):
+        cl = get_colors()
+        print(cprint_horizontal(cl['head'], " " * 2 + "├" + "─" * width + "┤"))
+
+    def box_bottom(self, width=54):
+        cl = get_colors()
+        print(cprint_horizontal(cl['head'], " " * 2 + "└" + "─" * width + "┘"))
+
+    def box_row(self, content, width=54):
+        cl = get_colors()
+        pad = width - len(_strip_ansi(content))
+        print(cprint_horizontal(cl['num'], "  │ ") + cprint_horizontal(cl['txt'], content) + " " * pad + cprint_horizontal(cl['num'], " │"))
 
     def input_choice(self, prompt=None):
-        p = prompt or self.prompt
-        try:
-            return input(f"{self.t.primary}{p}{self.t.R}").strip()
-        except (EOFError, KeyboardInterrupt):
-            print()
-            return ''
+        return get_input(prompt)
 
     def pause(self):
-        self.cprint(self.t.dim, f"\n  {self.prompt}Press Enter...")
-        try:
-            input()
-        except (EOFError, KeyboardInterrupt):
-            print()
-
-    def loading_screen(self):
-        lines = BANNER.strip().split('\n')
-        total = len(lines)
-        bar_w = 44
-        duration = 3.0
-        step_time = duration / (total + 3)
-
-        for i, line in enumerate(lines):
-            self.clear()
-            self.box_top(50)
-            for j in range(i + 1):
-                self.box_row('│', lines[j])
-            pct = int((i + 1) / total * 100)
-            filled = int(bar_w * (i + 1) / total)
-            bar = '#' * filled + '.' * (bar_w - filled)
-            self.box_row('│', f"[{bar}] {pct}%  Loading KevTool...")
-            self.box_bottom(50)
-            time.sleep(step_time)
-
-        self.clear()
-        self.box_top(50)
-        for line in lines:
-            self.box_row('│', line)
-        self.box_row('│', f"[{'#' * bar_w}] 100%")
-        self.box_row('│', f"Welcome, {PC_USER}. KevTool v{VERSION} ready.")
-        self.box_bottom(50)
-        remaining = duration - (total + 3) * step_time
-        if remaining > 0:
-            time.sleep(remaining)
-        else:
-            time.sleep(0.3)
-
-    def check_update(self):
-        try:
-            import requests
-            self.cprint(self.t.dim, "  Checking for updates...")
-            resp = requests.get(GITHUB_RAW_VERSION, timeout=8)
-            if resp.status_code == 200:
-                remote_ver = resp.text.strip()
-                if remote_ver and remote_ver != VERSION:
-                    self.box_top(50)
-                    self.box_row('│', f"New version available: {remote_ver} (you have {VERSION})")
-                    self.box_row('│', f"Download: https://github.com/{GITHUB_REPO}")
-                    self.box_bottom(50)
-                    choice = self.input_choice("  Clone update now? (y/n): ")
-                    if choice.lower() == 'y':
-                        self.cprint(self.t.dim, "  Cloning repo...")
-                        install_dir = os.path.join(BASE_DIR, f"KevTool_{remote_ver}")
-                        result = subprocess.run(
-                            ['git', 'clone', GITHUB_CLONE, install_dir],
-                            capture_output=True, text=True, timeout=60
-                        )
-                        if result.returncode == 0:
-                            self.cprint(self.t.success, f"  [OK] Cloned to: {install_dir}")
-                            self.cprint(self.t.dim, "  Run install.bat in the new folder to set it up")
-                        else:
-                            self.cprint(self.t.error, f"  [X] Clone failed: {result.stderr.strip()}")
-                    self.pause()
-                else:
-                    self.cprint(self.t.success, "  Already up to date")
-            else:
-                self.cprint(self.t.dim, "  Couldn't check for updates")
-        except Exception:
-            pass
+        cl = get_colors()
+        print()
+        input(cprint_horizontal(cl['inp'], f"  {self.prompt} Press Enter..."))
 
     def run_module(self, module_name, func_name='run'):
         try:
@@ -209,31 +451,36 @@ class KevTool:
             if func:
                 func(self)
             else:
-                self.cprint(self.t.error, f"  [X] No '{func_name}' in {module_name}")
+                cl = get_colors()
+                print(cprint_horizontal(cl['num'], f"  [!] No '{func_name}' in {module_name}"))
                 self.pause()
         except Exception as e:
-            self.cprint(self.t.error, f"  [X] {e}")
+            cl = get_colors()
+            print(cprint_horizontal(cl['num'], f"  [!] {e}"))
             self.pause()
 
     def tool_menu(self, title, icon, tools):
         page = 0
+        per_page = 14
         while True:
-            self.clear()
             self.section_header(icon, title)
             total = len(tools)
-            pages = (total + TOOLS_PER_PAGE - 1) // TOOLS_PER_PAGE
-            start = page * TOOLS_PER_PAGE
-            end = min(start + TOOLS_PER_PAGE, total)
+            pages = (total + per_page - 1) // per_page
+            start = page * per_page
+            end = min(start + per_page, total)
+            
+            self.box_top()
             for i in range(start, end):
                 num = i + 1
                 name, desc = tools[i][0], tools[i][1]
-                self.box_row('│', f"[{num:3d}]  {name:<24} {self.t.dim}{desc}")
+                self.box_row(f"[{num:3d}]  {name:<24} {get_colors()['txt']}{desc}{get_colors()['R']}")
             self.box_mid()
             if pages > 1:
                 nav = f"Page {page+1}/{pages}  [N]ext  [P]rev"
-                self.box_row('│', nav)
-            self.box_row('│', "[ 0]  Back")
+                self.box_row(nav)
+            self.box_row("[ 0]  Back")
             self.box_bottom()
+            
             choice = self.input_choice()
             if choice == '0': return
             if choice.lower() == 'n' and page < pages - 1:
@@ -251,34 +498,58 @@ class KevTool:
                 pass
 
     def main_menu(self):
+        cats = [
+            ('1', '📡', ['Discord Operations']),
+            ('2', '🔍', ['OSINT & Intelligence']),
+            ('3', '🛡️', ['Security & Utilities']),
+            ('4', '🌐', ['Web & Network Tools']),
+            ('5', '📝', ['Text & Encoding']),
+            ('6', '🎨', ['Color & Design']),
+            ('7', '💾', ['Data & Conversion']),
+            ('8', '🎮', ['Game Suite (Roblox)']),
+            ('9', '🎭', ['Simulation & Generators']),
+            ('10', '📡', ['Network & DNS']),
+            ('11', '🔧', ['Developer Tools']),
+            ('12', '📁', ['File & Image Tools']),
+            ('13', '⚙️', ['Themes & Settings']),
+        ]
+        
+        # Group into 3 columns for grid
+        grid_cats = []
+        for i in range(0, len(cats), 3):
+            chunk = cats[i:i+3]
+            grid_cats.append([(n, ic, items) for n, ic, items in chunk])
+        
         while True:
-            self.clear()
-            self.box_top(50)
-            for line in BANNER.strip().split('\n'):
-                self.box_row('│', line)
-            self.box_row('│', f"v{VERSION} | Theme: {self.theme_name} | {PC_USER}@kevbin")
-            self.box_mid(50)
-            self.box_row('│', "MAIN MENU", '│')
-            self.box_mid(50)
-            cats = [
-                ('1', '📡', 'Discord Operations'),
-                ('2', '🔍', 'OSINT & Intelligence'),
-                ('3', '🛡️', 'Security & Utilities'),
-                ('4', '🌐', 'Web & Network Tools'),
-                ('5', '📝', 'Text & Encoding'),
-                ('6', '🎨', 'Color & Design'),
-                ('7', '💾', 'Data & Conversion'),
-                ('8', '🎮', 'Game Suite (Roblox)'),
-                ('9', '🎭', 'Simulation & Generators'),
-                ('10', '📡', 'Network & DNS'),
-                ('11', '🔧', 'Developer Tools'),
-                ('12', '📁', 'File & Image Tools'),
-                ('13', '⚙️', 'Themes & Settings'),
-            ]
-            for num, icon, name in cats:
-                self.box_row('│', f"[{num:>2s}]  {icon}  {name}")
-            self.box_row('│', "[ 0]  Exit")
-            self.box_bottom(50)
+            cl = get_colors()
+            clr()
+            
+            # Banner
+            for line in BANNER_LINES:
+                print(cprint_horizontal(cl['banner'], Center.XCenter(line)))
+            print(cprint_horizontal(cl['sub'], Center.XCenter(f"\nv{VERSION} | Theme: {self.theme_name} | {PC_USER}@kevbin")))
+            print()
+            
+            # Menu grid
+            draw_menu_grid([
+                ('1', ['Discord Operations']),
+                ('2', ['OSINT & Intelligence']),
+                ('3', ['Security & Utilities']),
+                ('4', ['Web & Network Tools']),
+                ('5', ['Text & Encoding']),
+                ('6', ['Color & Design']),
+                ('7', ['Data & Conversion']),
+                ('8', ['Game Suite (Roblox)']),
+                ('9', ['Simulation & Generators']),
+                ('10', ['Network & DNS']),
+                ('11', ['Developer Tools']),
+                ('12', ['File & Image Tools']),
+                ('13', ['Themes & Settings']),
+            ])
+            
+            print(cprint_horizontal(cl['num'], f"  [ 0]  Exit"))
+            print()
+            
             choice = self.input_choice()
             menus = {
                 '1': self.menu_discord, '2': self.menu_osint, '3': self.menu_security,
@@ -288,8 +559,8 @@ class KevTool:
                 '13': self.menu_settings,
             }
             if choice == '0':
-                self.clear()
-                self.cprint(self.t.accent, f"\n  Goodbye, {PC_USER}. — {AUTHOR}\n")
+                clr()
+                print(cprint_horizontal(cl['head'], f"\n  Goodbye, {PC_USER}. — {AUTHOR}\n"))
                 sys.exit(0)
             if choice in menus:
                 menus[choice]()
@@ -305,8 +576,7 @@ class KevTool:
         mapped = [('discord_ops', 'webhook_info'), ('discord_ops', 'token_decode'),
                   ('discord_ops', 'account_info'), ('discord_ops', 'server_info'),
                   ('discord_ops', 'status_rotator')]
-        self.tool_menu('DISCORD OPERATIONS', '📡',
-                      [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
+        self.tool_menu('DISCORD OPERATIONS', '📡', [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
 
     def menu_osint(self):
         tools = [
@@ -334,8 +604,7 @@ class KevTool:
                   ('email_tools', 'reputation'), ('stealer_check', 'run'),
                   ('wayback', 'run'), ('tech_stack', 'run'),
                   ('ip_blacklist', 'run')]
-        self.tool_menu('OSINT & INTELLIGENCE', '🔍',
-                      [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
+        self.tool_menu('OSINT & INTELLIGENCE', '🔍', [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
 
     def menu_security(self):
         tools = [
@@ -372,8 +641,7 @@ class KevTool:
                   ('port_scanner', 'run'), ('traceroute', 'run'),
                   ('tor_check', 'run'), ('link_tools', 'run'),
                   ('ip_pinger', 'run')]
-        self.tool_menu('SECURITY & UTILITIES', '🛡️',
-                      [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
+        self.tool_menu('SECURITY & UTILITIES', '🛡️', [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
 
     def menu_web(self):
         tools = [
@@ -398,8 +666,7 @@ class KevTool:
                   ('browser_fp', 'run'), ('webrtc_leak', 'run'),
                   ('doh', 'run'), ('subenum', 'run'),
                   ('subnet_calc', 'run')]
-        self.tool_menu('WEB & NETWORK TOOLS', '🌐',
-                      [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
+        self.tool_menu('WEB & NETWORK TOOLS', '🌐', [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
 
     def menu_text(self):
         tools = [
@@ -428,8 +695,7 @@ class KevTool:
                   ('text_tools', 'slugify2'), ('text_tools', 'html_entity'),
                   ('text_tools', 'url_encode'), ('unicode_tool', 'run'),
                   ('emoji_lookup', 'run'), ('text_tools', 'stats')]
-        self.tool_menu('TEXT & ENCODING', '📝',
-                      [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
+        self.tool_menu('TEXT & ENCODING', '📝', [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
 
     def menu_color(self):
         tools = [
@@ -442,8 +708,7 @@ class KevTool:
         mapped = [('color_tools', 'converter'), ('color_tools', 'gradient'),
                   ('color_tools', 'contrast'), ('color_tools', 'palette'),
                   ('color_tools', 'image_colors')]
-        self.tool_menu('COLOR & DESIGN', '🎨',
-                      [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
+        self.tool_menu('COLOR & DESIGN', '🎨', [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
 
     def menu_data(self):
         tools = [
@@ -471,8 +736,7 @@ class KevTool:
                   ('barcode', 'run'), ('password_gen', 'run'),
                   ('random_gen', 'run'), ('duration', 'run'),
                   ('age_calc', 'run')]
-        self.tool_menu('DATA & CONVERSION', '💾',
-                      [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
+        self.tool_menu('DATA & CONVERSION', '💾', [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
 
     def menu_gaming(self):
         tools = [
@@ -486,8 +750,7 @@ class KevTool:
         mapped = [('roblox_intel', 'run'), ('roblox_intel', 'group_lookup'),
                   ('roblox_control', 'run'), ('roblox_control', 'asset_download'),
                   ('roblox_intel', 'inventory_view'), ('roblox_intel', 'game_info')]
-        self.tool_menu('GAME SUITE (ROBLOX)', '🎮',
-                      [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
+        self.tool_menu('GAME SUITE (ROBLOX)', '🎮', [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
 
     def menu_simulation(self):
         tools = [
@@ -513,8 +776,7 @@ class KevTool:
                   ('ascii_art', 'run'), ('text_effects', 'zalgo'),
                   ('text_effects', 'creeper'), ('text_effects', 'smallcaps'),
                   ('text_effects', 'bubble'), ('text_effects', 'mirror')]
-        self.tool_menu('SIMULATION & GENERATORS', '🎭',
-                      [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
+        self.tool_menu('SIMULATION & GENERATORS', '🎭', [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
 
     def menu_network(self):
         tools = [
@@ -534,8 +796,7 @@ class KevTool:
                   ('subenum', 'run'), ('subnet_calc', 'run'),
                   ('osint', 'whois_lookup'), ('ip_pinger', 'run'),
                   ('asn_intel', 'run'), ('ip_blacklist', 'run')]
-        self.tool_menu('NETWORK & DNS', '📡',
-                      [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
+        self.tool_menu('NETWORK & DNS', '📡', [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
 
     def menu_dev(self):
         tools = [
@@ -558,8 +819,7 @@ class KevTool:
                   ('cron_builder', 'run'), ('cron_parser', 'run'),
                   ('code_formatter', 'run'), ('yaml_toml', 'run'),
                   ('json_formatter', 'run'), ('sql_formatter', 'run')]
-        self.tool_menu('DEVELOPER TOOLS', '🔧',
-                      [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
+        self.tool_menu('DEVELOPER TOOLS', '🔧', [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
 
     def menu_file(self):
         tools = [
@@ -576,48 +836,81 @@ class KevTool:
                   ('photo_meta', 'run'), ('metadata_strip', 'run'),
                   ('hex_dump', 'run'), ('steganography', 'run'),
                   ('file_checksum', 'run'), ('hex_dump', 'binary')]
-        self.tool_menu('FILE & IMAGE TOOLS', '📁',
-                      [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
+        self.tool_menu('FILE & IMAGE TOOLS', '📁', [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
 
     def menu_settings(self):
         while True:
-            self.clear()
-            self.section_header('⚙️', 'THEMES & SETTINGS')
-            self.box_row('│', f"Theme: {self.t.B}{self.theme_name}{self.t.R}")
-            self.box_row('│', f"User:  {PC_USER}")
-            self.box_row('│', f"Ver:   {VERSION}")
-            self.box_mid()
-            for idx, (name, data) in enumerate(self.themes.items(), 1):
-                t = Theme(data)
-                marker = ' <-' if name == self.theme_name else ''
-                self.box_row('│', f"[{idx:2d}]  {data.get('name', name)}{marker}")
-            self.box_mid()
-            self.box_row('│', "[U]  Check for updates")
-            self.box_row('│', "[0]  Back")
-            self.box_bottom()
+            cl = get_colors()
+            clr()
+            
+            # Banner
+            for line in BANNER_LINES:
+                print(cprint_horizontal(cl['banner'], Center.XCenter(line)))
+            print(cprint_horizontal(cl['sub'], Center.XCenter(f"\nv{VERSION} | Theme: {self.theme_name} | {PC_USER}@kevbin")))
+            print()
+            
+            # Settings box
+            draw_card_box("THEMES & SETTINGS", {
+                "1": f"Modern (current)" if self.theme_name == "modern" else "Modern",
+                "2": f"Modern Red (current)" if self.theme_name == "modern_red" else "Modern Red",
+                "3": f"Modern Purple (current)" if self.theme_name == "modern_purple" else "Modern Purple",
+                "4": f"Blue (current)" if self.theme_name == "blue" else "Blue",
+                "5": f"Red (current)" if self.theme_name == "red" else "Red",
+                "6": f"Purple (current)" if self.theme_name == "purple" else "Purple",
+                "7": f"Green (current)" if self.theme_name == "green" else "Green",
+                "8": f"Yellow (current)" if self.theme_name == "yellow" else "Yellow",
+                "9": f"Rainbow (current)" if self.theme_name == "rainbow" else "Rainbow",
+                "U": "Check for updates",
+                "0": "Back",
+            })
+            
             choice = self.input_choice()
             if choice == '0': return
             if choice.lower() == 'u':
-                self.check_update()
+                check_update()
                 continue
-            try:
-                idx = int(choice)
-                names = list(self.themes.keys())
-                if 1 <= idx <= len(names):
-                    self.theme_name = names[idx - 1]
-                    self.settings['current_theme'] = self.theme_name
-                    save_json(SETTINGS_PATH, self.settings)
-                    self.t = Theme(self.themes[self.theme_name])
-                    self.cprint(self.t.success, f"\n  Theme: {self.theme_name}")
-                    self.pause()
-            except (ValueError, IndexError):
-                pass
+            
+            theme_map = {
+                '1': 'modern', '2': 'modern_red', '3': 'modern_purple',
+                '4': 'blue', '5': 'red', '6': 'purple',
+                '7': 'green', '8': 'yellow', '9': 'rainbow'
+            }
+            if choice in theme_map:
+                new_theme = theme_map[choice]
+                self.settings['current_theme'] = new_theme
+                save_json(CONFIG_PATH, self.settings)
+                self.theme_name = new_theme
+                cl = get_colors()
+                print(cprint_horizontal(cl['head'], f"\n  [+] Theme -> {new_theme.upper()}"))
+                matrix_effect(1, 27 if new_theme == 'blue' else -1 if new_theme == 'rainbow' else 196 if 'red' in new_theme else 93)
+                time.sleep(0.5)
 
 def main():
+    init_os()
+    loading_screen()
+    check_update()
     app = KevTool()
-    app.loading_screen()
-    app.check_update()
     app.main_menu()
+
+def init_os():
+    cfg = get_config()
+    try:
+        if os.name == 'nt':
+            os.system('mode con cols=120 lines=38')
+            sys.stdout.write('\x1b[8;38;120t')
+            sys.stdout.flush()
+        else:
+            sys.stdout.write('\x1b[8;38;120t')
+            sys.stdout.flush()
+    except:
+        pass
+    System.Title(f"*KevTool @ {PC_USER} ~ v{VERSION}")
+    cols, rows = shutil.get_terminal_size()
+    if cols < 80:
+        cl = get_colors()
+        print(cprint_horizontal(cl['num'], f"\n  [!] WARNING: Terminal width is {cols} (less than 80)."))
+        print(cprint_horizontal(cl['txt'], "      For the best experience, please widen your terminal window!\n"))
+        time.sleep(3.0)
 
 if __name__ == '__main__':
     main()

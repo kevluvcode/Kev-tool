@@ -4,3 +4,4 @@ Pillow>=9.0
 colorama>=0.4.6
 python-whois>=0.9.4
 dnspython>=2.3.0
+pystyle>=2.0
