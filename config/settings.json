@@ -1,5 +1,11 @@
 {
     "current_theme": "modern_red",
     "auto_update": true,
-    "version": "1.0.0"
+    "version": "1.0.0",
+    "check_updates": true,
+    "boot_screen": true,
+    "animations": true,
+    "typing_effect": true,
+    "per_page": 14,
+    "matrix_color": -1
 }

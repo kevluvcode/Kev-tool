@@ -2,7 +2,7 @@
 
 a CLI multitool i made for learning/testing. bunch of scripts mostly for osint, security stuff, text encoding, roblox tools, discord stuff, and random generators. nothing crazy but it works.
 
-**version 1.0.0**
+**version 1.1.0**
 
 ---
 
@@ -19,6 +19,11 @@ this is strictly for educational and testing use. im not responsible if you do s
 2. run `install.bat` — it handles the rest
 3. launch with `kevtool.bat` or `python kevtool.py`
 
+### the easy way (linux / macOS)
+1. grab the repo
+2. run `bash install.sh` — it handles the rest
+3. launch with `python3 kevtool.py`
+
 ### manual
 ```
 git clone https://github.com/kevluvcode/Kev-tool.git
@@ -27,7 +32,7 @@ pip install -r requirements.txt
 python kevtool.py
 ```
 
-you need python 3.8+ installed. if you dont have it get it from python.org
+works on **python 3.6+**, all platforms (windows, linux, macOS). if you dont have python get it from python.org
 
 ---
 
@@ -228,7 +233,8 @@ or just do `git pull origin main` yourself.
 Kev-tool/
 ├── kevtool.py          # main app
 ├── kevtool.bat         # windows launcher
-├── install.bat         # installs dependencies
+├── install.bat         # windows installer
+├── install.sh          # linux/macOS installer
 ├── version.txt         # version tracking
 ├── requirements.txt    # python dependencies
 ├── readme.md           # you're reading this
