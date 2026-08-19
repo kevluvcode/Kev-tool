@@ -161,11 +161,12 @@ THEMES = {
 }
 
 BANNER_LINES = [
-    r"  ____  ____  _____ _____ ____    _____ _____ ____  ____",
-    r" / __ \|  _ \| ____|_   _/ ___|  |_   _| ____|  _ \| ___|",
-    r"| |  | | |_) |  _|   | | \___ \    | | |  _| | |_) |___ \ ",
-    r"| |__| |  _ <| |___  | |  ___) |   | | | |___|  _ < ___) |",
-    r" \____/|_| \_\_____| |_| |____/    |_| |_____|_| \_\____/ ",
+    r"  ____  __.                    ___________           .__",
+    r"|    |/ _|_______  __  ______ \__    ___/___   ____ |  |",
+    r"|      <_/ __ \  \/ / /_____/   |    | /  _ \ /  _ \|  |",
+    r"|    |  \  ___/\   /  /_____/   |    |(  <_> |  <_> )  |__",
+    r"|____|__ \___  >\_/             |____| \____/ \____/|____/",
+    r"        \/   \/",
 ]
 
 BANNER_SMALL = [
@@ -249,28 +250,14 @@ def print_banner():
     cl = get_colors()
 
     if theme_name.startswith('modern'):
-        for i, line in enumerate(BANNER_LINES):
-            if i == 4:
-                tw = shutil.get_terminal_size().columns
-                left = "~ present day "
-                right = "present time ~"
-                pad = 5
-                total_w = len(left) + pad + len(line) + pad + len(right)
-                start_p = max(0, (tw - total_w) // 2)
-                res = " " * start_p
-                res += cprint_horizontal(cl['num'], left)
-                res += " " * pad
-                res += cprint_horizontal(cl['banner'], line)
-                res += " " * pad
-                res += cprint_horizontal(cl['num'], right)
-                print(res)
-            else:
-                print(cprint_horizontal(cl['banner'], Center.XCenter(line)))
+        for line in BANNER_LINES:
+            print(cprint_horizontal(cl['banner'], Center.XCenter(line)))
+        print(cprint_horizontal(cl['sub'], Center.XCenter("~ present day , present time ~")))
         print()
     else:
         bn = BANNER_SMALL[0]
         print(cprint_horizontal(cl['banner'], Center.XCenter(bn)))
-        print(cprint_horizontal(cl['sub'], Center.XCenter("~ Present Day, Present Time ~")))
+        print(cprint_horizontal(cl['sub'], Center.XCenter("~ present day , present time ~")))
         print()
 
 def theme_wave(theme_name=None):

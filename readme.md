@@ -2,7 +2,7 @@
 
 a CLI multitool i made for learning/testing. bunch of scripts mostly for osint, security stuff, text encoding, roblox tools, discord stuff, and random generators. nothing crazy but it works.
 
-**version 1.1.0**
+**version 1.1.1**
 
 ---
 
