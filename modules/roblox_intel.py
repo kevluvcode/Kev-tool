@@ -26,19 +26,19 @@ def _get(url, params=None):
 
 
 def _print_box(navi, title, rows):
-    navi.cprint(navi.t.highlight + navi.t.B, f"\n  ┌─ {title} {'─' * max(1, 48 - len(title))}")
+    kevbin.cprint(kevbin.t.highlight + kevbin.t.B, f"\n  ┌─ {title} {'─' * max(1, 48 - len(title))}")
     for k, v in rows:
-        navi.cprint(navi.t.secondary, f"  │ {k:16s} {str(v)[:55]}")
-    navi.cprint(navi.t.highlight, f"  └{'─' * 53}")
+        kevbin.cprint(kevbin.t.secondary, f"  │ {k:16s} {str(v)[:55]}")
+    kevbin.cprint(kevbin.t.highlight, f"  └{'─' * 53}")
 
 
-def run(navi):
-    navi.clear()
-    navi.section_header('🎮', 'USER INTEL')
-    username = navi.input_choice("  Roblox username: ").strip()
+def run(kevbin):
+    kevbin.clear()
+    kevbin.section_header('🎮', 'USER INTEL')
+    username = kevbin.input_choice("  Roblox username: ").strip()
     if not username:
         return
-    navi.cprint(navi.t.dim, "  Looking up...")
+    kevbin.cprint(kevbin.t.dim, "  Looking up...")
     data = _get(f"{BASE}/v1/usernames/users", params={'usernames': json.dumps([username])})
     if data and data.get('data'):
         d = data['data'][0]
@@ -51,17 +51,17 @@ def run(navi):
             ('Bio', (d.get('description', '') or '')[:55]),
         ])
     else:
-        navi.cprint(navi.t.error, "  [X] User not found.")
-    navi.pause()
+        kevbin.cprint(kevbin.t.error, "  [X] User not found.")
+    kevbin.pause()
 
 
-def group_lookup(navi):
-    navi.clear()
-    navi.section_header('🎮', 'GROUP INTEL')
-    gid = navi.input_choice("  Group ID: ").strip()
+def group_lookup(kevbin):
+    kevbin.clear()
+    kevbin.section_header('🎮', 'GROUP INTEL')
+    gid = kevbin.input_choice("  Group ID: ").strip()
     if not gid or not gid.isdigit():
-        navi.cprint(navi.t.error, "  [X] Invalid ID.")
-        navi.pause()
+        kevbin.cprint(kevbin.t.error, "  [X] Invalid ID.")
+        kevbin.pause()
         return
     data = _get(f"{GROUPS}/v2/groups/{gid}")
     if data:
@@ -73,39 +73,39 @@ def group_lookup(navi):
             ('Shout', (data.get('shout', {}).get('body', 'None') or '')[:55]),
         ])
     else:
-        navi.cprint(navi.t.error, "  [X] Group not found.")
-    navi.pause()
+        kevbin.cprint(kevbin.t.error, "  [X] Group not found.")
+    kevbin.pause()
 
 
-def inventory_view(navi):
-    navi.clear()
-    navi.section_header('🎮', 'INVENTORY VIEWER')
-    username = navi.input_choice("  Username: ").strip()
+def inventory_view(kevbin):
+    kevbin.clear()
+    kevbin.section_header('🎮', 'INVENTORY VIEWER')
+    username = kevbin.input_choice("  Username: ").strip()
     if not username:
         return
     data = _get(f"{BASE}/v1/usernames/users", params={'usernames': json.dumps([username])})
     if not data or not data.get('data'):
-        navi.cprint(navi.t.error, "  [X] User not found.")
-        navi.pause()
+        kevbin.cprint(kevbin.t.error, "  [X] User not found.")
+        kevbin.pause()
         return
     uid = data['data'][0]['id']
     inv = _get(f"{INVENTORY}/v2/users/{uid}/inventory/0", params={'limit': 25})
     if inv and inv.get('data'):
-        navi.cprint(navi.t.highlight + navi.t.B, f"\n  ── INVENTORY ({username}) ──")
+        kevbin.cprint(kevbin.t.highlight + kevbin.t.B, f"\n  ── INVENTORY ({username}) ──")
         for item in inv['data'][:25]:
-            navi.cprint(navi.t.accent, f"  {item.get('name', '?')[:40]} (ID: {item.get('id', '?')})")
+            kevbin.cprint(kevbin.t.accent, f"  {item.get('name', '?')[:40]} (ID: {item.get('id', '?')})")
     else:
-        navi.cprint(navi.t.warning, "  [!] Private or empty.")
-    navi.pause()
+        kevbin.cprint(kevbin.t.warning, "  [!] Private or empty.")
+    kevbin.pause()
 
 
-def game_info(navi):
-    navi.clear()
-    navi.section_header('🎮', 'GAME INFO')
-    gid = navi.input_choice("  Game/Experience ID: ").strip()
+def game_info(kevbin):
+    kevbin.clear()
+    kevbin.section_header('🎮', 'GAME INFO')
+    gid = kevbin.input_choice("  Game/Experience ID: ").strip()
     if not gid or not gid.isdigit():
-        navi.cprint(navi.t.error, "  [X] Invalid ID.")
-        navi.pause()
+        kevbin.cprint(kevbin.t.error, "  [X] Invalid ID.")
+        kevbin.pause()
         return
     data = _get(f"{GAMES}/v1/games?universeIds={gid}")
     if data and data.get('data'):
@@ -122,5 +122,5 @@ def game_info(navi):
             ('VIP Server', d.get('vipMembershipAccessible', '?')),
         ])
     else:
-        navi.cprint(navi.t.error, "  [X] Game not found.")
-    navi.pause()
+        kevbin.cprint(kevbin.t.error, "  [X] Game not found.")
+    kevbin.pause()

@@ -3,15 +3,15 @@
 import re
 
 
-def run(navi):
-    navi.clear()
-    navi.section_header('🛡️', 'REGEX TESTER')
+def run(kevbin):
+    kevbin.clear()
+    kevbin.section_header('🛡️', 'REGEX TESTER')
 
-    pattern = navi.input_choice("  Regex pattern: ").strip()
+    pattern = kevbin.input_choice("  Regex pattern: ").strip()
     if not pattern:
         return
 
-    flags_str = navi.input_choice("  Flags (i=ignorecase, m=multiline, s=dotall): ").strip()
+    flags_str = kevbin.input_choice("  Flags (i=ignorecase, m=multiline, s=dotall): ").strip()
     flags = 0
     if 'i' in flags_str: flags |= re.IGNORECASE
     if 'm' in flags_str: flags |= re.MULTILINE
@@ -20,36 +20,36 @@ def run(navi):
     try:
         compiled = re.compile(pattern, flags)
     except re.error as e:
-        navi.cprint(navi.t.error, f"  [X] Invalid regex: {e}")
-        navi.pause()
+        kevbin.cprint(kevbin.t.error, f"  [X] Invalid regex: {e}")
+        kevbin.pause()
         return
 
-    navi.cprint(navi.t.success, "  [✓] Valid regex")
-    navi.cprint(navi.t.dim, "  Enter text to test (empty line to finish):\n")
+    kevbin.cprint(kevbin.t.success, "  [✓] Valid regex")
+    kevbin.cprint(kevbin.t.dim, "  Enter text to test (empty line to finish):\n")
 
     lines = []
     while True:
-        line = navi.input_choice("  ")
+        line = kevbin.input_choice("  ")
         if line == '':
             break
         lines.append(line)
 
     text = '\n'.join(lines)
     if not text:
-        navi.pause()
+        kevbin.pause()
         return
 
     matches = compiled.findall(text)
-    navi.cprint(navi.t.accent, f"\n  Matches: {len(matches)}")
+    kevbin.cprint(kevbin.t.accent, f"\n  Matches: {len(matches)}")
     for i, m in enumerate(matches[:20], 1):
         if isinstance(m, tuple):
-            navi.cprint(navi.t.secondary, f"  {i}. {m}")
+            kevbin.cprint(kevbin.t.secondary, f"  {i}. {m}")
         else:
-            navi.cprint(navi.t.secondary, f"  {i}. {m}")
+            kevbin.cprint(kevbin.t.secondary, f"  {i}. {m}")
 
     spans = list(compiled.finditer(text))
     if spans:
-        navi.cprint(navi.t.dim, "\n  Positions:")
+        kevbin.cprint(kevbin.t.dim, "\n  Positions:")
         for s in spans[:10]:
-            navi.cprint(navi.t.dim, f"    {s.start()}-{s.end()}: '{s.group()}'")
-    navi.pause()
+            kevbin.cprint(kevbin.t.dim, f"    {s.start()}-{s.end()}: '{s.group()}'")
+    kevbin.pause()

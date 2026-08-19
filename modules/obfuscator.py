@@ -14,25 +14,25 @@ def _xor_encrypt(data, key):
     return bytes(b ^ key[i % len(key)] for i, b in enumerate(data))
 
 
-def run(navi):
-    navi.clear()
-    navi.section_header('🛡️', 'OBFUSCATOR V2')
-    navi.cprint(navi.t.secondary, "  Python code obfuscation with XOR encryption + anti-print.\n")
+def run(kevbin):
+    kevbin.clear()
+    kevbin.section_header('🛡️', 'OBFUSCATOR V2')
+    kevbin.cprint(kevbin.t.secondary, "  Python code obfuscation with XOR encryption + anti-print.\n")
 
-    path = navi.input_choice("  Path to .py file: ").strip('"').strip("'")
+    path = kevbin.input_choice("  Path to .py file: ").strip('"').strip("'")
     if not path or not os.path.isfile(path):
-        navi.cprint(navi.t.error, "  [X] File not found.")
-        navi.pause()
+        kevbin.cprint(kevbin.t.error, "  [X] File not found.")
+        kevbin.pause()
         return
 
     with open(path, 'r', encoding='utf-8') as f:
         source = f.read()
 
-    navi.cprint(navi.t.dim, f"  Loaded {len(source)} chars.\n")
-    navi.cprint(navi.t.secondary, "  [1] XOR + Base64 (recommended)")
-    navi.cprint(navi.t.secondary, "  [2] Base64 only (lighter)")
-    navi.cprint(navi.t.secondary, "  [3] Full stealth (XOR + B64 + anti-print + mangling)")
-    mode = navi.input_choice()
+    kevbin.cprint(kevbin.t.dim, f"  Loaded {len(source)} chars.\n")
+    kevbin.cprint(kevbin.t.secondary, "  [1] XOR + Base64 (recommended)")
+    kevbin.cprint(kevbin.t.secondary, "  [2] Base64 only (lighter)")
+    kevbin.cprint(kevbin.t.secondary, "  [3] Full stealth (XOR + B64 + anti-print + mangling)")
+    mode = kevbin.input_choice()
 
     key = os.urandom(32)
     encoded = base64.b64encode(_xor_encrypt(source.encode(), key)).decode()
@@ -52,5 +52,5 @@ def run(navi):
     with open(out_path, 'w', encoding='utf-8') as f:
         f.write(out)
 
-    navi.cprint(navi.t.success, f"\n  [✓] Saved: {out_path} ({len(source)} -> {len(out)} chars)")
-    navi.pause()
+    kevbin.cprint(kevbin.t.success, f"\n  [✓] Saved: {out_path} ({len(source)} -> {len(out)} chars)")
+    kevbin.pause()

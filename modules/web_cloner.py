@@ -9,17 +9,17 @@ except ImportError:
     requests = None
 
 
-def run(navi):
-    navi.clear()
-    navi.section_header('🛡️', 'WEB CLONER')
-    navi.cprint(navi.t.dim, "  Clone a website's HTML + assets locally.\n")
+def run(kevbin):
+    kevbin.clear()
+    kevbin.section_header('🛡️', 'WEB CLONER')
+    kevbin.cprint(kevbin.t.dim, "  Clone a website's HTML + assets locally.\n")
 
     if requests is None:
-        navi.cprint(navi.t.error, "  [X] pip install requests")
-        navi.pause()
+        kevbin.cprint(kevbin.t.error, "  [X] pip install requests")
+        kevbin.pause()
         return
 
-    url = navi.input_choice("  Target URL: ").strip()
+    url = kevbin.input_choice("  Target URL: ").strip()
     if not url:
         return
     if not url.startswith(('http://', 'https://')):
@@ -29,7 +29,7 @@ def run(navi):
     out_dir = os.path.join(os.getcwd(), f'cloned_{domain}')
     os.makedirs(out_dir, exist_ok=True)
 
-    navi.cprint(navi.t.dim, f"  Cloning to {out_dir}...")
+    kevbin.cprint(kevbin.t.dim, f"  Cloning to {out_dir}...")
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
 
     try:
@@ -37,13 +37,13 @@ def run(navi):
         resp.raise_for_status()
         html = resp.text
     except Exception as e:
-        navi.cprint(navi.t.error, f"  [X] Failed: {e}")
-        navi.pause()
+        kevbin.cprint(kevbin.t.error, f"  [X] Failed: {e}")
+        kevbin.pause()
         return
 
     with open(os.path.join(out_dir, 'index.html'), 'w', encoding='utf-8') as f:
         f.write(html)
-    navi.cprint(navi.t.success, f"  [✓] HTML saved ({len(html)} bytes)")
+    kevbin.cprint(kevbin.t.success, f"  [✓] HTML saved ({len(html)} bytes)")
 
     assets = re.findall(r'(?:src|href)=["\']([^"\']+\.(css|js|png|jpg|gif|svg|ico|woff2?))["\']', html, re.I)
     if assets:
@@ -70,7 +70,7 @@ def run(navi):
                     count += 1
             except Exception:
                 pass
-        navi.cprint(navi.t.success, f"  [✓] {count} assets downloaded")
+        kevbin.cprint(kevbin.t.success, f"  [✓] {count} assets downloaded")
 
-    navi.cprint(navi.t.success, f"\n  [✓] Cloned to {out_dir}")
-    navi.pause()
+    kevbin.cprint(kevbin.t.success, f"\n  [✓] Cloned to {out_dir}")
+    kevbin.pause()

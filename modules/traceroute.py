@@ -7,25 +7,25 @@ import os
 import sys
 
 
-def run(navi):
-    navi.clear()
-    navi.section_header('🔍', 'TRACEROUTE')
+def run(kevbin):
+    kevbin.clear()
+    kevbin.section_header('🔍', 'TRACEROUTE')
 
-    host = navi.input_choice("  Target host: ").strip()
+    host = kevbin.input_choice("  Target host: ").strip()
     if not host:
         return
 
     try:
         target = socket.gethostbyname(host)
     except socket.gaierror:
-        navi.cprint(navi.t.error, f"  [X] Could not resolve: {host}")
-        navi.pause()
+        kevbin.cprint(kevbin.t.error, f"  [X] Could not resolve: {host}")
+        kevbin.pause()
         return
 
-    navi.cprint(navi.t.dim, f"  Tracing to {target} ({host})...\n")
+    kevbin.cprint(kevbin.t.dim, f"  Tracing to {target} ({host})...\n")
 
     if os.name == 'nt':
         os.system(f'traceroute -d {target}')
     else:
         os.system(f'traceroute {target}')
-    navi.pause()
+    kevbin.pause()

@@ -24,10 +24,10 @@ def _strength(pwd):
     return score
 
 
-def run(navi):
-    navi.clear()
-    navi.section_header('🛡️', 'PASSWORD CHECK')
-    pwd = navi.input_choice("  Password: ")
+def run(kevbin):
+    kevbin.clear()
+    kevbin.section_header('🛡️', 'PASSWORD CHECK')
+    pwd = kevbin.input_choice("  Password: ")
     if not pwd:
         return
 
@@ -35,8 +35,8 @@ def run(navi):
     labels = ['Very Weak', 'Weak', 'Fair', 'Fair', 'Good', 'Strong', 'Strong', 'Very Strong', 'Excellent']
     label = labels[min(score, len(labels) - 1)]
 
-    navi.cprint(navi.t.accent, f"\n  Length:     {len(pwd)}")
-    navi.cprint(navi.t.accent, f"  Strength:   {label} ({score}/8)")
+    kevbin.cprint(kevbin.t.accent, f"\n  Length:     {len(pwd)}")
+    kevbin.cprint(kevbin.t.accent, f"  Strength:   {label} ({score}/8)")
 
     if requests and len(pwd) >= 4:
         sha1 = hashlib.sha1(pwd.encode()).hexdigest().upper()
@@ -47,10 +47,10 @@ def run(navi):
                 for line in r.text.splitlines():
                     h, count = line.split(':')
                     if h == suffix:
-                        navi.cprint(navi.t.error, f"\n  [!] BREACHED {int(count):,} times!")
-                        navi.pause()
+                        kevbin.cprint(kevbin.t.error, f"\n  [!] BREACHED {int(count):,} times!")
+                        kevbin.pause()
                         return
-                navi.cprint(navi.t.success, "\n  [✓] Not found in breach database.")
+                kevbin.cprint(kevbin.t.success, "\n  [✓] Not found in breach database.")
         except Exception:
-            navi.cprint(navi.t.dim, "  (breach check skipped)")
-    navi.pause()
+            kevbin.cprint(kevbin.t.dim, "  (breach check skipped)")
+    kevbin.pause()

@@ -24,22 +24,22 @@ def _scan_port(host, port, timeout=1, grab_banner=False):
         return port, False, ''
 
 
-def run(navi):
-    navi.clear()
-    navi.section_header('🔍', 'PORT SCANNER')
+def run(kevbin):
+    kevbin.clear()
+    kevbin.section_header('🔍', 'PORT SCANNER')
 
-    host = navi.input_choice("  Target: ").strip()
+    host = kevbin.input_choice("  Target: ").strip()
     if not host:
         return
 
     try:
         socket.gethostbyname(host)
     except socket.gaierror:
-        navi.cprint(navi.t.error, f"  [X] Could not resolve: {host}")
-        navi.pause()
+        kevbin.cprint(kevbin.t.error, f"  [X] Could not resolve: {host}")
+        kevbin.pause()
         return
 
-    port_range = navi.input_choice("  Port range (default 1-1024): ").strip() or '1-1024'
+    port_range = kevbin.input_choice("  Port range (default 1-1024): ").strip() or '1-1024'
     try:
         if '-' in port_range:
             s, e = port_range.split('-', 1)
@@ -47,13 +47,13 @@ def run(navi):
         else:
             ports = [int(port_range)]
     except ValueError:
-        navi.cprint(navi.t.error, "  [X] Invalid range.")
-        navi.pause()
+        kevbin.cprint(kevbin.t.error, "  [X] Invalid range.")
+        kevbin.pause()
         return
 
-    grab = navi.input_choice("  Grab banners? (y/n): ").lower() == 'y'
+    grab = kevbin.input_choice("  Grab banners? (y/n): ").lower() == 'y'
 
-    navi.cprint(navi.t.dim, f"  Scanning {host}...")
+    kevbin.cprint(kevbin.t.dim, f"  Scanning {host}...")
     start = time.time()
     open_ports = []
 
@@ -68,13 +68,13 @@ def run(navi):
     open_ports.sort(key=lambda x: x[0])
 
     if open_ports:
-        navi.cprint(navi.t.success, f"\n  [✓] Open ports on {host}:\n")
+        kevbin.cprint(kevbin.t.success, f"\n  [✓] Open ports on {host}:\n")
         for p, banner in open_ports:
-            navi.cprint(navi.t.accent, f"    Port {p:5d}  OPEN")
+            kevbin.cprint(kevbin.t.accent, f"    Port {p:5d}  OPEN")
             if banner:
-                navi.cprint(navi.t.dim, f"           Banner: {banner[:60]}")
+                kevbin.cprint(kevbin.t.dim, f"           Banner: {banner[:60]}")
     else:
-        navi.cprint(navi.t.warning, f"\n  [!] No open ports found.")
+        kevbin.cprint(kevbin.t.warning, f"\n  [!] No open ports found.")
 
-    navi.cprint(navi.t.dim, f"\n  Scanned {len(list(ports))} ports in {elapsed:.2f}s")
-    navi.pause()
+    kevbin.cprint(kevbin.t.dim, f"\n  Scanned {len(list(ports))} ports in {elapsed:.2f}s")
+    kevbin.pause()

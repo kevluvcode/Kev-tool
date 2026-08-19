@@ -9,53 +9,53 @@ except ImportError:
     requests = None
 
 
-def run(navi):
+def run(kevbin):
     while True:
-        navi.clear()
-        navi.section_header('🔍', 'EMAIL TOOLS')
-        navi.cprint(navi.t.secondary, "  [1]  Validate Email Format")
-        navi.cprint(navi.t.secondary, "  [2]  Check MX Records")
-        navi.cprint(navi.t.secondary, "  [3]  Email Reputation Check")
-        navi.cprint(navi.t.secondary, "  [0]  Back")
-        navi.line()
-        choice = navi.input_choice()
+        kevbin.clear()
+        kevbin.section_header('🔍', 'EMAIL TOOLS')
+        kevbin.cprint(kevbin.t.secondary, "  [1]  Validate Email Format")
+        kevbin.cprint(kevbin.t.secondary, "  [2]  Check MX Records")
+        kevbin.cprint(kevbin.t.secondary, "  [3]  Email Reputation Check")
+        kevbin.cprint(kevbin.t.secondary, "  [0]  Back")
+        kevbin.line()
+        choice = kevbin.input_choice()
         if choice == '0': return
 
         if choice == '1':
-            email = navi.input_choice("  Email: ").strip()
+            email = kevbin.input_choice("  Email: ").strip()
             pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
             if re.match(pattern, email):
-                navi.cprint(navi.t.success, f"\n  [✓] Valid format: {email}")
+                kevbin.cprint(kevbin.t.success, f"\n  [✓] Valid format: {email}")
                 domain = email.split('@')[1]
-                navi.cprint(navi.t.dim, f"  Domain: {domain}")
+                kevbin.cprint(kevbin.t.dim, f"  Domain: {domain}")
             else:
-                navi.cprint(navi.t.error, f"\n  [X] Invalid format: {email}")
-            navi.pause()
+                kevbin.cprint(kevbin.t.error, f"\n  [X] Invalid format: {email}")
+            kevbin.pause()
 
         elif choice == '2':
-            domain = navi.input_choice("  Domain: ").strip()
+            domain = kevbin.input_choice("  Domain: ").strip()
             if not domain:
                 continue
-            navi.cprint(navi.t.dim, f"\n  MX records for {domain}:")
+            kevbin.cprint(kevbin.t.dim, f"\n  MX records for {domain}:")
             try:
                 import dns.resolver
                 answers = dns.resolver.resolve(domain, 'MX')
                 for r in sorted(answers, key=lambda x: x.preference):
-                    navi.cprint(navi.t.accent, f"    {r.preference:3d} {r.exchange}")
+                    kevbin.cprint(kevbin.t.accent, f"    {r.preference:3d} {r.exchange}")
             except ImportError:
-                navi.cprint(navi.t.error, "  [X] pip install dnspython")
+                kevbin.cprint(kevbin.t.error, "  [X] pip install dnspython")
             except dns.resolver.NoAnswer:
-                navi.cprint(navi.t.warning, "  [!] No MX records found.")
+                kevbin.cprint(kevbin.t.warning, "  [!] No MX records found.")
             except Exception as e:
-                navi.cprint(navi.t.error, f"  [X] {e}")
-            navi.pause()
+                kevbin.cprint(kevbin.t.error, f"  [X] {e}")
+            kevbin.pause()
 
         elif choice == '3' and requests:
-            email = navi.input_choice("  Email: ").strip()
+            email = kevbin.input_choice("  Email: ").strip()
             if '@' not in email:
                 continue
             domain = email.split('@')[1]
-            navi.cprint(navi.t.dim, f"\n  Checking {domain}...")
+            kevbin.cprint(kevbin.t.dim, f"\n  Checking {domain}...")
             try:
                 mx_records = []
                 import dns.resolver
@@ -65,16 +65,24 @@ def run(navi):
                 mx_records = []
 
             if mx_records:
-                navi.cprint(navi.t.success, f"  MX: {', '.join(mx_records[:3])}")
+                kevbin.cprint(kevbin.t.success, f"  MX: {', '.join(mx_records[:3])}")
                 provider = mx_records[0].lower()
                 if 'google' in provider or 'gmail' in provider:
-                    navi.cprint(navi.t.accent, "  Provider: Google Workspace / Gmail")
+                    kevbin.cprint(kevbin.t.accent, "  Provider: Google Workspace / Gmail")
                 elif 'outlook' in provider or 'microsoft' in provider:
-                    navi.cprint(navi.t.accent, "  Provider: Microsoft 365")
+                    kevbin.cprint(kevbin.t.accent, "  Provider: Microsoft 365")
                 elif 'proton' in provider:
-                    navi.cprint(navi.t.accent, "  Provider: ProtonMail")
+                    kevbin.cprint(kevbin.t.accent, "  Provider: ProtonMail")
                 else:
-                    navi.cprint(navi.t.accent, f"  Provider: {provider}")
+                    kevbin.cprint(kevbin.t.accent, f"  Provider: {provider}")
             else:
-                navi.cprint(navi.t.warning, "  [!] No MX records — may be invalid.")
-            navi.pause()
+                kevbin.cprint(kevbin.t.warning, "  [!] No MX records — may be invalid.")
+            kevbin.pause()
+
+
+def validate(kevbin):
+    run(navi)
+
+
+def reputation(kevbin):
+    run(navi)

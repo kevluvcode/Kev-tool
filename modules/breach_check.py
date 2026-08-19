@@ -6,37 +6,37 @@ except ImportError:
     requests = None
 
 
-def run(navi):
-    navi.clear()
-    navi.section_header('🔍', 'BREACH CHECK')
-    navi.cprint(navi.t.dim, "  Check emails against known breach databases.\n")
+def run(kevbin):
+    kevbin.clear()
+    kevbin.section_header('🔍', 'BREACH CHECK')
+    kevbin.cprint(kevbin.t.dim, "  Check emails against known breach databases.\n")
 
     if requests is None:
-        navi.cprint(navi.t.error, "  [X] pip install requests")
-        navi.pause()
+        kevbin.cprint(kevbin.t.error, "  [X] pip install requests")
+        kevbin.pause()
         return
 
-    email = navi.input_choice("  Email: ").strip()
+    email = kevbin.input_choice("  Email: ").strip()
     if not email or '@' not in email:
         return
 
-    navi.cprint(navi.t.dim, "  Checking...")
+    kevbin.cprint(kevbin.t.dim, "  Checking...")
     try:
         r = requests.get(f"https://haveibeenpwned.com/api/v3/breachedaccount/{email}",
                         timeout=10, headers={'User-Agent': 'KevTool'})
         if r.status_code == 200:
             breaches = r.json()
-            navi.cprint(navi.t.warning, f"\n  [!] Found in {len(breaches)} breach(es):\n")
+            kevbin.cprint(kevbin.t.warning, f"\n  [!] Found in {len(breaches)} breach(es):\n")
             for b in breaches[:15]:
-                navi.cprint(navi.t.error, f"    {b.get('Name', '?'):30s} {b.get('BreachDate', '?')}")
+                kevbin.cprint(kevbin.t.error, f"    {b.get('Name', '?'):30s} {b.get('BreachDate', '?')}")
                 if b.get('DataClasses'):
-                    navi.cprint(navi.t.dim, f"      Data: {', '.join(b['DataClasses'][:5])}")
+                    kevbin.cprint(kevbin.t.dim, f"      Data: {', '.join(b['DataClasses'][:5])}")
         elif r.status_code == 404:
-            navi.cprint(navi.t.success, "  [✓] No breaches found.")
+            kevbin.cprint(kevbin.t.success, "  [✓] No breaches found.")
         elif r.status_code == 401:
-            navi.cprint(navi.t.dim, "  API key required for this endpoint.")
+            kevbin.cprint(kevbin.t.dim, "  API key required for this endpoint.")
         else:
-            navi.cprint(navi.t.dim, f"  Status: {r.status_code}")
+            kevbin.cprint(kevbin.t.dim, f"  Status: {r.status_code}")
     except Exception as e:
-        navi.cprint(navi.t.error, f"  [X] {e}")
-    navi.pause()
+        kevbin.cprint(kevbin.t.error, f"  [X] {e}")
+    kevbin.pause()

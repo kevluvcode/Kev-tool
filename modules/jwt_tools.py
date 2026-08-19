@@ -18,46 +18,46 @@ def _b64url_encode(data):
     return base64.urlsafe_b64encode(data).rstrip(b'=').decode()
 
 
-def run(navi):
+def run(kevbin):
     while True:
-        navi.clear()
-        navi.section_header('🛡️', 'JWT TOOLS')
-        navi.cprint(navi.t.secondary, "  [1]  Decode JWT")
-        navi.cprint(navi.t.secondary, "  [2]  Generate JWT (HMAC-SHA256)")
-        navi.cprint(navi.t.secondary, "  [0]  Back")
-        navi.line()
-        choice = navi.input_choice()
+        kevbin.clear()
+        kevbin.section_header('🛡️', 'JWT TOOLS')
+        kevbin.cprint(kevbin.t.secondary, "  [1]  Decode JWT")
+        kevbin.cprint(kevbin.t.secondary, "  [2]  Generate JWT (HMAC-SHA256)")
+        kevbin.cprint(kevbin.t.secondary, "  [0]  Back")
+        kevbin.line()
+        choice = kevbin.input_choice()
         if choice == '0': return
 
         if choice == '1':
-            token = navi.input_choice("  JWT token: ").strip()
+            token = kevbin.input_choice("  JWT token: ").strip()
             parts = token.split('.')
             if len(parts) < 2:
-                navi.cprint(navi.t.error, "  [X] Invalid JWT format.")
-                navi.pause()
+                kevbin.cprint(kevbin.t.error, "  [X] Invalid JWT format.")
+                kevbin.pause()
                 continue
 
             try:
                 header = json.loads(_b64url_decode(parts[0]))
                 payload = json.loads(_b64url_decode(parts[1]))
-                navi.cprint(navi.t.highlight + navi.t.B, "\n  ┌─ HEADER ─────────────────────────")
+                kevbin.cprint(kevbin.t.highlight + kevbin.t.B, "\n  ┌─ HEADER ─────────────────────────")
                 for k, v in header.items():
-                    navi.cprint(navi.t.accent, f"  │ {k}: {v}")
-                navi.cprint(navi.t.highlight, "  ├─ PAYLOAD ────────────────────────")
+                    kevbin.cprint(kevbin.t.accent, f"  │ {k}: {v}")
+                kevbin.cprint(kevbin.t.highlight, "  ├─ PAYLOAD ────────────────────────")
                 for k, v in payload.items():
                     val = str(v)[:60]
                     if k == 'exp' and isinstance(v, (int, float)):
                         val += f" ({time.strftime('%Y-%m-%d %H:%M', time.gmtime(v))})"
-                    navi.cprint(navi.t.accent, f"  │ {k}: {val}")
-                navi.cprint(navi.t.highlight, "  └──────────────────────────────────")
-                navi.cprint(navi.t.dim, "  ⚠ Signature NOT verified (read-only decode)")
+                    kevbin.cprint(kevbin.t.accent, f"  │ {k}: {val}")
+                kevbin.cprint(kevbin.t.highlight, "  └──────────────────────────────────")
+                kevbin.cprint(kevbin.t.dim, "  ⚠ Signature NOT verified (read-only decode)")
             except Exception as e:
-                navi.cprint(navi.t.error, f"  [X] Decode error: {e}")
-            navi.pause()
+                kevbin.cprint(kevbin.t.error, f"  [X] Decode error: {e}")
+            kevbin.pause()
 
         elif choice == '2':
-            payload_text = navi.input_choice("  Payload (JSON or key=value,key=value): ").strip()
-            secret = navi.input_choice("  Secret key: ").strip()
+            payload_text = kevbin.input_choice("  Payload (JSON or key=value,key=value): ").strip()
+            secret = kevbin.input_choice("  Secret key: ").strip()
             if not payload_text or not secret:
                 continue
 
@@ -71,8 +71,8 @@ def run(navi):
                             k, v = item.split('=', 1)
                             payload[k.strip()] = v.strip()
             except json.JSONDecodeError:
-                navi.cprint(navi.t.error, "  [X] Invalid JSON.")
-                navi.pause()
+                kevbin.cprint(kevbin.t.error, "  [X] Invalid JSON.")
+                kevbin.pause()
                 continue
 
             if 'iat' not in payload:
@@ -86,5 +86,5 @@ def run(navi):
             sig = _b64url_encode(hmac.new(secret.encode(), f'{h}.{p}'.encode(), hashlib.sha256).digest())
             token = f'{h}.{p}.{sig}'
 
-            navi.cprint(navi.t.accent, f"\n  Token:\n  {token}")
-            navi.pause()
+            kevbin.cprint(kevbin.t.accent, f"\n  Token:\n  {token}")
+            kevbin.pause()

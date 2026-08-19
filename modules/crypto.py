@@ -12,48 +12,48 @@ def _gen_password(length=16):
     return ''.join(secrets.choice(pool) for _ in range(length))
 
 
-def run(navi):
+def run(kevbin):
     while True:
-        navi.clear()
-        navi.section_header('🛡️', 'CRYPTOGRAPHY')
-        navi.cprint(navi.t.secondary, "  [1]  Base64 Encode")
-        navi.cprint(navi.t.secondary, "  [2]  Base64 Decode")
-        navi.cprint(navi.t.secondary, "  [3]  Hex Encode")
-        navi.cprint(navi.t.secondary, "  [4]  Hex Decode")
-        navi.cprint(navi.t.secondary, "  [5]  ROT13")
-        navi.cprint(navi.t.secondary, "  [6]  Password Generator")
-        navi.cprint(navi.t.secondary, "  [0]  Back")
-        navi.line()
-        choice = navi.input_choice()
+        kevbin.clear()
+        kevbin.section_header('🛡️', 'CRYPTOGRAPHY')
+        kevbin.cprint(kevbin.t.secondary, "  [1]  Base64 Encode")
+        kevbin.cprint(kevbin.t.secondary, "  [2]  Base64 Decode")
+        kevbin.cprint(kevbin.t.secondary, "  [3]  Hex Encode")
+        kevbin.cprint(kevbin.t.secondary, "  [4]  Hex Decode")
+        kevbin.cprint(kevbin.t.secondary, "  [5]  ROT13")
+        kevbin.cprint(kevbin.t.secondary, "  [6]  Password Generator")
+        kevbin.cprint(kevbin.t.secondary, "  [0]  Back")
+        kevbin.line()
+        choice = kevbin.input_choice()
         if choice == '0': return
         if choice == '1':
-            t = navi.input_choice("  Text: ")
-            navi.cprint(navi.t.accent, f"\n  {base64.b64encode(t.encode()).decode()}")
-            navi.pause()
+            t = kevbin.input_choice("  Text: ")
+            kevbin.cprint(kevbin.t.accent, f"\n  {base64.b64encode(t.encode()).decode()}")
+            kevbin.pause()
         elif choice == '2':
-            t = navi.input_choice("  Base64: ")
+            t = kevbin.input_choice("  Base64: ")
             try:
-                navi.cprint(navi.t.accent, f"\n  {base64.b64decode(t).decode()}")
+                kevbin.cprint(kevbin.t.accent, f"\n  {base64.b64decode(t).decode()}")
             except Exception as e:
-                navi.cprint(navi.t.error, f"  [X] {e}")
-            navi.pause()
+                kevbin.cprint(kevbin.t.error, f"  [X] {e}")
+            kevbin.pause()
         elif choice == '3':
-            t = navi.input_choice("  Text: ")
-            navi.cprint(navi.t.accent, f"\n  {t.encode().hex()}")
-            navi.pause()
+            t = kevbin.input_choice("  Text: ")
+            kevbin.cprint(kevbin.t.accent, f"\n  {t.encode().hex()}")
+            kevbin.pause()
         elif choice == '4':
-            t = navi.input_choice("  Hex: ")
+            t = kevbin.input_choice("  Hex: ")
             try:
-                navi.cprint(navi.t.accent, f"\n  {bytes.fromhex(t).decode()}")
+                kevbin.cprint(kevbin.t.accent, f"\n  {bytes.fromhex(t).decode()}")
             except Exception as e:
-                navi.cprint(navi.t.error, f"  [X] {e}")
-            navi.pause()
+                kevbin.cprint(kevbin.t.error, f"  [X] {e}")
+            kevbin.pause()
         elif choice == '5':
-            t = navi.input_choice("  Text: ")
-            navi.cprint(navi.t.accent, f"\n  {codecs.encode(t, 'rot_13')}")
-            navi.pause()
+            t = kevbin.input_choice("  Text: ")
+            kevbin.cprint(kevbin.t.accent, f"\n  {codecs.encode(t, 'rot_13')}")
+            kevbin.pause()
         elif choice == '6':
-            l = navi.input_choice("  Length (default 16): ").strip()
+            l = kevbin.input_choice("  Length (default 16): ").strip()
             ln = int(l) if l.isdigit() and int(l) >= 4 else 16
-            navi.cprint(navi.t.accent, f"\n  {_gen_password(ln)}")
-            navi.pause()
+            kevbin.cprint(kevbin.t.accent, f"\n  {_gen_password(ln)}")
+            kevbin.pause()

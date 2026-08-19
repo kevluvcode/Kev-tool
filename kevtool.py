@@ -7,7 +7,10 @@ import json
 import time
 import importlib
 import getpass
+import subprocess
 
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
 os.system('')
 try:
     import colorama
@@ -34,15 +37,14 @@ def _read_version():
 VERSION = _read_version()
 
 BANNER = r"""
-     ██╗  ██╗██████╗  ██████╗ ███╗   ██╗    ████████╗███████╗██████╗ ███╗   ███╗
-     ██║ ██╔╝██╔══██╗██╔═══██╗████╗  ██║    ╚══██╔══╝██╔════╝██╔══██╗████╗ ████║
-     █████╔╝ ██████╔╝██║   ██║██╔██╗ ██║       ██║   █████╗  ██████╔╝██╔████╔██║
-     ██╔═██╗ ██╔══██╗██║   ██║██║╚██╗██║       ██║   ██╔══╝  ██╔══██╗██║╚██╔╝██║
-     ██║  ██╗██║  ██║╚██████╔╝██║ ╚████║       ██║   ███████╗██║  ██║██║ ╚═╝ ██║
-     ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝       ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝"""
+  ____  ____  _____ _____ ____    _____ _____ ____  ____
+ / __ \|  _ \| ____|_   _/ ___|  |_   _| ____|  _ \| ___|
+| |  | | |_) |  _|   | | \___ \    | | |  _| | |_) |___ \
+| |__| |  _ <| |___  | |  ___) |   | | | |___|  _ < ___) |
+ \____/|_| \_\_____| |_| |____/    |_| |_____|_| \_\____/
+"""
 
-TOOLS_PER_PAGE = 15
-
+TOOLS_PER_PAGE = 14
 
 def load_json(path):
     try:
@@ -51,7 +53,6 @@ def load_json(path):
     except Exception:
         return {}
 
-
 def save_json(path, data):
     try:
         with open(path, 'w', encoding='utf-8') as f:
@@ -59,13 +60,11 @@ def save_json(path, data):
     except Exception:
         pass
 
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_DIR = os.path.join(BASE_DIR, 'config')
 MODULES_DIR = os.path.join(BASE_DIR, 'modules')
 SETTINGS_PATH = os.path.join(CONFIG_DIR, 'settings.json')
 THEMES_PATH = os.path.join(CONFIG_DIR, 'themes.json')
-
 
 class Theme:
     def __init__(self, data=None):
@@ -83,7 +82,6 @@ class Theme:
         self.R = d.get('reset', '\033[0m')
         self.B = d.get('bold', '\033[1m')
 
-
 class KevTool:
     def __init__(self):
         self.settings = load_json(SETTINGS_PATH)
@@ -91,7 +89,7 @@ class KevTool:
         theme_name = self.settings.get('current_theme', 'modern')
         self.t = Theme(self.themes.get(theme_name, self.themes.get('modern', {})))
         self.theme_name = theme_name
-        self.prompt = f"{PC_USER}@kev> "
+        self.prompt = f"{PC_USER}@kevbin> "
 
     def clear(self):
         os.system('cls' if os.name == 'nt' else 'clear')
@@ -100,13 +98,25 @@ class KevTool:
         sys.stdout.write(f"{color}{text}{self.t.R}{end}")
         sys.stdout.flush()
 
-    def line(self, char='─', width=62):
-        self.cprint(self.t.border, '  ' + char * width)
+    def box_line(self, left, middle, right, width=64, char='─'):
+        self.cprint(self.t.border, f"  {left}{char * width}{right}")
+
+    def box_top(self, width=64):
+        self.box_line('┌', '', '┐', width)
+
+    def box_bottom(self, width=64):
+        self.box_line('└', '', '┘', width)
+
+    def box_mid(self, width=64):
+        self.box_line('├', '', '┤', width)
+
+    def box_row(self, left, content, right='│', width=64):
+        self.cprint(self.t.border, f"  {left} {content:<{width-2}} {right}")
 
     def section_header(self, icon, title):
-        self.line()
-        self.cprint(self.t.B + self.t.primary, f"  {icon}  {title}")
-        self.line()
+        self.box_top()
+        self.box_row('│', f"{icon}  {title}")
+        self.box_mid()
 
     def input_choice(self, prompt=None):
         p = prompt or self.prompt
@@ -117,37 +127,39 @@ class KevTool:
             return ''
 
     def pause(self):
-        self.cprint(self.t.dim, f'\n  {self.prompt}Press Enter...')
+        self.cprint(self.t.dim, f"\n  {self.prompt}Press Enter...")
         try:
             input()
         except (EOFError, KeyboardInterrupt):
             print()
 
     def loading_screen(self):
-        lines = BANNER.split('\n')
+        lines = BANNER.strip().split('\n')
         total = len(lines)
-        bar_w = 40
+        bar_w = 44
         duration = 3.0
-        step_time = duration / (total + 5)
+        step_time = duration / (total + 3)
 
         for i, line in enumerate(lines):
             self.clear()
+            self.box_top(50)
             for j in range(i + 1):
-                self.cprint(self.t.banner, lines[j])
+                self.box_row('│', lines[j])
             pct = int((i + 1) / total * 100)
             filled = int(bar_w * (i + 1) / total)
-            bar = '█' * filled + '░' * (bar_w - filled)
-            self.cprint(self.t.dim, '')
-            self.cprint(self.t.primary, f"  [{bar}] {pct}%  Loading KevTool...")
+            bar = '#' * filled + '.' * (bar_w - filled)
+            self.box_row('│', f"[{bar}] {pct}%  Loading KevTool...")
+            self.box_bottom(50)
             time.sleep(step_time)
 
         self.clear()
+        self.box_top(50)
         for line in lines:
-            self.cprint(self.t.banner, line)
-        self.cprint(self.t.dim, '')
-        self.cprint(self.t.primary, f"  [{'█' * bar_w}] 100%")
-        self.cprint(self.t.accent, f"  {self.t.B}Welcome, {PC_USER}. KevTool v{VERSION} ready.")
-        remaining = duration - (total + 5) * step_time
+            self.box_row('│', line)
+        self.box_row('│', f"[{'#' * bar_w}] 100%")
+        self.box_row('│', f"Welcome, {PC_USER}. KevTool v{VERSION} ready.")
+        self.box_bottom(50)
+        remaining = duration - (total + 3) * step_time
         if remaining > 0:
             time.sleep(remaining)
         else:
@@ -156,32 +168,33 @@ class KevTool:
     def check_update(self):
         try:
             import requests
-            self.cprint(self.t.dim, "  checking for updates...")
+            self.cprint(self.t.dim, "  Checking for updates...")
             resp = requests.get(GITHUB_RAW_VERSION, timeout=8)
             if resp.status_code == 200:
                 remote_ver = resp.text.strip()
                 if remote_ver and remote_ver != VERSION:
-                    self.cprint(self.t.warning, f"  new version available: {remote_ver} (you have {VERSION})")
-                    self.cprint(self.t.dim, f"  download: https://github.com/{GITHUB_REPO}")
-                    choice = self.input_choice("  clone update now? (y/n): ")
+                    self.box_top(50)
+                    self.box_row('│', f"New version available: {remote_ver} (you have {VERSION})")
+                    self.box_row('│', f"Download: https://github.com/{GITHUB_REPO}")
+                    self.box_bottom(50)
+                    choice = self.input_choice("  Clone update now? (y/n): ")
                     if choice.lower() == 'y':
-                        self.cprint(self.t.dim, "  cloning repo...")
-                        import subprocess
+                        self.cprint(self.t.dim, "  Cloning repo...")
                         install_dir = os.path.join(BASE_DIR, f"KevTool_{remote_ver}")
                         result = subprocess.run(
                             ['git', 'clone', GITHUB_CLONE, install_dir],
                             capture_output=True, text=True, timeout=60
                         )
                         if result.returncode == 0:
-                            self.cprint(self.t.success, f"  [ok] cloned to: {install_dir}")
-                            self.cprint(self.t.dim, "  run install.bat in the new folder to set it up")
+                            self.cprint(self.t.success, f"  [OK] Cloned to: {install_dir}")
+                            self.cprint(self.t.dim, "  Run install.bat in the new folder to set it up")
                         else:
-                            self.cprint(self.t.error, f"  [x] clone failed: {result.stderr.strip()}")
+                            self.cprint(self.t.error, f"  [X] Clone failed: {result.stderr.strip()}")
                     self.pause()
                 else:
-                    self.cprint(self.t.success, "  already up to date")
+                    self.cprint(self.t.success, "  Already up to date")
             else:
-                self.cprint(self.t.dim, "  couldnt check for updates")
+                self.cprint(self.t.dim, "  Couldn't check for updates")
         except Exception:
             pass
 
@@ -202,7 +215,7 @@ class KevTool:
             self.cprint(self.t.error, f"  [X] {e}")
             self.pause()
 
-    def tool_menu(self, title, icon, tools, cols=2):
+    def tool_menu(self, title, icon, tools):
         page = 0
         while True:
             self.clear()
@@ -213,13 +226,14 @@ class KevTool:
             end = min(start + TOOLS_PER_PAGE, total)
             for i in range(start, end):
                 num = i + 1
-                name, desc = tools[i]
-                self.cprint(self.t.secondary, f"  [{num:3d}]  {name:24s} {self.t.dim}{desc}")
-            self.line()
+                name, desc = tools[i][0], tools[i][1]
+                self.box_row('│', f"[{num:3d}]  {name:<24} {self.t.dim}{desc}")
+            self.box_mid()
             if pages > 1:
-                nav = f"  Page {page+1}/{pages}  [n]ext [p]rev"
-                self.cprint(self.t.dim, nav)
-            self.cprint(self.t.secondary, "  [0]  Back")
+                nav = f"Page {page+1}/{pages}  [N]ext  [P]rev"
+                self.box_row('│', nav)
+            self.box_row('│', "[ 0]  Back")
+            self.box_bottom()
             choice = self.input_choice()
             if choice == '0': return
             if choice.lower() == 'n' and page < pages - 1:
@@ -231,7 +245,7 @@ class KevTool:
             try:
                 idx = int(choice) - 1
                 if 0 <= idx < total:
-                    mod, func = tools[idx][2] if len(tools[idx]) > 2 else (tools[idx][0][0], 'run')
+                    mod, func = tools[idx][2]
                     self.run_module(mod, func)
             except (ValueError, IndexError):
                 pass
@@ -239,12 +253,13 @@ class KevTool:
     def main_menu(self):
         while True:
             self.clear()
-            for line in BANNER.split('\n'):
-                self.cprint(self.t.banner, line)
-            self.cprint(self.t.dim, f"  v{VERSION} | Theme: {self.theme_name} | {PC_USER}@kev")
-            self.line()
-            self.cprint(self.t.highlight + self.t.B, "  MAIN MENU")
-            self.line()
+            self.box_top(50)
+            for line in BANNER.strip().split('\n'):
+                self.box_row('│', line)
+            self.box_row('│', f"v{VERSION} | Theme: {self.theme_name} | {PC_USER}@kevbin")
+            self.box_mid(50)
+            self.box_row('│', "MAIN MENU", '│')
+            self.box_mid(50)
             cats = [
                 ('1', '📡', 'Discord Operations'),
                 ('2', '🔍', 'OSINT & Intelligence'),
@@ -261,9 +276,9 @@ class KevTool:
                 ('13', '⚙️', 'Themes & Settings'),
             ]
             for num, icon, name in cats:
-                self.cprint(self.t.secondary, f"  [{num:>2s}]  {icon}  {name}")
-            self.cprint(self.t.secondary, "  [ 0]  Exit")
-            self.line()
+                self.box_row('│', f"[{num:>2s}]  {icon}  {name}")
+            self.box_row('│', "[ 0]  Exit")
+            self.box_bottom(50)
             choice = self.input_choice()
             menus = {
                 '1': self.menu_discord, '2': self.menu_osint, '3': self.menu_security,
@@ -278,8 +293,6 @@ class KevTool:
                 sys.exit(0)
             if choice in menus:
                 menus[choice]()
-
-    # ─── CATEGORY MENUS ──────────────────────────────────────────
 
     def menu_discord(self):
         tools = [
@@ -373,7 +386,7 @@ class KevTool:
             ('Link Spoof', 'View redirect chains'),
             ('Link Tracker', 'Track link clicks'),
             ('Browser FP', 'Browser fingerprint'),
-            ('Webrtc Leak', 'WebRTC IP detection'),
+            ('WebRTC Leak', 'WebRTC IP detection'),
             ('DNS over HTTPS', 'Encrypted DNS queries'),
             ('Subdomain Enum', 'Find subdomains'),
             ('Subnet Calculator', 'CIDR calculations'),
@@ -570,17 +583,18 @@ class KevTool:
         while True:
             self.clear()
             self.section_header('⚙️', 'THEMES & SETTINGS')
-            self.cprint(self.t.secondary, f"  Theme: {self.t.B}{self.theme_name}{self.t.R}")
-            self.cprint(self.t.secondary, f"  User:  {PC_USER}")
-            self.cprint(self.t.secondary, f"  Ver:   {VERSION}")
-            self.line()
+            self.box_row('│', f"Theme: {self.t.B}{self.theme_name}{self.t.R}")
+            self.box_row('│', f"User:  {PC_USER}")
+            self.box_row('│', f"Ver:   {VERSION}")
+            self.box_mid()
             for idx, (name, data) in enumerate(self.themes.items(), 1):
                 t = Theme(data)
-                marker = ' ◀' if name == self.theme_name else ''
-                self.cprint(t.primary, f"  [{idx:2d}]  {data.get('name', name)}{marker}")
-            self.line()
-            self.cprint(self.t.secondary, "  [u]  check for updates")
-            self.cprint(self.t.secondary, "  [0]  back")
+                marker = ' <-' if name == self.theme_name else ''
+                self.box_row('│', f"[{idx:2d}]  {data.get('name', name)}{marker}")
+            self.box_mid()
+            self.box_row('│', "[U]  Check for updates")
+            self.box_row('│', "[0]  Back")
+            self.box_bottom()
             choice = self.input_choice()
             if choice == '0': return
             if choice.lower() == 'u':
@@ -599,13 +613,11 @@ class KevTool:
             except (ValueError, IndexError):
                 pass
 
-
 def main():
     app = KevTool()
     app.loading_screen()
     app.check_update()
     app.main_menu()
-
 
 if __name__ == '__main__':
     main()
