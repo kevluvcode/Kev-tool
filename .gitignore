@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+*.pyo
+fix_md.py
+fix_md2.py
+KevTool_*/
