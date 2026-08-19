@@ -6,31 +6,42 @@ import sys
 import json
 import time
 import importlib
-import zipfile
-import io
+import getpass
 
 os.system('')
+try:
+    import colorama
+    colorama.init()
+except ImportError:
+    pass
 
-VERSION = "1.0.0"
 AUTHOR = "KevBin"
 GITHUB_REPO = "kevluvcode/Kev-tool"
 GITHUB_API = f"https://api.github.com/repos/{GITHUB_REPO}"
-GITHUB_ZIP = f"https://github.com/{GITHUB_REPO}/archive/refs/heads/main.zip"
+GITHUB_CLONE = f"https://github.com/{GITHUB_REPO}.git"
+GITHUB_RAW_VERSION = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
+PC_USER = getpass.getuser()
+
+VERSION_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'version.txt')
+
+def _read_version():
+    try:
+        with open(VERSION_PATH, 'r', encoding='utf-8') as f:
+            return f.read().strip()
+    except Exception:
+        return "0.0.0"
+
+VERSION = _read_version()
 
 BANNER = r"""
- ##   ###  ########  ##:  :##  ######:    ######   ###   ##
- ##   ##   ########  ##    ##  #######    ######   ###   ##
- ## :##:   ##        :##  ##:  ##   :##     ##     ###:  ##
- ##.##:    ##        :##  ##:  ##    ##     ##     ####  ##
- #####     ##         ## .##   ##   :##     ##     ##:#: ##
- #####     #######    ##::##   #######.     ##     ## ## ##
- #####:    #######    ##::##   #######.     ##     ## ## ##
- ##::##    ##         :####:   ##   :##     ##     ## :#:##
- ##  ##    ##         .####.   ##    ##     ##     ##  ####
- ##  :##   ##          ####    ##   :##     ##     ##  :###
- ##   ##   ########    ####    ########   ######   ##   ###
- ##   :##  ########     ##     ######     ######   ##   ###
-"""
+     ██╗  ██╗██████╗  ██████╗ ███╗   ██╗    ████████╗███████╗██████╗ ███╗   ███╗
+     ██║ ██╔╝██╔══██╗██╔═══██╗████╗  ██║    ╚══██╔══╝██╔════╝██╔══██╗████╗ ████║
+     █████╔╝ ██████╔╝██║   ██║██╔██╗ ██║       ██║   █████╗  ██████╔╝██╔████╔██║
+     ██╔═██╗ ██╔══██╗██║   ██║██║╚██╗██║       ██║   ██╔══╝  ██╔══██╗██║╚██╔╝██║
+     ██║  ██╗██║  ██║╚██████╔╝██║ ╚████║       ██║   ███████╗██║  ██║██║ ╚═╝ ██║
+     ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝       ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝"""
+
+TOOLS_PER_PAGE = 15
 
 
 def load_json(path):
@@ -78,9 +89,9 @@ class KevTool:
         self.settings = load_json(SETTINGS_PATH)
         self.themes = load_json(THEMES_PATH)
         theme_name = self.settings.get('current_theme', 'modern')
-        theme_data = self.themes.get(theme_name, self.themes.get('modern', {}))
-        self.t = Theme(theme_data)
+        self.t = Theme(self.themes.get(theme_name, self.themes.get('modern', {})))
         self.theme_name = theme_name
+        self.prompt = f"{PC_USER}@kev> "
 
     def clear(self):
         os.system('cls' if os.name == 'nt' else 'clear')
@@ -89,7 +100,7 @@ class KevTool:
         sys.stdout.write(f"{color}{text}{self.t.R}{end}")
         sys.stdout.flush()
 
-    def line(self, char='─', width=60):
+    def line(self, char='─', width=62):
         self.cprint(self.t.border, '  ' + char * width)
 
     def section_header(self, icon, title):
@@ -97,97 +108,87 @@ class KevTool:
         self.cprint(self.t.B + self.t.primary, f"  {icon}  {title}")
         self.line()
 
-    def input_choice(self, prompt='  > '):
+    def input_choice(self, prompt=None):
+        p = prompt or self.prompt
         try:
-            return input(f"{self.t.primary}{prompt}{self.t.R}").strip()
+            return input(f"{self.t.primary}{p}{self.t.R}").strip()
         except (EOFError, KeyboardInterrupt):
             print()
             return ''
 
     def pause(self):
-        self.cprint(self.t.dim, '\n  Press Enter to continue...')
+        self.cprint(self.t.dim, f'\n  {self.prompt}Press Enter...')
         try:
             input()
         except (EOFError, KeyboardInterrupt):
             print()
 
-    # ─── LOADING SCREEN ────────────────────────────────────────────
-
     def loading_screen(self):
-        self.clear()
         lines = BANNER.split('\n')
-        total_lines = len(lines)
-        bar_width = 40
+        total = len(lines)
+        bar_w = 40
+        duration = 3.0
+        step_time = duration / (total + 5)
 
         for i, line in enumerate(lines):
             self.clear()
             for j in range(i + 1):
                 self.cprint(self.t.banner, lines[j])
-            progress = (i + 1) / total_lines
-            filled = int(bar_width * progress)
-            bar = '█' * filled + '░' * (bar_width - filled)
-            pct = int(progress * 100)
+            pct = int((i + 1) / total * 100)
+            filled = int(bar_w * (i + 1) / total)
+            bar = '█' * filled + '░' * (bar_w - filled)
             self.cprint(self.t.dim, '')
-            self.cprint(self.t.primary, f"  [{bar}] {pct}%")
-            self.cprint(self.t.dim, f"  Loading modules...")
-            time.sleep(0.08)
+            self.cprint(self.t.primary, f"  [{bar}] {pct}%  Loading KevTool...")
+            time.sleep(step_time)
 
         self.clear()
         for line in lines:
             self.cprint(self.t.banner, line)
         self.cprint(self.t.dim, '')
-        self.cprint(self.t.primary, f"  [{'█' * bar_width}] 100%")
-        self.cprint(self.t.accent, f"  {self.t.B}Welcome to KevTool v{VERSION} — {AUTHOR}")
-        self.cprint(self.t.dim, f"  Educational Security & Utilities Suite")
-        time.sleep(0.6)
-
-    # ─── AUTO-UPDATE ────────────────────────────────────────────────
+        self.cprint(self.t.primary, f"  [{'█' * bar_w}] 100%")
+        self.cprint(self.t.accent, f"  {self.t.B}Welcome, {PC_USER}. KevTool v{VERSION} ready.")
+        remaining = duration - (total + 5) * step_time
+        if remaining > 0:
+            time.sleep(remaining)
+        else:
+            time.sleep(0.3)
 
     def check_update(self):
         try:
             import requests
-            resp = requests.get(f"{GITHUB_API}/commits?sha=main&per_page=1", timeout=10)
-            if resp.status_code != 200:
-                return
-            commits = resp.json()
-            if not commits:
-                return
-            remote_date = commits[0].get('commit', {}).get('committer', {}).get('date', '')
-            local_version = self.settings.get('version', VERSION)
-
-            self.cprint(self.t.dim, f"  Checking for updates...")
-            self.cprint(self.t.dim, f"  Latest commit: {remote_date}")
-
-            choice = self.input_choice("  Download latest from GitHub? (y/n): ").lower()
-            if choice == 'y':
-                self.cprint(self.t.dim, "  Downloading repo zip...")
-                r = requests.get(GITHUB_ZIP, timeout=60, stream=True)
-                if r.status_code == 200:
-                    out_path = os.path.join(BASE_DIR, "KevTool_latest.zip")
-                    total = 0
-                    with open(out_path, 'wb') as f:
-                        for chunk in r.iter_content(8192):
-                            f.write(chunk)
-                            total += len(chunk)
-                    self.cprint(self.t.success, f"  [✓] Saved: {out_path} ({total:,} bytes)")
-                    self.cprint(self.t.dim, "  Extract and replace files to update.")
-                    self.cprint(self.t.dim, f"  Or run: python -c \"import zipfile; zipfile.ZipFile('{out_path}').extractall('.')\"")
+            self.cprint(self.t.dim, "  checking for updates...")
+            resp = requests.get(GITHUB_RAW_VERSION, timeout=8)
+            if resp.status_code == 200:
+                remote_ver = resp.text.strip()
+                if remote_ver and remote_ver != VERSION:
+                    self.cprint(self.t.warning, f"  new version available: {remote_ver} (you have {VERSION})")
+                    self.cprint(self.t.dim, f"  download: https://github.com/{GITHUB_REPO}")
+                    choice = self.input_choice("  clone update now? (y/n): ")
+                    if choice.lower() == 'y':
+                        self.cprint(self.t.dim, "  cloning repo...")
+                        import subprocess
+                        install_dir = os.path.join(BASE_DIR, f"KevTool_{remote_ver}")
+                        result = subprocess.run(
+                            ['git', 'clone', GITHUB_CLONE, install_dir],
+                            capture_output=True, text=True, timeout=60
+                        )
+                        if result.returncode == 0:
+                            self.cprint(self.t.success, f"  [ok] cloned to: {install_dir}")
+                            self.cprint(self.t.dim, "  run install.bat in the new folder to set it up")
+                        else:
+                            self.cprint(self.t.error, f"  [x] clone failed: {result.stderr.strip()}")
+                    self.pause()
                 else:
-                    self.cprint(self.t.error, f"  [X] Download failed (HTTP {r.status_code})")
-                self.pause()
-        except ImportError:
-            self.cprint(self.t.error, "  [X] 'requests' not installed.")
-            self.pause()
-        except Exception as e:
-            self.cprint(self.t.dim, f"  Update check skipped: {e}")
-
-    # ─── MODULE RUNNER ──────────────────────────────────────────────
+                    self.cprint(self.t.success, "  already up to date")
+            else:
+                self.cprint(self.t.dim, "  couldnt check for updates")
+        except Exception:
+            pass
 
     def run_module(self, module_name, func_name='run'):
         try:
             spec = importlib.util.spec_from_file_location(
-                module_name, os.path.join(MODULES_DIR, f'{module_name}.py')
-            )
+                module_name, os.path.join(MODULES_DIR, f'{module_name}.py'))
             mod = importlib.util.module_from_spec(spec)
             sys.modules[module_name] = mod
             spec.loader.exec_module(mod)
@@ -195,192 +196,391 @@ class KevTool:
             if func:
                 func(self)
             else:
-                self.cprint(self.t.error, f"  [X] Module '{module_name}' has no '{func_name}' function.")
+                self.cprint(self.t.error, f"  [X] No '{func_name}' in {module_name}")
                 self.pause()
         except Exception as e:
-            self.cprint(self.t.error, f"  [X] Error: {e}")
+            self.cprint(self.t.error, f"  [X] {e}")
             self.pause()
 
-    # ─── MENUS ──────────────────────────────────────────────────────
+    def tool_menu(self, title, icon, tools, cols=2):
+        page = 0
+        while True:
+            self.clear()
+            self.section_header(icon, title)
+            total = len(tools)
+            pages = (total + TOOLS_PER_PAGE - 1) // TOOLS_PER_PAGE
+            start = page * TOOLS_PER_PAGE
+            end = min(start + TOOLS_PER_PAGE, total)
+            for i in range(start, end):
+                num = i + 1
+                name, desc = tools[i]
+                self.cprint(self.t.secondary, f"  [{num:3d}]  {name:24s} {self.t.dim}{desc}")
+            self.line()
+            if pages > 1:
+                nav = f"  Page {page+1}/{pages}  [n]ext [p]rev"
+                self.cprint(self.t.dim, nav)
+            self.cprint(self.t.secondary, "  [0]  Back")
+            choice = self.input_choice()
+            if choice == '0': return
+            if choice.lower() == 'n' and page < pages - 1:
+                page += 1
+                continue
+            if choice.lower() == 'p' and page > 0:
+                page -= 1
+                continue
+            try:
+                idx = int(choice) - 1
+                if 0 <= idx < total:
+                    mod, func = tools[idx][2] if len(tools[idx]) > 2 else (tools[idx][0][0], 'run')
+                    self.run_module(mod, func)
+            except (ValueError, IndexError):
+                pass
 
     def main_menu(self):
         while True:
             self.clear()
             for line in BANNER.split('\n'):
                 self.cprint(self.t.banner, line)
-            self.cprint(self.t.dim, f"  v{VERSION} by {AUTHOR} — Educational Security Suite | Theme: {self.theme_name}")
+            self.cprint(self.t.dim, f"  v{VERSION} | Theme: {self.theme_name} | {PC_USER}@kev")
             self.line()
             self.cprint(self.t.highlight + self.t.B, "  MAIN MENU")
             self.line()
-            self.cprint(self.t.secondary, "  [1]  \033[38;2;237;66;69m\033[1m📡  Discord Operations")
-            self.cprint(self.t.secondary, "  [2]  \033[38;2;254;130;92m\033[1m🔍  OSINT & Intelligence")
-            self.cprint(self.t.secondary, "  [3]  \033[38;2;237;66;69m\033[1m🛡️  Security & Utilities")
-            self.cprint(self.t.secondary, "  [4]  \033[38;2;254;130;92m\033[1m🎮  Game Suite (Roblox)")
-            self.cprint(self.t.secondary, "  [5]  \033[38;2;158;92;230m\033[1m🎭  Simulation Modules")
-            self.cprint(self.t.secondary, "  [6]  \033[38;2;52;152;219m\033[1m🎨  Themes & Settings")
-            self.cprint(self.t.secondary, "  [0]  \033[38;2;237;66;69mExit")
+            cats = [
+                ('1', '📡', 'Discord Operations'),
+                ('2', '🔍', 'OSINT & Intelligence'),
+                ('3', '🛡️', 'Security & Utilities'),
+                ('4', '🌐', 'Web & Network Tools'),
+                ('5', '📝', 'Text & Encoding'),
+                ('6', '🎨', 'Color & Design'),
+                ('7', '💾', 'Data & Conversion'),
+                ('8', '🎮', 'Game Suite (Roblox)'),
+                ('9', '🎭', 'Simulation & Generators'),
+                ('10', '📡', 'Network & DNS'),
+                ('11', '🔧', 'Developer Tools'),
+                ('12', '📁', 'File & Image Tools'),
+                ('13', '⚙️', 'Themes & Settings'),
+            ]
+            for num, icon, name in cats:
+                self.cprint(self.t.secondary, f"  [{num:>2s}]  {icon}  {name}")
+            self.cprint(self.t.secondary, "  [ 0]  Exit")
             self.line()
-
             choice = self.input_choice()
             menus = {
-                '1': self.menu_discord, '2': self.menu_osint,
-                '3': self.menu_security, '4': self.menu_gaming,
-                '5': self.menu_simulation, '6': self.menu_settings,
+                '1': self.menu_discord, '2': self.menu_osint, '3': self.menu_security,
+                '4': self.menu_web, '5': self.menu_text, '6': self.menu_color,
+                '7': self.menu_data, '8': self.menu_gaming, '9': self.menu_simulation,
+                '10': self.menu_network, '11': self.menu_dev, '12': self.menu_file,
+                '13': self.menu_settings,
             }
             if choice == '0':
                 self.clear()
-                self.cprint(self.t.accent, f"\n  Goodbye! — {AUTHOR}\n")
+                self.cprint(self.t.accent, f"\n  Goodbye, {PC_USER}. — {AUTHOR}\n")
                 sys.exit(0)
             if choice in menus:
                 menus[choice]()
 
+    # ─── CATEGORY MENUS ──────────────────────────────────────────
+
     def menu_discord(self):
-        while True:
-            self.clear()
-            self.section_header('📡', 'DISCORD OPERATIONS')
-            self.cprint(self.t.secondary, "  [1]  Webhook Info        — View webhook details (read-only)")
-            self.cprint(self.t.secondary, "  [2]  Token Decoder       — Decode & inspect Discord tokens")
-            self.cprint(self.t.secondary, "  [3]  Account Info        — Fetch account info from token")
-            self.cprint(self.t.secondary, "  [4]  Server Info         — Fetch server details via bot")
-            self.cprint(self.t.secondary, "  [5]  Status Rotator      — Status rotation reference")
-            self.cprint(self.t.secondary, "  [0]  Back")
-            self.line()
-            choice = self.input_choice()
-            if choice == '0': return
-            mods = {'1': ('discord_ops', 'webhook_info'), '2': ('discord_ops', 'token_decode'),
-                    '3': ('discord_ops', 'account_info'), '4': ('discord_ops', 'server_info'),
-                    '5': ('discord_ops', 'status_rotator')}
-            if choice in mods:
-                m, f = mods[choice]
-                self.run_module(m, f)
+        tools = [
+            ('Webhook Info', 'View webhook details'),
+            ('Token Decoder', 'Decode Discord tokens'),
+            ('Account Info', 'Fetch account from token'),
+            ('Server Info', 'Fetch server via bot'),
+            ('Status Rotator', 'Status rotation reference'),
+        ]
+        mapped = [('discord_ops', 'webhook_info'), ('discord_ops', 'token_decode'),
+                  ('discord_ops', 'account_info'), ('discord_ops', 'server_info'),
+                  ('discord_ops', 'status_rotator')]
+        self.tool_menu('DISCORD OPERATIONS', '📡',
+                      [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
 
     def menu_osint(self):
-        while True:
-            self.clear()
-            self.section_header('🔍', 'OSINT & INTELLIGENCE')
-            self.cprint(self.t.secondary, "  [1]  Whois Lookup        — Domain registration info")
-            self.cprint(self.t.secondary, "  [2]  DNS Resolver         — A/MX/TXT/CNAME/NS records")
-            self.cprint(self.t.secondary, "  [3]  Port Scanner         — TCP port scan + banner grab")
-            self.cprint(self.t.secondary, "  [4]  IP Info              — Public IP information")
-            self.cprint(self.t.secondary, "  [5]  Email Lookup         — Email reputation + MX check")
-            self.cprint(self.t.secondary, "  [6]  Metadata Scanner     — File EXIF metadata extraction")
-            self.cprint(self.t.secondary, "  [7]  Username Checker     — Multi-platform availability")
-            self.cprint(self.t.secondary, "  [8]  Breach Check         — Email breach database lookup")
-            self.cprint(self.t.secondary, "  [9]  Traceroute           — Network path tracing")
-            self.cprint(self.t.secondary, "  [10] Tor Check            — Tor exit node detection")
-            self.cprint(self.t.secondary, "  [11] Link Tools           — URL expand/track/info")
-            self.cprint(self.t.secondary, "  [12] SSL Certificate      — Domain cert info")
-            self.cprint(self.t.secondary, "  [0]  Back")
-            self.line()
-            choice = self.input_choice()
-            if choice == '0': return
-            mods = {'1': ('osint', 'whois_lookup'), '2': ('osint', 'dns_resolver'),
-                    '3': ('port_scanner', 'run'), '4': ('osint', 'ip_info'),
-                    '5': ('email_tools', 'run'), '6': ('osint', 'metadata_scan'),
-                    '7': ('osint', 'username_check'), '8': ('breach_check', 'run'),
-                    '9': ('traceroute', 'run'), '10': ('tor_check', 'run'),
-                    '11': ('link_tools', 'run'), '12': ('ssl_cert', 'run')}
-            if choice in mods:
-                m, f = mods[choice]
-                self.run_module(m, f)
+        tools = [
+            ('Whois Lookup', 'Domain registration info'),
+            ('DNS Resolver', 'A/MX/TXT/CNAME/NS records'),
+            ('IP Info', 'Public IP information'),
+            ('Metadata Scanner', 'EXIF from images'),
+            ('Username Checker', 'Multi-platform check'),
+            ('Breach Check', 'Email breach lookup'),
+            ('SSL Certificate', 'Domain cert info'),
+            ('GeoIP Lookup', 'IP geolocation'),
+            ('ASN Intel', 'ASN/IP range info'),
+            ('Email Validate', 'Format + MX check'),
+            ('Email Reputation', 'Email provider check'),
+            ('Stealer Check', 'Credential leak check'),
+            ('Wayback Machine', 'Historical snapshots'),
+            ('Tech Stack', 'Website technology detection'),
+            ('Blacklist Check', 'IP blacklist lookup'),
+        ]
+        mapped = [('osint', 'whois_lookup'), ('osint', 'dns_resolver'),
+                  ('osint', 'ip_info'), ('osint', 'metadata_scan'),
+                  ('osint', 'username_check'), ('breach_check', 'run'),
+                  ('ssl_cert', 'run'), ('geoip', 'run'),
+                  ('asn_intel', 'run'), ('email_tools', 'validate'),
+                  ('email_tools', 'reputation'), ('stealer_check', 'run'),
+                  ('wayback', 'run'), ('tech_stack', 'run'),
+                  ('ip_blacklist', 'run')]
+        self.tool_menu('OSINT & INTELLIGENCE', '🔍',
+                      [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
 
     def menu_security(self):
-        while True:
-            self.clear()
-            self.section_header('🛡️', 'SECURITY & UTILITIES')
-            self.cprint(self.t.secondary, "  [1]  Obfuscator V2       — Python obfuscation (XOR + Anti-Print)")
-            self.cprint(self.t.secondary, "  [2]  Web Cloner          — Clone any website locally")
-            self.cprint(self.t.secondary, "  [3]  Cryptography        — Base64/Hex/ROT13 + Password gen")
-            self.cprint(self.t.secondary, "  [4]  QR Generator        — Custom QR codes")
-            self.cprint(self.t.secondary, "  [5]  Hash Tool            — Hash strings + online lookup")
-            self.cprint(self.t.secondary, "  [6]  Base64 Image        — Encode/decode images")
-            self.cprint(self.t.secondary, "  [7]  Ciphers             — Caesar/Vigenere/Atbash/XOR")
-            self.cprint(self.t.secondary, "  [8]  JWT Tools           — Decode & generate JWT tokens")
-            self.cprint(self.t.secondary, "  [9]  CORS Tester         — Test CORS headers")
-            self.cprint(self.t.secondary, "  [10] Entropy             — Shannon entropy + password strength")
-            self.cprint(self.t.secondary, "  [11] Hex Dump            — View hex data")
-            self.cprint(self.t.secondary, "  [12] Regex Tester        — Test regular expressions")
-            self.cprint(self.t.secondary, "  [13] Password Check      — Strength + breach check")
-            self.cprint(self.t.secondary, "  [14] Timestamp Tool      — Unix timestamp converter")
-            self.cprint(self.t.secondary, "  [0]  Back")
-            self.line()
-            choice = self.input_choice()
-            if choice == '0': return
-            mods = {'1': ('obfuscator', 'run'), '2': ('web_cloner', 'run'),
-                    '3': ('crypto', 'run'), '4': ('qr_gen', 'run'),
-                    '5': ('hash_tool', 'run'), '6': ('base64_image', 'run'),
-                    '7': ('ciphers', 'run'), '8': ('jwt_tools', 'run'),
-                    '9': ('cors_tester', 'run'), '10': ('entropy', 'run'),
-                    '11': ('hex_dump', 'run'), '12': ('regex_tester', 'run'),
-                    '13': ('passcheck', 'run'), '14': ('timestamp', 'run')}
-            if choice in mods:
-                m, f = mods[choice]
-                self.run_module(m, f)
+        tools = [
+            ('Obfuscator V2', 'Python XOR + Anti-Print'),
+            ('Web Cloner', 'Clone websites locally'),
+            ('Cryptography', 'Base64/Hex/ROT13'),
+            ('QR Generator', 'Custom QR codes'),
+            ('Hash Tool', 'Hash + online lookup'),
+            ('Base64 Image', 'Encode/decode images'),
+            ('Ciphers', 'Caesar/Vigenere/Atbash/XOR'),
+            ('JWT Tools', 'Decode + generate JWT'),
+            ('CORS Tester', 'Test CORS headers'),
+            ('Entropy', 'Shannon entropy analysis'),
+            ('Password Check', 'Strength + breach check'),
+            ('Timestamp', 'Unix timestamp converter'),
+            ('Security Headers', 'Analyze HTTP headers'),
+            ('CSP Analyzer', 'Content Security Policy'),
+            ('Honeypot Detector', 'Detect honeypots'),
+            ('HTTP Status', 'HTTP status code lookup'),
+            ('Port Scanner', 'TCP scan + banner grab'),
+            ('Traceroute', 'Network path trace'),
+            ('Tor Check', 'Tor exit node detection'),
+            ('Link Tools', 'URL expand/track/info'),
+            ('IP Pinger', 'ICMP ping utility'),
+        ]
+        mapped = [('obfuscator', 'run'), ('web_cloner', 'run'),
+                  ('crypto', 'run'), ('qr_gen', 'run'),
+                  ('hash_tool', 'run'), ('base64_image', 'run'),
+                  ('ciphers', 'run'), ('jwt_tools', 'run'),
+                  ('cors_tester', 'run'), ('entropy', 'run'),
+                  ('passcheck', 'run'), ('timestamp', 'run'),
+                  ('security_headers', 'run'), ('csp_analyzer', 'run'),
+                  ('honeypot', 'run'), ('http_status', 'run'),
+                  ('port_scanner', 'run'), ('traceroute', 'run'),
+                  ('tor_check', 'run'), ('link_tools', 'run'),
+                  ('ip_pinger', 'run')]
+        self.tool_menu('SECURITY & UTILITIES', '🛡️',
+                      [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
+
+    def menu_web(self):
+        tools = [
+            ('Page Clone', 'Clone full websites'),
+            ('Site Viewer', 'View source + headers'),
+            ('Web Search', 'Search the web'),
+            ('Webhook Tester', 'Test webhook endpoints'),
+            ('Webhook Delete', 'Delete webhooks'),
+            ('Link Bypass', 'Bypass link shorteners'),
+            ('Link Spoof', 'View redirect chains'),
+            ('Link Tracker', 'Track link clicks'),
+            ('Browser FP', 'Browser fingerprint'),
+            ('Webrtc Leak', 'WebRTC IP detection'),
+            ('DNS over HTTPS', 'Encrypted DNS queries'),
+            ('Subdomain Enum', 'Find subdomains'),
+            ('Subnet Calculator', 'CIDR calculations'),
+        ]
+        mapped = [('page_clone', 'run'), ('site_viewer', 'run'),
+                  ('web_search', 'run'), ('webhook_tools', 'tester'),
+                  ('webhook_tools', 'delete'), ('link_tools', 'bypass'),
+                  ('link_tools', 'spoof'), ('link_tools', 'tracker'),
+                  ('browser_fp', 'run'), ('webrtc_leak', 'run'),
+                  ('doh', 'run'), ('subenum', 'run'),
+                  ('subnet_calc', 'run')]
+        self.tool_menu('WEB & NETWORK TOOLS', '🌐',
+                      [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
+
+    def menu_text(self):
+        tools = [
+            ('Text Transform', 'Case/Reverse/Repeat'),
+            ('Slug Generator', 'URL-safe slugs'),
+            ('Sort Lines', 'Alphabetical/Numeric sort'),
+            ('Markdown Preview', 'Render markdown'),
+            ('Diff Tool', 'Compare two texts'),
+            ('CSV Viewer', 'Parse + display CSV'),
+            ('JSON Formatter', 'Pretty-print JSON'),
+            ('SQL Formatter', 'Format SQL queries'),
+            ('Regex Tester', 'Test regular expressions'),
+            ('Word Counter', 'Word/char/line count'),
+            ('Slugify', 'Convert to slug format'),
+            ('HTML Entity', 'Encode/Decode entities'),
+            ('URL Encode', 'URL encode/decode'),
+            ('Unicode Tool', 'Unicode lookup/convert'),
+            ('Emoji Lookup', 'Find emoji codes'),
+            ('Text Stats', 'Readability analysis'),
+        ]
+        mapped = [('text_tools', 'transform'), ('text_tools', 'slugify'),
+                  ('text_tools', 'sort'), ('markdown_tools', 'run'),
+                  ('diff_tool', 'run'), ('csv_viewer', 'run'),
+                  ('json_formatter', 'run'), ('sql_formatter', 'run'),
+                  ('regex_tester', 'run'), ('text_tools', 'wordcount'),
+                  ('text_tools', 'slugify2'), ('text_tools', 'html_entity'),
+                  ('text_tools', 'url_encode'), ('unicode_tool', 'run'),
+                  ('emoji_lookup', 'run'), ('text_tools', 'stats')]
+        self.tool_menu('TEXT & ENCODING', '📝',
+                      [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
+
+    def menu_color(self):
+        tools = [
+            ('Color Converter', 'HEX/RGB/HSL conversion'),
+            ('Gradient Generator', 'CSS gradient builder'),
+            ('Contrast Checker', 'WCAG contrast ratio'),
+            ('Color Palette', 'Generate color palettes'),
+            ('Image Colors', 'Extract colors from image'),
+        ]
+        mapped = [('color_tools', 'converter'), ('color_tools', 'gradient'),
+                  ('color_tools', 'contrast'), ('color_tools', 'palette'),
+                  ('color_tools', 'image_colors')]
+        self.tool_menu('COLOR & DESIGN', '🎨',
+                      [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
+
+    def menu_data(self):
+        tools = [
+            ('Base-N Encoder', 'Binary/Octal/Hex encode'),
+            ('Base64 Decode', 'Decode Base64 strings'),
+            ('Roman Numerals', 'Convert to/from Roman'),
+            ('Number System', 'Dec/Hex/Bin/Oct convert'),
+            ('Percentage Calc', 'Percentage calculations'),
+            ('YAML <-> TOML', 'Convert between formats'),
+            ('CSV Tools', 'Parse/merge CSV files'),
+            ('JSON <-> XML', 'Convert between formats'),
+            ('Receipt Generator', 'Fake receipt maker'),
+            ('UUID Generator', 'Generate UUIDs v4'),
+            ('Barcode Generator', 'Code128/Code39'),
+            ('Password Generator', 'Secure passwords'),
+            ('Random Data', 'Random numbers/strings'),
+            ('Duration Calc', 'Time duration math'),
+            ('Age Calculator', 'Calculate age from DOB'),
+        ]
+        mapped = [('base_n', 'run'), ('base64_decoder', 'run'),
+                  ('numerals', 'roman'), ('numerals', 'convert'),
+                  ('percentage', 'run'), ('yaml_toml', 'run'),
+                  ('csv_tools', 'run'), ('json_formatter', 'xml'),
+                  ('receipt', 'run'), ('uuid_gen', 'run'),
+                  ('barcode', 'run'), ('password_gen', 'run'),
+                  ('random_gen', 'run'), ('duration', 'run'),
+                  ('age_calc', 'run')]
+        self.tool_menu('DATA & CONVERSION', '💾',
+                      [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
 
     def menu_gaming(self):
-        while True:
-            self.clear()
-            self.section_header('🎮', 'GAME SUITE (ROBLOX)')
-            self.cprint(self.t.secondary, "  [1]  User Intel          — Roblox user info lookup")
-            self.cprint(self.t.secondary, "  [2]  Group Intel         — Roblox group info lookup")
-            self.cprint(self.t.secondary, "  [3]  Cookie Login        — Validate .ROBLOSECURITY cookie")
-            self.cprint(self.t.secondary, "  [4]  Asset Downloader    — Download Roblox assets")
-            self.cprint(self.t.secondary, "  [5]  Inventory Viewer    — View user inventory")
-            self.cprint(self.t.secondary, "  [6]  Game Info           — Roblox game/experience details")
-            self.cprint(self.t.secondary, "  [0]  Back")
-            self.line()
-            choice = self.input_choice()
-            if choice == '0': return
-            mods = {'1': ('roblox_intel', 'run'), '2': ('roblox_intel', 'group_lookup'),
-                    '3': ('roblox_control', 'run'), '4': ('roblox_control', 'asset_download'),
-                    '5': ('roblox_intel', 'inventory_view'), '6': ('roblox_intel', 'game_info')}
-            if choice in mods:
-                m, f = mods[choice]
-                self.run_module(m, f)
+        tools = [
+            ('User Intel', 'Roblox user lookup'),
+            ('Group Intel', 'Roblox group lookup'),
+            ('Cookie Login', 'Validate .ROBLOSECURITY'),
+            ('Asset Downloader', 'Download Roblox assets'),
+            ('Inventory Viewer', 'View user inventory'),
+            ('Game Info', 'Roblox game details'),
+        ]
+        mapped = [('roblox_intel', 'run'), ('roblox_intel', 'group_lookup'),
+                  ('roblox_control', 'run'), ('roblox_control', 'asset_download'),
+                  ('roblox_intel', 'inventory_view'), ('roblox_intel', 'game_info')]
+        self.tool_menu('GAME SUITE (ROBLOX)', '🎮',
+                      [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
 
     def menu_simulation(self):
-        while True:
-            self.clear()
-            self.section_header('🎭', 'SIMULATION MODULES')
-            self.cprint(self.t.secondary, "  [1]  Identity Generator  — Realistic names, emails, addresses")
-            self.cprint(self.t.secondary, "  [2]  Credit Card Gen     — Test card numbers (Luhn valid)")
-            self.cprint(self.t.secondary, "  [3]  Wallet Generator    — Crypto wallet addresses")
-            self.cprint(self.t.secondary, "  [4]  Username Generator  — Unique usernames")
-            self.cprint(self.t.secondary, "  [5]  Password Generator  — Secure passwords")
-            self.cprint(self.t.secondary, "  [6]  Lorem Ipsum         — Placeholder text")
-            self.cprint(self.t.secondary, "  [7]  UUID Generator      — v4 UUIDs")
-            self.cprint(self.t.secondary, "  [8]  Fake Nitro Code     — Random Nitro-style codes (test)")
-            self.cprint(self.t.secondary, "  [9]  Server Template     — Discord server JSON template")
-            self.cprint(self.t.secondary, "  [0]  Back")
-            self.line()
-            choice = self.input_choice()
-            if choice == '0': return
-            mods = {'1': ('faker_suite', 'identity_gen'), '2': ('faker_suite', 'credit_card_gen'),
-                    '3': ('faker_suite', 'wallet_gen'), '4': ('faker_suite', 'username_gen'),
-                    '5': ('faker_suite', 'password_gen'), '6': ('faker_suite', 'lorem_ipsum'),
-                    '7': ('faker_suite', 'uuid_gen'), '8': ('faker_suite', 'fake_nitro'),
-                    '9': ('faker_suite', 'server_template')}
-            if choice in mods:
-                m, f = mods[choice]
-                self.run_module(m, f)
+        tools = [
+            ('Identity Generator', 'Realistic fake identities'),
+            ('Credit Card Gen', 'Test card numbers (Luhn)'),
+            ('Crypto Wallets', 'Generate wallet addresses'),
+            ('Username Generator', 'Unique usernames'),
+            ('Password Generator', 'Secure passwords'),
+            ('Lorem Ipsum', 'Placeholder text'),
+            ('Fake Nitro Code', 'Random Nitro-style codes'),
+            ('Server Template', 'Discord server JSON'),
+            ('ASCII Art', 'Text to ASCII art'),
+            ('Stealth Art', 'Zalgo/glitch text'),
+            ('Creeper Text', 'Creeper text effect'),
+            ('Small Caps', 'Small caps text'),
+            ('Bubble Text', 'Bubble unicode text'),
+            ('Mirror Text', 'Flipped text'),
+        ]
+        mapped = [('faker_suite', 'identity_gen'), ('faker_suite', 'credit_card_gen'),
+                  ('faker_suite', 'wallet_gen'), ('faker_suite', 'username_gen'),
+                  ('faker_suite', 'password_gen'), ('faker_suite', 'lorem_ipsum'),
+                  ('faker_suite', 'fake_nitro'), ('faker_suite', 'server_template'),
+                  ('ascii_art', 'run'), ('text_effects', 'zalgo'),
+                  ('text_effects', 'creeper'), ('text_effects', 'smallcaps'),
+                  ('text_effects', 'bubble'), ('text_effects', 'mirror')]
+        self.tool_menu('SIMULATION & GENERATORS', '🎭',
+                      [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
+
+    def menu_network(self):
+        tools = [
+            ('Port Scanner', 'TCP port scan + banners'),
+            ('Traceroute', 'Network path trace'),
+            ('DNS Resolver', 'Resolve DNS records'),
+            ('DNS over HTTPS', 'Encrypted DNS'),
+            ('Subdomain Enum', 'Find subdomains'),
+            ('Subnet Calculator', 'CIDR math'),
+            ('Whois', 'Domain registration'),
+            ('IP Pinger', 'ICMP ping'),
+            ('ASN Lookup', 'ASN information'),
+            ('Blacklist Check', 'IP blacklist check'),
+        ]
+        mapped = [('port_scanner', 'run'), ('traceroute', 'run'),
+                  ('osint', 'dns_resolver'), ('doh', 'run'),
+                  ('subenum', 'run'), ('subnet_calc', 'run'),
+                  ('osint', 'whois_lookup'), ('ip_pinger', 'run'),
+                  ('asn_intel', 'run'), ('ip_blacklist', 'run')]
+        self.tool_menu('NETWORK & DNS', '📡',
+                      [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
+
+    def menu_dev(self):
+        tools = [
+            ('Request Builder', 'Build HTTP requests'),
+            ('Header Inspector', 'View/edit headers'),
+            ('Cookie Inspector', 'View/edit cookies'),
+            ('JS Obfuscator', 'JavaScript obfuscation'),
+            ('Lua Obfuscator', 'Lua code obfuscation'),
+            ('Lua Sandbox', 'Run Lua code safely'),
+            ('Cron Builder', 'Build cron expressions'),
+            ('Cron Parser', 'Parse cron schedules'),
+            ('Code Formatter', 'Format source code'),
+            ('YAML/TOML', 'Config file conversion'),
+            ('JSON Formatter', 'Pretty-print JSON'),
+            ('SQL Formatter', 'Format SQL queries'),
+        ]
+        mapped = [('reqbuild', 'run'), ('header_inspector', 'run'),
+                  ('cookie_inspector', 'run'), ('js_obfuscator', 'run'),
+                  ('lua_obfuscator', 'run'), ('lua_sandbox', 'run'),
+                  ('cron_builder', 'run'), ('cron_parser', 'run'),
+                  ('code_formatter', 'run'), ('yaml_toml', 'run'),
+                  ('json_formatter', 'run'), ('sql_formatter', 'run')]
+        self.tool_menu('DEVELOPER TOOLS', '🔧',
+                      [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
+
+    def menu_file(self):
+        tools = [
+            ('File Type Detector', 'Identify file types'),
+            ('Image to Base64', 'Encode images'),
+            ('Photo Metadata', 'EXIF extraction'),
+            ('Metadata Stripper', 'Remove metadata'),
+            ('Hex Dump', 'View hex data'),
+            ('Steganography', 'Hide data in images'),
+            ('File Checksum', 'MD5/SHA hash files'),
+            ('Binary Viewer', 'View binary data'),
+        ]
+        mapped = [('file_type', 'run'), ('base64_image', 'run'),
+                  ('photo_meta', 'run'), ('metadata_strip', 'run'),
+                  ('hex_dump', 'run'), ('steganography', 'run'),
+                  ('file_checksum', 'run'), ('hex_dump', 'binary')]
+        self.tool_menu('FILE & IMAGE TOOLS', '📁',
+                      [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)])
 
     def menu_settings(self):
         while True:
             self.clear()
-            self.section_header('🎨', 'THEMES & SETTINGS')
-            self.cprint(self.t.secondary, f"  Current theme: {self.t.B}{self.theme_name}{self.t.R}")
-            self.cprint(self.t.secondary, f"  Version: {VERSION}")
+            self.section_header('⚙️', 'THEMES & SETTINGS')
+            self.cprint(self.t.secondary, f"  Theme: {self.t.B}{self.theme_name}{self.t.R}")
+            self.cprint(self.t.secondary, f"  User:  {PC_USER}")
+            self.cprint(self.t.secondary, f"  Ver:   {VERSION}")
             self.line()
-
             for idx, (name, data) in enumerate(self.themes.items(), 1):
                 t = Theme(data)
                 marker = ' ◀' if name == self.theme_name else ''
-                self.cprint(t.primary, f"  [{idx:2d}]  {data.get('name', name)}{self.t.R}{self.t.accent}{marker}")
-
+                self.cprint(t.primary, f"  [{idx:2d}]  {data.get('name', name)}{marker}")
             self.line()
-            self.cprint(self.t.secondary, "  [u]  Check for updates")
-            self.cprint(self.t.secondary, "  [0]  Back")
-
+            self.cprint(self.t.secondary, "  [u]  check for updates")
+            self.cprint(self.t.secondary, "  [0]  back")
             choice = self.input_choice()
             if choice == '0': return
             if choice.lower() == 'u':
