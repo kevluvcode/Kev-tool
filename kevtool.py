@@ -415,7 +415,7 @@ MENU_TABS = [
                 ('misc_tools', 'email_format_gen'), ('misc_tools', 'url_extractor'),
                 ('misc_tools', 'osint_report')]},
     {"n": 3, "short": "SECURITY", "title": "SECURITY & UTILITIES", "icon": "🛡️",
-     "tools": [('Obfuscator V2', 'Python XOR + Anti-Print'), ('Web Cloner', 'Clone websites locally'),
+     "tools": [('Obfuscator V3', 'Multi-Layer XOR/B64 + AST Mangle'), ('Web Cloner', 'Clone websites locally'),
                ('Cryptography', 'Base64/Hex/ROT13'), ('QR Generator', 'Custom QR codes'),
                ('Hash Tool', 'Hash + online lookup'), ('Base64 Image', 'Encode/decode images'),
                ('Ciphers', 'Caesar/Vigenere/Atbash/XOR'), ('JWT Tools', 'Decode + generate JWT'),
