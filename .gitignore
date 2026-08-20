@@ -5,6 +5,8 @@ fix_md.py
 fix_md2.py
 KevTool_*/
 KevTool-*/
+cloned_*/
+kevtool_obf.py
 
 # proxy runtime outputs
 proxies/
