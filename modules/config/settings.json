@@ -1,7 +1,7 @@
 {
     "current_theme": "rainbow",
     "auto_update": true,
-    "version": "1.0.0",
+    "version": "1.0.1",
     "check_updates": true,
     "boot_screen": true,
     "animations": true,
