@@ -182,12 +182,14 @@ DEFAULT_CONFIG = {
 
 MENU_TABS = [
     {"n": 1, "short": "DISCORD", "title": "DISCORD OPERATIONS", "icon": "📡",
-     "tools": [('Webhook Info', 'View webhook details'), ('Token Decoder', 'Decode Discord tokens'),
-               ('Account Info', 'Fetch account from token'), ('Server Info', 'Fetch server via bot'),
-               ('Status Rotator', 'Status rotation reference'), ('Bot Invite', 'Generate bot invite URL')],
+     "tools": [('Discord Webhook Info', 'View webhook details'), ('Discord Token', 'Decode Discord tokens'),
+               ('Discord Account', 'Fetch account from token'), ('Discord Server', 'Fetch server via bot'),
+               ('Discord Status', 'Status rotation reference'), ('Discord Bot Invite', 'Generate bot invite URL'),
+               ('Discord Snowflake', 'Decode Discord ID'), ('Discord Embed', 'Discord embed JSON')],
      "mapped": [('discord_ops', 'webhook_info'), ('discord_ops', 'token_decode'),
                 ('discord_ops', 'account_info'), ('discord_ops', 'server_info'),
-                ('discord_ops', 'status_rotator'), ('discord_ops', 'bot_invite_gen')]},
+                ('discord_ops', 'status_rotator'), ('discord_ops', 'bot_invite_gen'),
+                ('misc_tools', 'snowflake_decode'), ('misc_tools', 'embed_builder')]},
     {"n": 2, "short": "OSINT", "title": "OSINT & INTELLIGENCE", "icon": "🔍",
      "tools": [('Whois Lookup', 'Domain registration info'), ('DNS Resolver', 'A/MX/TXT/CNAME/NS records'),
                ('IP Info', 'Public IP information'), ('Metadata Scanner', 'EXIF from images'),
@@ -196,12 +198,16 @@ MENU_TABS = [
                ('ASN Intel', 'ASN/IP range info'), ('Email Validate', 'Format + MX check'),
                ('Email Reputation', 'Email provider check'), ('Stealer Check', 'Credential leak check'),
                ('Wayback Machine', 'Historical snapshots'), ('Tech Stack', 'Website technology detection'),
-               ('Blacklist Check', 'IP blacklist lookup')],
+               ('Blacklist Check', 'IP blacklist lookup'),
+               ('Email Format Gen', 'Probable email formats'), ('URL Extractor', 'Pull URLs from text'),
+               ('OSINT Report', 'Assemble report card')],
      "mapped": [('osint', 'whois_lookup'), ('osint', 'dns_resolver'), ('osint', 'ip_info'),
                 ('osint', 'metadata_scan'), ('osint', 'username_check'), ('breach_check', 'run'),
                 ('ssl_cert', 'run'), ('geoip', 'run'), ('asn_intel', 'run'),
                 ('email_tools', 'validate'), ('email_tools', 'reputation'), ('stealer_check', 'run'),
-                ('wayback', 'run'), ('tech_stack', 'run'), ('ip_blacklist', 'run')]},
+                ('wayback', 'run'), ('tech_stack', 'run'), ('ip_blacklist', 'run'),
+                ('misc_tools', 'email_format_gen'), ('misc_tools', 'url_extractor'),
+                ('misc_tools', 'osint_report')]},
     {"n": 3, "short": "SECURITY", "title": "SECURITY & UTILITIES", "icon": "🛡️",
      "tools": [('Obfuscator V2', 'Python XOR + Anti-Print'), ('Web Cloner', 'Clone websites locally'),
                ('Cryptography', 'Base64/Hex/ROT13'), ('QR Generator', 'Custom QR codes'),
@@ -214,14 +220,18 @@ MENU_TABS = [
                ('Port Scanner', 'TCP scan + banner grab'), ('Traceroute', 'Network path trace'),
                ('Tor Check', 'Tor exit node detection'), ('Link Tools', 'URL expand/track/info'),
                ('IP Pinger', 'ICMP ping utility'), ('System Info', 'CPU/RAM/Disk/OS details'),
-               ('Proxy Scraper', 'Grab proxies from GitHub lists'), ('Proxy Checker', 'Validate proxies multi-threaded')],
+               ('Proxy Scraper', 'Grab proxies from GitHub lists'), ('Proxy Checker', 'Validate proxies multi-threaded'),
+               ('OTP Generator', 'Authenticator-style codes'), ('Hex Dump', 'Pretty hex output'),
+               ('Password Strength', 'Local entropy check')],
      "mapped": [('obfuscator', 'run'), ('web_cloner', 'run'), ('crypto', 'run'), ('qr_gen', 'run'),
                 ('hash_tool', 'run'), ('base64_image', 'run'), ('ciphers', 'run'), ('jwt_tools', 'run'),
                 ('cors_tester', 'run'), ('entropy', 'run'), ('passcheck', 'run'), ('timestamp', 'run'),
                 ('security_headers', 'run'), ('csp_analyzer', 'run'), ('honeypot', 'run'),
                 ('http_status', 'run'), ('port_scanner', 'run'), ('traceroute', 'run'),
                 ('tor_check', 'run'), ('link_tools', 'run'), ('ip_pinger', 'run'),
-                ('system_info', 'run'), ('proxy_scraper', 'run'), ('proxy_checker', 'run')]},
+                ('system_info', 'run'), ('proxy_scraper', 'run'), ('proxy_checker', 'run'),
+                ('misc_tools', 'otp_gen'), ('misc_tools', 'hexdump_text'),
+                ('misc_tools', 'password_strength')]},
     {"n": 4, "short": "WEB", "title": "WEB & NETWORK TOOLS", "icon": "🌐",
      "tools": [('Page Clone', 'Clone full websites'), ('Site Viewer', 'View source + headers'),
                ('Web Search', 'Search the web'), ('Webhook Tester', 'Test webhook endpoints'),
@@ -229,11 +239,15 @@ MENU_TABS = [
                ('Link Spoof', 'View redirect chains'), ('Link Tracker', 'Track link clicks'),
                ('Browser FP', 'Browser fingerprint'), ('WebRTC Leak', 'WebRTC IP detection'),
                ('DNS over HTTPS', 'Encrypted DNS queries'), ('Subdomain Enum', 'Find subdomains'),
-               ('Subnet Calculator', 'CIDR calculations')],
+               ('Subnet Calculator', 'CIDR calculations'),
+               ('Curl Builder', 'Generate curl commands'), ('URL Parser', 'Break down a URL'),
+               ('User-Agent Gen', 'Random real UAs')],
      "mapped": [('page_clone', 'run'), ('site_viewer', 'run'), ('web_search', 'run'),
                 ('webhook_tools', 'tester'), ('webhook_tools', 'delete'), ('link_tools', 'bypass'),
                 ('link_tools', 'spoof'), ('link_tools', 'tracker'), ('browser_fp', 'run'),
-                ('webrtc_leak', 'run'), ('doh', 'run'), ('subenum', 'run'), ('subnet_calc', 'run')]},
+                ('webrtc_leak', 'run'), ('doh', 'run'), ('subenum', 'run'), ('subnet_calc', 'run'),
+                ('misc_tools', 'curl_builder'), ('misc_tools', 'url_parser'),
+                ('misc_tools', 'useragent_gen')]},
     {"n": 5, "short": "TEXT", "title": "TEXT & ENCODING", "icon": "📝",
      "tools": [('Text Transform', 'Case/Reverse/Repeat'), ('Slugify', 'URL-safe slugs'),
                ('Sort Lines', 'Alphabetical/Numeric sort'), ('Markdown Preview', 'Render markdown'),
@@ -242,18 +256,30 @@ MENU_TABS = [
                ('Regex Tester', 'Test regular expressions'), ('Word Counter', 'Word/char/line count'),
                ('HTML Entity', 'Encode/Decode entities'), ('URL Encode', 'URL encode/decode'),
                ('Unicode Tool', 'Unicode lookup/convert'), ('Emoji Lookup', 'Find emoji codes'),
-               ('Text Stats', 'Readability analysis')],
+               ('Text Stats', 'Readability analysis'),
+               ('Text <-> Binary', 'Binary conversion'), ('Morse Code', 'Encode/decode Morse'),
+               ('Leet Speak', 'Leetspeak variants'), ('Reverse/Upside', 'Flipped text'),
+               ('Word Scrambler', 'Scramble letters'), ('Palindrome Check', 'Find palindromes'),
+               ('Random Haiku', 'Free verse on demand')],
      "mapped": [('text_tools', 'transform'), ('text_tools', 'slugify'), ('text_tools', 'sort'),
                 ('markdown_tools', 'run'), ('diff_tool', 'run'), ('csv_viewer', 'run'),
                 ('json_formatter', 'run'), ('sql_formatter', 'run'), ('regex_tester', 'run'),
                 ('text_tools', 'wordcount'), ('text_tools', 'html_entity'), ('text_tools', 'url_encode'),
-                ('unicode_tool', 'run'), ('emoji_lookup', 'run'), ('text_tools', 'stats')]},
+                ('unicode_tool', 'run'), ('emoji_lookup', 'run'), ('text_tools', 'stats'),
+                ('misc_tools', 'text_binary'), ('misc_tools', 'morse_code'),
+                ('misc_tools', 'leet_speak'), ('misc_tools', 'reverse_upsidedown'),
+                ('misc_tools', 'scramble_words'), ('misc_tools', 'palindrome_check'),
+                ('misc_tools', 'random_poem')]},
     {"n": 6, "short": "COLOR", "title": "COLOR & DESIGN", "icon": "🎨",
      "tools": [('Color Converter', 'HEX/RGB/HSL conversion'), ('Gradient Generator', 'CSS gradient builder'),
                ('Contrast Checker', 'WCAG contrast ratio'), ('Color Palette', 'Generate color palettes'),
-               ('Image Colors', 'Extract colors from image')],
+               ('Image Colors', 'Extract colors from image'),
+               ('Random Color', 'Random + swatch'), ('ANSI Tester', '256-color grid'),
+               ('Tints & Shades', 'Palette from hex'), ('Named Colors', '60 named swatches')],
      "mapped": [('color_tools', 'converter'), ('color_tools', 'gradient'),
-                ('color_tools', 'contrast'), ('color_tools', 'palette'), ('color_tools', 'image_colors')]},
+                ('color_tools', 'contrast'), ('color_tools', 'palette'), ('color_tools', 'image_colors'),
+                ('misc_tools', 'random_color'), ('misc_tools', 'ansi_tester'),
+                ('misc_tools', 'palette_tints'), ('misc_tools', 'named_colors')]},
     {"n": 7, "short": "DATA", "title": "DATA & CONVERSION", "icon": "💾",
      "tools": [('Base-N Encoder', 'Binary/Octal/Hex encode'), ('Base64 Decode', 'Decode Base64 strings'),
                ('Roman Numerals', 'Convert to/from Roman'), ('Number System', 'Dec/Hex/Bin/Oct convert'),
@@ -262,21 +288,31 @@ MENU_TABS = [
                ('Receipt Generator', 'Fake receipt maker'), ('UUID Generator', 'Generate UUIDs v4'),
                ('Barcode Generator', 'Code128/Code39'), ('Password Generator', 'Secure passwords'),
                ('Random Data', 'Random numbers/strings'), ('Duration Calc', 'Time duration math'),
-               ('Age Calculator', 'Calculate age from DOB')],
+               ('Age Calculator', 'Calculate age from DOB'),
+               ('Unit Converter', 'Length/weight/temp'), ('Byte Converter', 'All byte units'),
+               ('Interest Calc', 'Simple/compound'), ('BMI Calc', 'Body mass index'),
+               ('Prime & Factors', 'Prime utilities'), ('Date Diff', 'Days between dates')],
      "mapped": [('base_n', 'run'), ('base64_decoder', 'run'), ('numerals', 'roman'),
                 ('numerals', 'convert'), ('percentage', 'run'), ('yaml_toml', 'run'),
                 ('csv_tools', 'run'), ('json_formatter', 'xml'), ('receipt', 'run'),
                 ('uuid_gen', 'run'), ('barcode', 'run'), ('password_gen', 'run'),
-                ('random_gen', 'run'), ('duration', 'run'), ('age_calc', 'run')]},
-    {"n": 8, "short": "GAMING", "title": "GAME SUITE (ROBLOX)", "icon": "🎮",
-     "tools": [('User Intel', 'Roblox user lookup'), ('Group Intel', 'Roblox group lookup'),
-               ('Name History', 'Roblox previous usernames'), ('Username Check', 'Roblox username availability'),
-               ('Cookie Login', 'Validate .ROBLOSECURITY'), ('Asset Downloader', 'Download Roblox assets'),
-               ('Inventory Viewer', 'View user inventory'), ('Game Info', 'Roblox game details')],
+                ('random_gen', 'run'), ('duration', 'run'), ('age_calc', 'run'),
+                ('misc_tools', 'unit_converter'), ('misc_tools', 'byte_converter'),
+                ('misc_tools', 'interest_calc'), ('misc_tools', 'bmi_calc'),
+                ('misc_tools', 'prime_tools'), ('misc_tools', 'date_diff')]},
+{"n": 8, "short": "ROBLOX", "title": "ROBLOX GAME SUITE", "icon": "🎮",
+     "tools": [('Roblox User Intel', 'User lookup'), ('Roblox Group Intel', 'Group lookup'),
+                ('Roblox Name History', 'Previous usernames'), ('Roblox Username', 'Check availability'),
+                ('Roblox Cookie Login', 'Validate .ROBLOSECURITY'), ('Roblox Asset DL', 'Download assets'),
+                ('Roblox Inventory', 'View user inventory'), ('Roblox Game Info', 'Game details'),
+                ('Roblox Link Builder', 'Profile/asset links'), ('Username Styles', 'Stylized variants'),
+                ('Gamertag Gen', 'Random gamertags')],
      "mapped": [('roblox_intel', 'run'), ('roblox_intel', 'group_lookup'), ('roblox_intel', 'name_history'),
                 ('roblox_intel', 'username_check'), ('roblox_control', 'run'),
                 ('roblox_control', 'asset_download'), ('roblox_intel', 'inventory_view'),
-                ('roblox_intel', 'game_info')]},
+                ('roblox_intel', 'game_info'),
+                ('misc_tools', 'roblox_link_builder'), ('misc_tools', 'username_style_gen'),
+                ('misc_tools', 'gamertag_gen')]},
     {"n": 9, "short": "SIM", "title": "SIMULATION & GENERATORS", "icon": "🎭",
      "tools": [('Identity Generator', 'Realistic fake identities'), ('Credit Card Gen', 'Test card numbers (Luhn)'),
                ('Crypto Wallets', 'Generate wallet addresses'), ('Username Generator', 'Unique usernames'),
@@ -290,7 +326,11 @@ MENU_TABS = [
                ('Fake Bruteforcer', 'Simulated brute force'), ('ASCII Art', 'Text to ASCII art'),
                ('Stealth Art', 'Zalgo/glitch text'), ('Creeper Text', 'Creeper text effect'),
                ('Small Caps', 'Small caps text'), ('Bubble Text', 'Bubble unicode text'),
-               ('Mirror Text', 'Flipped text')],
+               ('Mirror Text', 'Flipped text'),
+               ('Fake IP', 'Random IPs'), ('Fake MAC', 'Random MACs'),
+               ('Fake Phone', 'Random numbers'), ('Fake Address', 'Random address'),
+               ('Fake Company', 'Random companies'), ('Hacker Alias', 'Handles'),
+               ('Buzzword Gen', 'Corporate speak'), ('Emoji Flood', 'Emoji spam')],
      "mapped": [('faker_suite', 'identity_gen'), ('faker_suite', 'credit_card_gen'),
                 ('faker_suite', 'wallet_gen'), ('faker_suite', 'username_gen'),
                 ('faker_suite', 'password_gen'), ('faker_suite', 'lorem_ipsum'),
@@ -302,36 +342,54 @@ MENU_TABS = [
                 ('faker_suite', 'hacker_terminal'), ('faker_suite', 'ransomware_sim'),
                 ('faker_suite', 'fake_bruteforcer'), ('ascii_art', 'run'),
                 ('text_effects', 'zalgo'), ('text_effects', 'creeper'),
-                ('text_effects', 'smallcaps'), ('text_effects', 'bubble'), ('text_effects', 'mirror')]},
+                ('text_effects', 'smallcaps'), ('text_effects', 'bubble'), ('text_effects', 'mirror'),
+                ('misc_tools', 'fake_ip'), ('misc_tools', 'fake_mac'),
+                ('misc_tools', 'fake_phone'), ('misc_tools', 'fake_address'),
+                ('misc_tools', 'fake_company'), ('misc_tools', 'hacker_alias'),
+                ('misc_tools', 'buzzword_gen'), ('misc_tools', 'emoji_flood')]},
     {"n": 10, "short": "NET", "title": "NETWORK & DNS", "icon": "📡",
      "tools": [('Port Scanner', 'TCP port scan + banners'), ('Traceroute', 'Network path trace'),
                ('DNS Resolver', 'Resolve DNS records'), ('DNS over HTTPS', 'Encrypted DNS'),
                ('Subdomain Enum', 'Find subdomains'), ('Subnet Calculator', 'CIDR math'),
                ('Whois', 'Domain registration'), ('IP Pinger', 'ICMP ping'),
-               ('ASN Lookup', 'ASN information'), ('Blacklist Check', 'IP blacklist check')],
+               ('ASN Lookup', 'ASN information'), ('Blacklist Check', 'IP blacklist check'),
+               ('Port Lookup', 'Common port services'), ('Random Domain', 'Name generator'),
+               ('Subnet List', 'Enumerate CIDR range')],
      "mapped": [('port_scanner', 'run'), ('traceroute', 'run'), ('osint', 'dns_resolver'),
                 ('doh', 'run'), ('subenum', 'run'), ('subnet_calc', 'run'),
                 ('osint', 'whois_lookup'), ('ip_pinger', 'run'), ('asn_intel', 'run'),
-                ('ip_blacklist', 'run')]},
+                ('ip_blacklist', 'run'),
+                ('misc_tools', 'port_lookup'), ('misc_tools', 'random_domain'),
+                ('misc_tools', 'subnet_list_gen')]},
     {"n": 11, "short": "DEV", "title": "DEVELOPER TOOLS", "icon": "🔧",
      "tools": [('Request Builder', 'Build HTTP requests'), ('Header Inspector', 'View/edit headers'),
                ('Cookie Inspector', 'View/edit cookies'), ('JS Obfuscator', 'JavaScript obfuscation'),
                ('Lua Obfuscator', 'Lua code obfuscation'), ('Lua Sandbox', 'Run Lua code safely'),
                ('Cron Builder', 'Build cron expressions'), ('Cron Parser', 'Parse cron schedules'),
                ('Code Formatter', 'Format source code'), ('YAML/TOML', 'Config file conversion'),
-               ('JSON Formatter', 'Pretty-print JSON'), ('SQL Formatter', 'Format SQL queries')],
+               ('JSON Formatter', 'Pretty-print JSON'), ('SQL Formatter', 'Format SQL queries'),
+               ('Code Minify', 'Strip comments/blanks'), ('Case Converter', 'Camel/snake/kebab'),
+               ('Semver Compare', 'Compare versions'), ('UUID/Hash Gen', 'Name-based hashes'),
+               ('Bracket Matcher', 'Balanced check')],
      "mapped": [('reqbuild', 'run'), ('header_inspector', 'run'), ('cookie_inspector', 'run'),
                 ('js_obfuscator', 'run'), ('lua_obfuscator', 'run'), ('lua_sandbox', 'run'),
                 ('cron_builder', 'run'), ('cron_parser', 'run'), ('code_formatter', 'run'),
-                ('yaml_toml', 'run'), ('json_formatter', 'run'), ('sql_formatter', 'run')]},
+                ('yaml_toml', 'run'), ('json_formatter', 'run'), ('sql_formatter', 'run'),
+                ('misc_tools', 'code_minify'), ('misc_tools', 'camel_tools'),
+                ('misc_tools', 'semver_compare'), ('misc_tools', 'uuid_v5'),
+                ('misc_tools', 'bracket_matcher')]},
     {"n": 12, "short": "FILE", "title": "FILE & IMAGE TOOLS", "icon": "📁",
      "tools": [('File Type Detector', 'Identify file types'), ('Image to Base64', 'Encode images'),
                ('Photo Metadata', 'EXIF extraction'), ('Metadata Stripper', 'Remove metadata'),
                ('Hex Dump', 'View hex data'), ('Steganography', 'Hide data in images'),
-               ('File Checksum', 'MD5/SHA hash files'), ('Binary Viewer', 'View binary data')],
+               ('File Checksum', 'MD5/SHA hash files'), ('Binary Viewer', 'View binary data'),
+               ('Dir Tree', 'Print directory tree'), ('File Search', 'Glob pattern lookup'),
+               ('Biggest Files', 'Top sizes in dir'), ('Path Info', 'Path details')],
      "mapped": [('file_type', 'run'), ('base64_image', 'run'), ('photo_meta', 'run'),
                 ('metadata_strip', 'run'), ('hex_dump', 'run'), ('steganography', 'run'),
-                ('file_checksum', 'run'), ('hex_dump', 'binary')]},
+                ('file_checksum', 'run'), ('hex_dump', 'binary'),
+                ('misc_tools', 'dir_tree'), ('misc_tools', 'file_search'),
+                ('misc_tools', 'file_sizes'), ('misc_tools', 'path_info')]},
 ]
 
 def load_json(path):
@@ -402,24 +460,23 @@ def _markup(text):
     """Render [red]...[/red] style tags (and [on #hex] swatches) to ANSI."""
     s = str(text)
     def _color_solid(m):
-        return _TAG_COLORS.get(m.group(2).lower(), '')
+        return _TAG_COLORS.get(m.group(1).lower(), '')
     def _color_reset(m):
-        tag = m.group(2)
+        tag = m.group(1)
         if tag.lower() in ('bold', 'dim'):
-            return '\033[22m' if tag.lower() == 'bold' else '\033[22m'
+            return '\033[22m'
         return Colors.reset
-    s = re.sub(r'\[on\s+#?([0-9a-fA-F]{3,8})\]', r'\033[48;2;\1m\x00on', s)
-    s = s.replace('\x00on', '')  # placeholder replaced below
-    try:
-        def _hex_bg(m):
-            h = m.group(1)
-            if len(h) == 3:
-                h = ''.join(c * 2 for c in h)
+    def _on_bg(m):
+        h = m.group(1)
+        if len(h) == 3:
+            h = ''.join(c * 2 for c in h)
+        try:
             r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
-            return f'\033[48;2;{r};{g};{b}m'
-        s = re.sub(r'\[on\s+#([0-9a-fA-F]{3,8})\]', _hex_bg, s)
-    except Exception:
-        pass
+            return f'\033[48;2;{r};{g};{b}m\x00on'
+        except Exception:
+            return m.group(0)
+    s = re.sub(r'\[on\s+#?([0-9a-fA-F]{3,8})\]', _on_bg, s)
+    s = s.replace('\x00on', '')
     s = re.sub(r'\[/on\s+#?([0-9a-fA-F]{3,8})\]', Colors.reset, s)
     s = re.sub(r'\[/([a-zA-Z]+)\]', _color_reset, s)
     s = re.sub(r'\[([a-zA-Z]+)\]', _color_solid, s)
@@ -434,10 +491,8 @@ def get_theme():
     return THEMES.get(name, THEMES['modern'])
 
 def clr():
-    if os.name == 'nt':
-        os.system('cls')
-    else:
-        os.system('clear')
+    sys.stdout.write('\x1b[2J\x1b[H')
+    sys.stdout.flush()
 
 def cprint_horizontal(color, text):
     cfg = get_config()
@@ -513,11 +568,11 @@ def draw_card_box(title, items):
 def draw_menu_grid(categories):
     cl = get_theme()
     tw = shutil.get_terminal_size().columns
-    cw = 32
+    cw = 26
     per = max(1, (tw - 4) // (cw + 2))
     if tw < 68 or per < 2:
         per = 1
-        cw = max(28, tw - 8)
+        cw = max(24, tw - 8)
     else:
         per = min(per, 4)
 
@@ -759,6 +814,7 @@ class KevTool:
             pass
 
     def run_module(self, module_name, func_name='run'):
+        self.clear()
         try:
             spec = importlib.util.spec_from_file_location(module_name, os.path.join(MODULES_DIR, f'{module_name}.py'))
             mod = importlib.util.module_from_spec(spec)
@@ -839,15 +895,56 @@ class KevTool:
     def _draw_tab_bar(self, active):
         cl = get_theme()
         tw = shutil.get_terminal_size().columns
-        parts = []
-        for t in MENU_TABS:
-            label = f"{t['n']}:{t['short']}"
+
+        def build(sep, max_label):
+            plains, segs = [], []
+            for t in MENU_TABS:
+                label = f"{t['n']}:{t['short']}"
+                if max_label and len(label) > max_label:
+                    label = label[:max_label]
+                if t['n'] == active:
+                    plain = f"▌{label}▐"
+                    seg = cprint_horizontal(cl['num'], plain)
+                else:
+                    plain = f"|{label}_"
+                    seg = cprint_horizontal(cl['sub'], plain)
+                plains.append(plain)
+                segs.append(seg)
+            return plains, segs
+
+        sep = " "
+        plains, segs = build(sep, 0)
+        line_plain = sep.join(plains)
+        if len(line_plain) > tw:
+            # tighten separators first
+            sep = ""
+            plains, segs = build(sep, 0)
+            line_plain = sep.join(plains)
+        if len(line_plain) > tw:
+            # binary-search the largest label length that fits
+            hi = max(len(f"{t['n']}:{t['short']}") for t in MENU_TABS)
+            lo, best = 2, None
+            while lo <= hi:
+                mid = (lo + hi) // 2
+                p, _ = build(sep, mid)
+                if len(sep.join(p)) <= tw:
+                    best, lo = mid, mid + 1
+                else:
+                    hi = mid - 1
+            if best is not None:
+                plains, segs = build(sep, best)
+                line_plain = sep.join(plains)
+
+        line = sep.join(segs)
+        pad = max(0, (tw - len(line_plain)) // 2)
+        print(" " * pad + line)
+        at = pad
+        for plain, t in zip(plains, MENU_TABS):
+            w = len(plain)
             if t['n'] == active:
-                parts.append(cprint_horizontal(cl['num'], f"[{label}]"))
-            else:
-                parts.append(cprint_horizontal(cl['sub'], label))
-        line = "   ".join(parts)
-        print(" " * max(0, (tw - _vis_len(line)) // 2) + line)
+                print(cprint_horizontal(cl['head'], " " * (at + (w // 2)) + "▲"))
+                break
+            at += w + len(sep)
 
     def tool_menu(self, tab=1):
         tabs = MENU_TABS
@@ -870,7 +967,8 @@ class KevTool:
 
             choice = self.input_choice()
             if choice == '0':
-                return
+                self.main_menu()
+                continue
             if choice.lower() == 'n':
                 tab = tab % len(tabs) + 1
                 continue
@@ -1062,7 +1160,7 @@ def main():
     if not no_boot:
         loading_screen()
     check_update()
-    KevTool().main_menu()
+    KevTool().tool_menu(1)
 
 if __name__ == '__main__':
     main()
