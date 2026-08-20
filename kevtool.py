@@ -7,14 +7,18 @@ Python 3.6+ | Windows + Linux + macOS | standalone modules
 import os
 import sys
 import io as _io
+import io
 import json
 import time
+import zipfile
 import importlib
 import getpass
 import subprocess
 import shutil
 import random
 import re
+import threading
+import urllib.request
 from types import SimpleNamespace
 
 PY_MAJ, PY_MIN = sys.version_info[:2]
@@ -81,8 +85,10 @@ VERSION = _read_version()
 
 AUTHOR = "KevBin"
 GITHUB_REPO = "kevluvcode/Kev-tool"
-GITHUB_CLONE = f"https://github.com/{GITHUB_REPO}.git"
 GITHUB_RAW_VERSION = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/modules/version.txt"
+GITHUB_ZIP_URL = f"https://github.com/{GITHUB_REPO}/archive/refs/heads/main.zip"
+PROXY_LIST_URL = "https://raw.githubusercontent.com/proxifly/free-proxy-list/refs/heads/main/proxies/all/data.txt"
+VALID_PROXIES_PATH = os.path.join(BASE_DIR, 'valid_proxies.txt')
 
 def _hex(rgb: str) -> str:
     r, g, b = int(rgb[0:2], 16), int(rgb[2:4], 16), int(rgb[4:6], 16)
@@ -675,33 +681,154 @@ def check_update(auto=False):
             time.sleep(0.5)
         if choice.lower() == 'y':
             install_dir = os.path.join(BASE_DIR, f"KevTool-{remote_ver}")
-            print(cprint_horizontal(cl['txt'], f"  Cloning to {install_dir}..."))
+            print(cprint_horizontal(cl['txt'], f"  Downloading v{remote_ver}..."))
+            try:
+                zip_data = requests.get(GITHUB_ZIP_URL, timeout=60).content
+            except Exception as e:
+                print(cprint_horizontal(cl['num'], f"  [!] Download failed: {e}"))
+                get_input("  Press Enter...")
+                return
             if os.path.isdir(install_dir):
-                import shutil as _shutil
                 try:
-                    _shutil.rmtree(install_dir)
+                    shutil.rmtree(install_dir)
                 except Exception:
                     pass
-            result = subprocess.run(['git', 'clone', '--depth', '1', GITHUB_CLONE, install_dir],
-                                    capture_output=True, text=True, timeout=120)
-            if result.returncode == 0:
-                try:
-                    src_cfg = os.path.join(CONFIG_DIR, 'settings.json')
-                    dst_dir = os.path.join(install_dir, 'modules', 'config')
-                    if os.path.isfile(src_cfg) and os.path.isdir(dst_dir):
-                        import shutil as _shutil
-                        _shutil.copy2(src_cfg, os.path.join(dst_dir, 'settings.json'))
-                except Exception:
-                    pass
-                print(cprint_horizontal(cl['head'], f"  [+] Updated to v{remote_ver}!"))
-                print(cprint_horizontal(cl['txt'], f"  Run from: {install_dir}"))
-                print(cprint_horizontal(cl['dim'], "  Your settings were preserved."))
-            else:
-                print(cprint_horizontal(cl['num'], f"  [!] Clone failed: {result.stderr.strip()[:100]}"))
+            try:
+                with zipfile.ZipFile(io.BytesIO(zip_data)) as zf:
+                    top_folder = zf.namelist()[0].split('/')[0]
+                    zf.extractall(BASE_DIR)
+                extracted = os.path.join(BASE_DIR, top_folder)
+                if extracted != install_dir and os.path.isdir(extracted):
+                    os.rename(extracted, install_dir)
+            except Exception as e:
+                print(cprint_horizontal(cl['num'], f"  [!] Extract failed: {e}"))
+                get_input("  Press Enter...")
+                return
+            try:
+                src_cfg = os.path.join(CONFIG_DIR, 'settings.json')
+                dst_dir = os.path.join(install_dir, 'modules', 'config')
+                if os.path.isfile(src_cfg) and os.path.isdir(dst_dir):
+                    shutil.copy2(src_cfg, os.path.join(dst_dir, 'settings.json'))
+            except Exception:
+                pass
+            print(cprint_horizontal(cl['head'], f"  [+] Updated to v{remote_ver}!"))
+            print(cprint_horizontal(cl['txt'], f"  Run from: {install_dir}"))
+            print(cprint_horizontal(cl['dim'], "  Your settings were preserved."))
         get_input("  Press Enter...")
     except Exception as e:
         if not auto:
             print(cprint_horizontal(cl['num'], f"  [!] Update check failed: {e}"))
+
+
+_PROXY_IP_RE = re.compile(r'^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3}):(\d{1,5})$')
+_PROXY_SCHEME_RE = re.compile(r'^(https?|socks4|socks5)://([^/:]+):(\d{1,5})$', re.I)
+_PROXY_TEST_URL = 'http://www.gstatic.com/generate_204'
+
+
+def _proxy_valid(addr):
+    m = _PROXY_IP_RE.match(addr.strip())
+    if not m:
+        return False
+    return all(0 <= int(m.group(i)) <= 255 for i in range(1, 5)) and 1 <= int(m.group(5)) <= 65535
+
+
+def _proxy_parse(line):
+    line = line.strip()
+    if not line or line.startswith('#'):
+        return None, None
+    m = _PROXY_SCHEME_RE.match(line)
+    if m:
+        host, port = m.group(2), m.group(3)
+        if not _proxy_valid(f"{host}:{port}"):
+            return None, None
+        return f"{host}:{port}", m.group(1).lower()
+    if _proxy_valid(line):
+        return line, 'http'
+    return None, None
+
+
+def _proxy_test_one(addr, proto, timeout=5):
+    if proto == 'http':
+        handler = urllib.request.ProxyHandler({'http': f'http://{addr}', 'https': f'http://{addr}'})
+        opener = urllib.request.build_opener(handler)
+        try:
+            with opener.open(_PROXY_TEST_URL, timeout=timeout) as r:
+                return r.status in (200, 204)
+        except Exception:
+            return False
+    else:
+        try:
+            import socks
+        except ImportError:
+            return False
+        host, _, port = addr.rpartition(':')
+        s = socks.socksocket()
+        s.set_proxy(socks.SOCKS5 if proto == 'socks5' else socks.SOCKS4, host, int(port))
+        s.settimeout(timeout)
+        try:
+            s.connect(('www.gstatic.com', 80))
+            s.send(b'GET /generate_204 HTTP/1.1\r\nHost: www.gstatic.com\r\nConnection: close\r\n\r\n')
+            resp = s.recv(4096).decode('utf-8', errors='ignore')
+            return ' 200' in resp or ' 204' in resp
+        except Exception:
+            return False
+        finally:
+            try:
+                s.close()
+            except Exception:
+                pass
+
+
+def _proxy_worker(queue, valid_out, lock, done_count):
+    while True:
+        try:
+            addr, proto = queue.pop()
+        except IndexError:
+            return
+        ok = _proxy_test_one(addr, proto)
+        with lock:
+            done_count[0] += 1
+            if ok:
+                valid_out.append(f"{proto}://{addr}" if proto != 'http' else addr)
+
+
+def auto_proxy_check(max_proxies=100, threads=30):
+    """Fetch proxies from proxifly, test them, save valid to valid_proxies.txt."""
+    try:
+        req = urllib.request.Request(PROXY_LIST_URL, headers={'User-Agent': 'KevTool'})
+        with urllib.request.urlopen(req, timeout=15) as r:
+            raw = r.read().decode('utf-8', errors='ignore')
+    except Exception:
+        return
+    seen = set()
+    queue = []
+    for line in raw.splitlines():
+        addr, proto = _proxy_parse(line)
+        if addr and (addr, proto) not in seen:
+            seen.add((addr, proto))
+            queue.append((addr, proto))
+    if not queue:
+        return
+    if len(queue) > max_proxies:
+        random.shuffle(queue)
+        queue = queue[:max_proxies]
+    random.shuffle(queue)
+    valid = []
+    lock = threading.Lock()
+    done_count = [0]
+    workers = [threading.Thread(target=_proxy_worker, args=(queue, valid, lock, done_count), daemon=True)
+               for _ in range(min(threads, len(queue)))]
+    for t in workers:
+        t.start()
+    for t in workers:
+        t.join(timeout=30)
+    if valid:
+        try:
+            with open(VALID_PROXIES_PATH, 'w', encoding='utf-8') as f:
+                f.write('\n'.join(valid) + '\n')
+        except Exception:
+            pass
+
 
 class KevTool:
     def __init__(self):
@@ -1146,6 +1273,11 @@ def main():
         cfg = get_config()
         if cfg.get('check_updates', True):
             check_update(auto=True)
+    if not no_update:
+        try:
+            auto_proxy_check()
+        except Exception:
+            pass
     KevTool().tool_menu(1)
 
 if __name__ == '__main__':

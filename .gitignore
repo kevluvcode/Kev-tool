@@ -4,6 +4,7 @@ __pycache__/
 fix_md.py
 fix_md2.py
 KevTool_*/
+KevTool-*/
 
 # proxy runtime outputs
 proxies/
