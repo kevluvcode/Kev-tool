@@ -13,6 +13,40 @@ except ImportError:
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+def _aes_bypass(session, url, html):
+    """Bypass InfinityFree-style AES cookie challenge."""
+    m = re.search(
+        r'var\s+a\s*=\s*toNumbers\("([0-9a-f]{32})"\)'
+        r'.*?var\s+b\s*=\s*toNumbers\("([0-9a-f]{32})"\)'
+        r'.*?var\s+c\s*=\s*toNumbers\("([0-9a-f]{32})"\)'
+        r'.*?location\.href\s*=\s*"([^"]+)"',
+        html, re.S
+    )
+    if not m:
+        return html, False
+    a_hex, b_hex, c_hex, redirect_url = m.group(1), m.group(2), m.group(3), m.group(4)
+    try:
+        from Crypto.Cipher import AES
+        from Crypto.Util.Padding import unpad
+    except ImportError:
+        try:
+            from Cryptodome.Cipher import AES
+            from Cryptodome.Util.Padding import unpad
+        except ImportError:
+            return html, False
+    try:
+        key = bytes.fromhex(a_hex) + bytes.fromhex(b_hex)
+        iv = bytes(16)
+        ciphertext = bytes.fromhex(c_hex)
+        cipher = AES.new(key, AES.MODE_CBC, iv)
+        plaintext = unpad(cipher.decrypt(ciphertext), 16)
+        session.cookies.set('__test', plaintext.hex(), domain='/', path='/')
+        r2 = session.get(redirect_url, timeout=10, verify=False)
+        return r2.text, True
+    except Exception:
+        return html, False
+
+
 def _resolve(base, href):
     """Resolve a potentially-relative URL against a base."""
     if not href or href.startswith(('data:', 'javascript:', 'mailto:', '#')):
@@ -97,6 +131,14 @@ def run(kevbin):
         kevbin.cprint(kevbin.t.error, f"  [X] Failed to fetch: {e}")
         kevbin.pause()
         return
+
+    if 'slowAES.decrypt' in html or 'toNumbers' in html:
+        kevbin.cprint(kevbin.t.warning, "  [~] AES cookie challenge detected — bypassing...")
+        html, bypassed = _aes_bypass(session, url, html)
+        if bypassed:
+            kevbin.cprint(kevbin.t.success, "  [+] Bypass successful!")
+        else:
+            kevbin.cprint(kevbin.t.error, "  [!] Bypass failed (pip install pycryptodome)")
 
     # ——— 2. Extract ALL asset URLs from HTML ———
     asset_urls = set()
