@@ -84,7 +84,55 @@ GITHUB_REPO = "kevluvcode/Kev-tool"
 GITHUB_CLONE = f"https://github.com/{GITHUB_REPO}.git"
 GITHUB_RAW_VERSION = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/modules/version.txt"
 
-THEMES = {
+def _hex(rgb: str) -> str:
+    r, g, b = int(rgb[0:2], 16), int(rgb[2:4], 16), int(rgb[4:6], 16)
+    return f"\033[38;2;{r};{g};{b}m"
+
+
+EXTRA_THEMES = {
+    "dracula": {"banner": Colors.blue_to_purple, "head": _hex("bd93f9"), "num": _hex("ff79c6"),
+                "txt": _hex("f8f8f2"), "sub": _hex("50fa7b"), "inp": _hex("8be9fd")},
+    "monokai": {"banner": Colors.blue_to_red, "head": _hex("f92672"), "num": _hex("a6e22e"),
+                "txt": _hex("f8f8f2"), "sub": _hex("e6db74"), "inp": _hex("66d9ef")},
+    "nord": {"banner": Colors.cyan_to_blue, "head": _hex("81a1c1"), "num": _hex("88c0d0"),
+             "txt": _hex("e5e9f0"), "sub": _hex("a3be8c"), "inp": _hex("5e81ac")},
+    "ocean": {"banner": Colors.blue_to_green, "head": _hex("00bcd4"), "num": _hex("00e5ff"),
+              "txt": _hex("e0f7fa"), "sub": _hex("4dd0e1"), "inp": _hex("80deea")},
+    "matrix": {"banner": Colors.green_to_white, "head": _hex("00ff41"), "num": _hex("76ff03"),
+               "txt": _hex("d0ffd0"), "sub": _hex("00c853"), "inp": _hex("64dd17")},
+    "midnight": {"banner": Colors.blue_to_purple, "head": _hex("7986cb"), "num": _hex("9fa8da"),
+                 "txt": _hex("e8eaf6"), "sub": _hex("64b5f6"), "inp": _hex("b39ddb")},
+    "sunset": {"banner": Colors.red_to_yellow, "head": _hex("ff7043"), "num": _hex("ff8a65"),
+               "txt": _hex("fff3e0"), "sub": _hex("ffb74d"), "inp": _hex("ffab91")},
+    "fire": {"banner": Colors.yellow_to_red, "head": _hex("ff5722"), "num": _hex("ff7043"),
+             "txt": _hex("ffe0b2"), "sub": _hex("ff9800"), "inp": _hex("ff9e80")},
+    "forest": {"banner": Colors.green_to_yellow, "head": _hex("689f38"), "num": _hex("8bc34a"),
+               "txt": _hex("e8f5e9"), "sub": _hex("cddc39"), "inp": _hex("aed581")},
+    "gold": {"banner": Colors.yellow_to_green, "head": _hex("f9a825"), "num": _hex("f9d423"),
+             "txt": _hex("fff8e1"), "sub": _hex("ef6c00"), "inp": _hex("ffd54f")},
+    "cyberpunk": {"banner": Colors.blue_to_purple, "head": _hex("00f5d4"), "num": _hex("f20089"),
+                  "txt": _hex("e6f7f5"), "sub": _hex("ffd60a"), "inp": _hex("7209b7")},
+    "synthwave": {"banner": Colors.purple_to_blue, "head": _hex("ff63b0"), "num": _hex("a89bff"),
+                  "txt": _hex("f8f8ff"), "sub": _hex("00fff5"), "inp": _hex("ff5ca8")},
+    "terminal": {"banner": Colors.green_to_cyan, "head": _hex("a0f66d"), "num": _hex("00ffaa"),
+                 "txt": _hex("ffffff"), "sub": _hex("5af78e"), "inp": _hex("57ff7e")},
+    "high_contrast": {"banner": Colors.black_to_white, "head": _hex("ffffff"), "num": _hex("ffff00"),
+                      "txt": _hex("ffffff"), "sub": _hex("00ffff"), "inp": _hex("ffff00")},
+    "bubblegum": {"banner": Colors.red_to_white, "head": _hex("ff6ec7"), "num": _hex("ff87d0"),
+                  "txt": _hex("fff0f6"), "sub": _hex("ff9f8a"), "inp": _hex("ffc2e2")},
+    "mint": {"banner": Colors.green_to_cyan, "head": _hex("1de9b6"), "num": _hex("4db6ac"),
+             "txt": _hex("e0f2f1"), "sub": _hex("a7ffeb"), "inp": _hex("80cbc4")},
+    "violet": {"banner": Colors.purple_to_blue, "head": _hex("b388ff"), "num": _hex("d1c4e9"),
+               "txt": _hex("ede7f6"), "sub": _hex("9575cd"), "inp": _hex("ce93d8")},
+    "rust": {"banner": Colors.red_to_white, "head": _hex("e64a19"), "num": _hex("ff7043"),
+             "txt": _hex("fbe9e7"), "sub": _hex("d84315"), "inp": _hex("ffab91")},
+    "steel": {"banner": Colors.white_to_blue, "head": _hex("90a4ae"), "num": _hex("b0bec5"),
+              "txt": _hex("eceff1"), "sub": _hex("78909c"), "inp": _hex("cfd8dc")},
+    "peacock": {"banner": Colors.cyan_to_blue, "head": _hex("20c997"), "num": _hex("0fb9b1"),
+                "txt": _hex("e6fffa"), "sub": _hex("12b886"), "inp": _hex("5cdbd3")},
+}
+
+THEMES = {**{
     "modern": {"banner": Colors.white_to_blue, "head": Colors.white, "num": Colors.white_to_blue,
                "txt": Colors.white, "sub": Colors.white_to_blue, "inp": Colors.white_to_blue},
     "modern_red": {"banner": Colors.white_to_red, "head": Colors.white, "num": Colors.white_to_red,
@@ -103,7 +151,7 @@ THEMES = {
                "txt": Colors.white, "sub": Colors.red_to_yellow, "inp": Colors.red_to_yellow},
     "rainbow": {"banner": Colors.rainbow, "head": Colors.rainbow, "num": Colors.rainbow,
                 "txt": Colors.white, "sub": Colors.rainbow, "inp": Colors.rainbow},
-}
+}, **EXTRA_THEMES}
 
 BANNER_LINES = [
     r"  ____  __.                    ___________           .__",
@@ -131,6 +179,160 @@ DEFAULT_CONFIG = {
     "per_page": 14,
     "auto_update": True,
 }
+
+MENU_TABS = [
+    {"n": 1, "short": "DISCORD", "title": "DISCORD OPERATIONS", "icon": "📡",
+     "tools": [('Webhook Info', 'View webhook details'), ('Token Decoder', 'Decode Discord tokens'),
+               ('Account Info', 'Fetch account from token'), ('Server Info', 'Fetch server via bot'),
+               ('Status Rotator', 'Status rotation reference'), ('Bot Invite', 'Generate bot invite URL')],
+     "mapped": [('discord_ops', 'webhook_info'), ('discord_ops', 'token_decode'),
+                ('discord_ops', 'account_info'), ('discord_ops', 'server_info'),
+                ('discord_ops', 'status_rotator'), ('discord_ops', 'bot_invite_gen')]},
+    {"n": 2, "short": "OSINT", "title": "OSINT & INTELLIGENCE", "icon": "🔍",
+     "tools": [('Whois Lookup', 'Domain registration info'), ('DNS Resolver', 'A/MX/TXT/CNAME/NS records'),
+               ('IP Info', 'Public IP information'), ('Metadata Scanner', 'EXIF from images'),
+               ('Username Checker', 'Multi-platform check'), ('Breach Check', 'Email breach lookup'),
+               ('SSL Certificate', 'Domain cert info'), ('GeoIP Lookup', 'IP geolocation'),
+               ('ASN Intel', 'ASN/IP range info'), ('Email Validate', 'Format + MX check'),
+               ('Email Reputation', 'Email provider check'), ('Stealer Check', 'Credential leak check'),
+               ('Wayback Machine', 'Historical snapshots'), ('Tech Stack', 'Website technology detection'),
+               ('Blacklist Check', 'IP blacklist lookup')],
+     "mapped": [('osint', 'whois_lookup'), ('osint', 'dns_resolver'), ('osint', 'ip_info'),
+                ('osint', 'metadata_scan'), ('osint', 'username_check'), ('breach_check', 'run'),
+                ('ssl_cert', 'run'), ('geoip', 'run'), ('asn_intel', 'run'),
+                ('email_tools', 'validate'), ('email_tools', 'reputation'), ('stealer_check', 'run'),
+                ('wayback', 'run'), ('tech_stack', 'run'), ('ip_blacklist', 'run')]},
+    {"n": 3, "short": "SECURITY", "title": "SECURITY & UTILITIES", "icon": "🛡️",
+     "tools": [('Obfuscator V2', 'Python XOR + Anti-Print'), ('Web Cloner', 'Clone websites locally'),
+               ('Cryptography', 'Base64/Hex/ROT13'), ('QR Generator', 'Custom QR codes'),
+               ('Hash Tool', 'Hash + online lookup'), ('Base64 Image', 'Encode/decode images'),
+               ('Ciphers', 'Caesar/Vigenere/Atbash/XOR'), ('JWT Tools', 'Decode + generate JWT'),
+               ('CORS Tester', 'Test CORS headers'), ('Entropy', 'Shannon entropy analysis'),
+               ('Password Check', 'Strength + breach check'), ('Timestamp', 'Unix timestamp converter'),
+               ('Security Headers', 'Analyze HTTP headers'), ('CSP Analyzer', 'Content Security Policy'),
+               ('Honeypot Detector', 'Detect honeypots'), ('HTTP Status', 'HTTP status code lookup'),
+               ('Port Scanner', 'TCP scan + banner grab'), ('Traceroute', 'Network path trace'),
+               ('Tor Check', 'Tor exit node detection'), ('Link Tools', 'URL expand/track/info'),
+               ('IP Pinger', 'ICMP ping utility'), ('System Info', 'CPU/RAM/Disk/OS details'),
+               ('Proxy Scraper', 'Grab proxies from GitHub lists'), ('Proxy Checker', 'Validate proxies multi-threaded')],
+     "mapped": [('obfuscator', 'run'), ('web_cloner', 'run'), ('crypto', 'run'), ('qr_gen', 'run'),
+                ('hash_tool', 'run'), ('base64_image', 'run'), ('ciphers', 'run'), ('jwt_tools', 'run'),
+                ('cors_tester', 'run'), ('entropy', 'run'), ('passcheck', 'run'), ('timestamp', 'run'),
+                ('security_headers', 'run'), ('csp_analyzer', 'run'), ('honeypot', 'run'),
+                ('http_status', 'run'), ('port_scanner', 'run'), ('traceroute', 'run'),
+                ('tor_check', 'run'), ('link_tools', 'run'), ('ip_pinger', 'run'),
+                ('system_info', 'run'), ('proxy_scraper', 'run'), ('proxy_checker', 'run')]},
+    {"n": 4, "short": "WEB", "title": "WEB & NETWORK TOOLS", "icon": "🌐",
+     "tools": [('Page Clone', 'Clone full websites'), ('Site Viewer', 'View source + headers'),
+               ('Web Search', 'Search the web'), ('Webhook Tester', 'Test webhook endpoints'),
+               ('Webhook Delete', 'Delete webhooks'), ('Link Bypass', 'Bypass link shorteners'),
+               ('Link Spoof', 'View redirect chains'), ('Link Tracker', 'Track link clicks'),
+               ('Browser FP', 'Browser fingerprint'), ('WebRTC Leak', 'WebRTC IP detection'),
+               ('DNS over HTTPS', 'Encrypted DNS queries'), ('Subdomain Enum', 'Find subdomains'),
+               ('Subnet Calculator', 'CIDR calculations')],
+     "mapped": [('page_clone', 'run'), ('site_viewer', 'run'), ('web_search', 'run'),
+                ('webhook_tools', 'tester'), ('webhook_tools', 'delete'), ('link_tools', 'bypass'),
+                ('link_tools', 'spoof'), ('link_tools', 'tracker'), ('browser_fp', 'run'),
+                ('webrtc_leak', 'run'), ('doh', 'run'), ('subenum', 'run'), ('subnet_calc', 'run')]},
+    {"n": 5, "short": "TEXT", "title": "TEXT & ENCODING", "icon": "📝",
+     "tools": [('Text Transform', 'Case/Reverse/Repeat'), ('Slugify', 'URL-safe slugs'),
+               ('Sort Lines', 'Alphabetical/Numeric sort'), ('Markdown Preview', 'Render markdown'),
+               ('Diff Tool', 'Compare two texts'), ('CSV Viewer', 'Parse + display CSV'),
+               ('JSON Formatter', 'Pretty-print JSON'), ('SQL Formatter', 'Format SQL queries'),
+               ('Regex Tester', 'Test regular expressions'), ('Word Counter', 'Word/char/line count'),
+               ('HTML Entity', 'Encode/Decode entities'), ('URL Encode', 'URL encode/decode'),
+               ('Unicode Tool', 'Unicode lookup/convert'), ('Emoji Lookup', 'Find emoji codes'),
+               ('Text Stats', 'Readability analysis')],
+     "mapped": [('text_tools', 'transform'), ('text_tools', 'slugify'), ('text_tools', 'sort'),
+                ('markdown_tools', 'run'), ('diff_tool', 'run'), ('csv_viewer', 'run'),
+                ('json_formatter', 'run'), ('sql_formatter', 'run'), ('regex_tester', 'run'),
+                ('text_tools', 'wordcount'), ('text_tools', 'html_entity'), ('text_tools', 'url_encode'),
+                ('unicode_tool', 'run'), ('emoji_lookup', 'run'), ('text_tools', 'stats')]},
+    {"n": 6, "short": "COLOR", "title": "COLOR & DESIGN", "icon": "🎨",
+     "tools": [('Color Converter', 'HEX/RGB/HSL conversion'), ('Gradient Generator', 'CSS gradient builder'),
+               ('Contrast Checker', 'WCAG contrast ratio'), ('Color Palette', 'Generate color palettes'),
+               ('Image Colors', 'Extract colors from image')],
+     "mapped": [('color_tools', 'converter'), ('color_tools', 'gradient'),
+                ('color_tools', 'contrast'), ('color_tools', 'palette'), ('color_tools', 'image_colors')]},
+    {"n": 7, "short": "DATA", "title": "DATA & CONVERSION", "icon": "💾",
+     "tools": [('Base-N Encoder', 'Binary/Octal/Hex encode'), ('Base64 Decode', 'Decode Base64 strings'),
+               ('Roman Numerals', 'Convert to/from Roman'), ('Number System', 'Dec/Hex/Bin/Oct convert'),
+               ('Percentage Calc', 'Percentage calculations'), ('YAML <-> TOML', 'Convert between formats'),
+               ('CSV Tools', 'Parse/merge CSV files'), ('JSON <-> XML', 'Convert between formats'),
+               ('Receipt Generator', 'Fake receipt maker'), ('UUID Generator', 'Generate UUIDs v4'),
+               ('Barcode Generator', 'Code128/Code39'), ('Password Generator', 'Secure passwords'),
+               ('Random Data', 'Random numbers/strings'), ('Duration Calc', 'Time duration math'),
+               ('Age Calculator', 'Calculate age from DOB')],
+     "mapped": [('base_n', 'run'), ('base64_decoder', 'run'), ('numerals', 'roman'),
+                ('numerals', 'convert'), ('percentage', 'run'), ('yaml_toml', 'run'),
+                ('csv_tools', 'run'), ('json_formatter', 'xml'), ('receipt', 'run'),
+                ('uuid_gen', 'run'), ('barcode', 'run'), ('password_gen', 'run'),
+                ('random_gen', 'run'), ('duration', 'run'), ('age_calc', 'run')]},
+    {"n": 8, "short": "GAMING", "title": "GAME SUITE (ROBLOX)", "icon": "🎮",
+     "tools": [('User Intel', 'Roblox user lookup'), ('Group Intel', 'Roblox group lookup'),
+               ('Name History', 'Roblox previous usernames'), ('Username Check', 'Roblox username availability'),
+               ('Cookie Login', 'Validate .ROBLOSECURITY'), ('Asset Downloader', 'Download Roblox assets'),
+               ('Inventory Viewer', 'View user inventory'), ('Game Info', 'Roblox game details')],
+     "mapped": [('roblox_intel', 'run'), ('roblox_intel', 'group_lookup'), ('roblox_intel', 'name_history'),
+                ('roblox_intel', 'username_check'), ('roblox_control', 'run'),
+                ('roblox_control', 'asset_download'), ('roblox_intel', 'inventory_view'),
+                ('roblox_intel', 'game_info')]},
+    {"n": 9, "short": "SIM", "title": "SIMULATION & GENERATORS", "icon": "🎭",
+     "tools": [('Identity Generator', 'Realistic fake identities'), ('Credit Card Gen', 'Test card numbers (Luhn)'),
+               ('Crypto Wallets', 'Generate wallet addresses'), ('Username Generator', 'Unique usernames'),
+               ('Password Generator', 'Secure passwords'), ('Lorem Ipsum', 'Placeholder text'),
+               ('Fake Nitro Code', 'Random Nitro-style codes'), ('Server Template', 'Discord server JSON'),
+               ('Fake Mail Gen', 'Fake email + password'), ('Fake DDoS', 'Simulated DDoS attack'),
+               ('Fake Wallet Miner', 'Simulated mining rig'), ('Social Botter', 'Simulated view botter'),
+               ('Fake PayPal OTP', 'Simulated OTP code'), ('Fake Account Gen', 'Fake account credentials'),
+               ('Fake Fortnite Check', 'Simulated skin checker'), ('Fake Exodus', 'Fake crypto seed phrase'),
+               ('Hacker Terminal', 'Fake hacker typer'), ('Ransomware Sim', 'Simulated ransomware warn'),
+               ('Fake Bruteforcer', 'Simulated brute force'), ('ASCII Art', 'Text to ASCII art'),
+               ('Stealth Art', 'Zalgo/glitch text'), ('Creeper Text', 'Creeper text effect'),
+               ('Small Caps', 'Small caps text'), ('Bubble Text', 'Bubble unicode text'),
+               ('Mirror Text', 'Flipped text')],
+     "mapped": [('faker_suite', 'identity_gen'), ('faker_suite', 'credit_card_gen'),
+                ('faker_suite', 'wallet_gen'), ('faker_suite', 'username_gen'),
+                ('faker_suite', 'password_gen'), ('faker_suite', 'lorem_ipsum'),
+                ('faker_suite', 'fake_nitro'), ('faker_suite', 'server_template'),
+                ('faker_suite', 'fake_mail'), ('faker_suite', 'fake_ddos'),
+                ('faker_suite', 'fake_wallet_miner'), ('faker_suite', 'social_botter'),
+                ('faker_suite', 'fake_paypal_otp'), ('faker_suite', 'fake_account_gen'),
+                ('faker_suite', 'fake_fortnite_checker'), ('faker_suite', 'fake_exodus'),
+                ('faker_suite', 'hacker_terminal'), ('faker_suite', 'ransomware_sim'),
+                ('faker_suite', 'fake_bruteforcer'), ('ascii_art', 'run'),
+                ('text_effects', 'zalgo'), ('text_effects', 'creeper'),
+                ('text_effects', 'smallcaps'), ('text_effects', 'bubble'), ('text_effects', 'mirror')]},
+    {"n": 10, "short": "NET", "title": "NETWORK & DNS", "icon": "📡",
+     "tools": [('Port Scanner', 'TCP port scan + banners'), ('Traceroute', 'Network path trace'),
+               ('DNS Resolver', 'Resolve DNS records'), ('DNS over HTTPS', 'Encrypted DNS'),
+               ('Subdomain Enum', 'Find subdomains'), ('Subnet Calculator', 'CIDR math'),
+               ('Whois', 'Domain registration'), ('IP Pinger', 'ICMP ping'),
+               ('ASN Lookup', 'ASN information'), ('Blacklist Check', 'IP blacklist check')],
+     "mapped": [('port_scanner', 'run'), ('traceroute', 'run'), ('osint', 'dns_resolver'),
+                ('doh', 'run'), ('subenum', 'run'), ('subnet_calc', 'run'),
+                ('osint', 'whois_lookup'), ('ip_pinger', 'run'), ('asn_intel', 'run'),
+                ('ip_blacklist', 'run')]},
+    {"n": 11, "short": "DEV", "title": "DEVELOPER TOOLS", "icon": "🔧",
+     "tools": [('Request Builder', 'Build HTTP requests'), ('Header Inspector', 'View/edit headers'),
+               ('Cookie Inspector', 'View/edit cookies'), ('JS Obfuscator', 'JavaScript obfuscation'),
+               ('Lua Obfuscator', 'Lua code obfuscation'), ('Lua Sandbox', 'Run Lua code safely'),
+               ('Cron Builder', 'Build cron expressions'), ('Cron Parser', 'Parse cron schedules'),
+               ('Code Formatter', 'Format source code'), ('YAML/TOML', 'Config file conversion'),
+               ('JSON Formatter', 'Pretty-print JSON'), ('SQL Formatter', 'Format SQL queries')],
+     "mapped": [('reqbuild', 'run'), ('header_inspector', 'run'), ('cookie_inspector', 'run'),
+                ('js_obfuscator', 'run'), ('lua_obfuscator', 'run'), ('lua_sandbox', 'run'),
+                ('cron_builder', 'run'), ('cron_parser', 'run'), ('code_formatter', 'run'),
+                ('yaml_toml', 'run'), ('json_formatter', 'run'), ('sql_formatter', 'run')]},
+    {"n": 12, "short": "FILE", "title": "FILE & IMAGE TOOLS", "icon": "📁",
+     "tools": [('File Type Detector', 'Identify file types'), ('Image to Base64', 'Encode images'),
+               ('Photo Metadata', 'EXIF extraction'), ('Metadata Stripper', 'Remove metadata'),
+               ('Hex Dump', 'View hex data'), ('Steganography', 'Hide data in images'),
+               ('File Checksum', 'MD5/SHA hash files'), ('Binary Viewer', 'View binary data')],
+     "mapped": [('file_type', 'run'), ('base64_image', 'run'), ('photo_meta', 'run'),
+                ('metadata_strip', 'run'), ('hex_dump', 'run'), ('steganography', 'run'),
+                ('file_checksum', 'run'), ('hex_dump', 'binary')]},
+]
 
 def load_json(path):
     try:
@@ -304,7 +506,7 @@ def draw_card_box(title, items):
             w_ = max(1, inner - len(tag))
             shown = v if len(v) <= w_ else v[:w_ - 1] + "."
             line += cprint_horizontal(cl['num'], tag) + cprint_horizontal(cl['txt'], shown) + " " * max(0, w_ - len(shown)) + "  "
-        print(line)
+        print(" " * max(0, (tw - _vis_len(line)) // 2) + line)
 
     print(cprint_horizontal(cl['head'], " " * 2 + "└" + "─" * inner + "┘"))
 
@@ -321,20 +523,21 @@ def draw_menu_grid(categories):
 
     rows = [categories[i:i + per] for i in range(0, len(categories), per)]
     for row in rows:
-        top = ""
-        mid = ""
-        bot = ""
+        tops = []
+        mids = []
+        bots = []
         for num, name in row:
             tag = f"[{num}] "
             room = max(1, cw - 2 - len(tag))
             shown = name if len(name) <= room else name[:room - 1] + "."
             pad = max(0, cw - 2 - len(tag) - len(shown))
-            top += "┌" + "─" * (cw - 2) + "┐  "
-            mid += "│" + cprint_horizontal(cl['num'], tag) + cprint_horizontal(cl['txt'], shown) + " " * pad + "│  "
-            bot += "└" + "─" * (cw - 2) + "┘  "
-        print(cprint_horizontal(cl['num'], top))
-        print(mid)
-        print(cprint_horizontal(cl['num'], bot))
+            tops.append("┌" + "─" * (cw - 2) + "┐")
+            mids.append("│" + cprint_horizontal(cl['num'], tag) + cprint_horizontal(cl['txt'], shown) + " " * pad + "│")
+            bots.append("└" + "─" * (cw - 2) + "┘")
+        for line in (cprint_horizontal(cl['num'], "  ".join(tops)),
+                     "  ".join(mids),
+                     cprint_horizontal(cl['num'], "  ".join(bots))):
+            print(" " * max(0, (tw - _vis_len(line)) // 2) + line)
     print()
 
 def get_input(prompt=None):
@@ -575,37 +778,25 @@ class KevTool:
         page = 0
         per_page = int(self.settings.get('per_page', 14))
         while True:
-            self.section_header(icon, title)
-            w = self._bw()
-            inner = max(1, w - 2)
+            cl = get_theme()
+            clr()
             total = len(tools)
             pages = max(1, (total + per_page - 1) // per_page)
             start = page * per_page
             end = min(start + per_page, total)
-            name_w = max(22, min(36, inner // 2 - 3))
-            desc_w = max(8, inner - name_w - 3)
+            cats = [(str(i + 1), tools[i][0]) for i in range(start, end)]
+            cats.append(('0', 'Return to Main Menu'))
 
-            self.box_top(w)
+            print(cprint_horizontal(cl['head'], Center.XCenter(f"  {icon}  {title}  ")))
+            sub = f"v{VERSION}"
             if tab:
-                l = f" TAB {tab}/{tabs} "
-                r = " [0] = MAIN MENU "
-                self.box_row(l + " " * max(0, inner - _vis_len(l) - _vis_len(r)) + r, w)
-                self.box_mid(w)
-            for i in range(start, end):
-                num = i + 1
-                name, desc = tools[i][0], tools[i][1]
-                left = f" [{num:>2}]  {name}"
-                if _vis_len(left) > name_w:
-                    left = left[:name_w - 1] + "…"
-                right = desc if _vis_len(desc) <= desc_w else desc[:desc_w - 1] + "…"
-                self.box_row(_pad_to(left, name_w) + "  " + _pad_to(right, desc_w), w)
-            self.box_mid(w)
+                sub += f" | Tab {tab}/{tabs}"
             if pages > 1:
-                l = f" PAGE {page + 1}/{pages} "
-                r = " [N] NEXT   [P] PREV "
-                self.box_row(l + " " * max(0, inner - _vis_len(l) - _vis_len(r)) + r, w)
-            self.box_row(" [0]  Return to Main Menu", w)
-            self.box_bottom(w)
+                sub += f" | Page {page + 1}/{pages}   [N] next  [P] prev"
+            sub += f" | {PC_USER}@kevbin"
+            print(cprint_horizontal(cl['sub'], Center.XCenter(sub)))
+            print()
+            draw_menu_grid(cats)
 
             choice = self.input_choice()
             if choice == '0':
@@ -625,334 +816,75 @@ class KevTool:
                 pass
 
     def main_menu(self):
-        cats = [
-            ('1', 'Discord Operations'), ('2', 'OSINT & Intelligence'),
-            ('3', 'Security & Utilities'), ('4', 'Web & Network Tools'),
-            ('5', 'Text & Encoding'), ('6', 'Color & Design'),
-            ('7', 'Data & Conversion'), ('8', 'Game Suite (Roblox)'),
-            ('9', 'Simulation & Generators'), ('10', 'Network & DNS'),
-            ('11', 'Developer Tools'), ('12', 'File & Image Tools'),
-            ('13', 'Themes & Settings'),
-        ]
-        menus = {
-            '1': self.menu_discord, '2': self.menu_osint, '3': self.menu_security,
-            '4': self.menu_web, '5': self.menu_text, '6': self.menu_color,
-            '7': self.menu_data, '8': self.menu_gaming, '9': self.menu_simulation,
-            '10': self.menu_network, '11': self.menu_dev, '12': self.menu_file,
-            '13': self.menu_settings,
-        }
         while True:
             cl = get_theme()
             clr()
             print_banner()
             print(cprint_horizontal(cl['sub'], Center.XCenter(f"v{VERSION} | Theme: {self.theme_name} | {PC_USER}@kevbin")))
             print()
-            draw_menu_grid(cats)
+            self._draw_tab_bar(0)
+            print()
+            draw_menu_grid([(str(t['n']), t['title'].title()) for t in MENU_TABS])
             self.cprint(cl['num'], "  [ 0]  Exit")
             choice = self.input_choice()
             if choice == '0':
                 clr()
                 self.cprint(self.t.head, f"\n  Goodbye, {PC_USER}. — {AUTHOR}\n")
                 sys.exit(0)
-            if choice in menus:
-                menus[choice]()
+            if choice == '13':
+                self.menu_settings()
+            elif choice.isdigit() and 1 <= int(choice) <= len(MENU_TABS):
+                self.tool_menu(int(choice))
 
-    def menu_discord(self):
-        tools = [
-            ('Webhook Info', 'View webhook details'),
-            ('Token Decoder', 'Decode Discord tokens'),
-            ('Account Info', 'Fetch account from token'),
-            ('Server Info', 'Fetch server via bot'),
-            ('Status Rotator', 'Status rotation reference'),
-            ('Bot Invite', 'Generate bot invite URL'),
-        ]
-        mapped = [('discord_ops', 'webhook_info'), ('discord_ops', 'token_decode'),
-                  ('discord_ops', 'account_info'), ('discord_ops', 'server_info'),
-                  ('discord_ops', 'status_rotator'), ('discord_ops', 'bot_invite_gen')]
-        self.tool_menu('DISCORD OPERATIONS', '📡', [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)], tab=1)
+    def _draw_tab_bar(self, active):
+        cl = get_theme()
+        tw = shutil.get_terminal_size().columns
+        parts = []
+        for t in MENU_TABS:
+            label = f"{t['n']}:{t['short']}"
+            if t['n'] == active:
+                parts.append(cprint_horizontal(cl['num'], f"[{label}]"))
+            else:
+                parts.append(cprint_horizontal(cl['sub'], label))
+        line = "   ".join(parts)
+        print(" " * max(0, (tw - _vis_len(line)) // 2) + line)
 
-    def menu_osint(self):
-        tools = [
-            ('Whois Lookup', 'Domain registration info'),
-            ('DNS Resolver', 'A/MX/TXT/CNAME/NS records'),
-            ('IP Info', 'Public IP information'),
-            ('Metadata Scanner', 'EXIF from images'),
-            ('Username Checker', 'Multi-platform check'),
-            ('Breach Check', 'Email breach lookup'),
-            ('SSL Certificate', 'Domain cert info'),
-            ('GeoIP Lookup', 'IP geolocation'),
-            ('ASN Intel', 'ASN/IP range info'),
-            ('Email Validate', 'Format + MX check'),
-            ('Email Reputation', 'Email provider check'),
-            ('Stealer Check', 'Credential leak check'),
-            ('Wayback Machine', 'Historical snapshots'),
-            ('Tech Stack', 'Website technology detection'),
-            ('Blacklist Check', 'IP blacklist lookup'),
-        ]
-        mapped = [('osint', 'whois_lookup'), ('osint', 'dns_resolver'),
-                  ('osint', 'ip_info'), ('osint', 'metadata_scan'),
-                  ('osint', 'username_check'), ('breach_check', 'run'),
-                  ('ssl_cert', 'run'), ('geoip', 'run'),
-                  ('asn_intel', 'run'), ('email_tools', 'validate'),
-                  ('email_tools', 'reputation'), ('stealer_check', 'run'),
-                  ('wayback', 'run'), ('tech_stack', 'run'),
-                  ('ip_blacklist', 'run')]
-        self.tool_menu('OSINT & INTELLIGENCE', '🔍', [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)], tab=2)
+    def tool_menu(self, tab=1):
+        tabs = MENU_TABS
+        tab = max(1, min(tab, len(tabs)))
+        while True:
+            info = tabs[tab - 1]
+            cl = get_theme()
+            clr()
+            print_banner()
+            print(cprint_horizontal(cl['sub'], Center.XCenter(
+                f"v{VERSION} | Theme: {self.theme_name} | {PC_USER}@kevbin")))
+            print(cprint_horizontal(cl['head'], Center.XCenter(f"  {info['icon']}  {info['title']}  ")))
+            print()
+            self._draw_tab_bar(tab)
+            print()
+            total = len(info['tools'])
+            draw_menu_grid([(str(i + 1), info['tools'][i][0]) for i in range(total)])
+            footer = " [N] NEXT TAB    [P] PREV TAB    [0] MAIN MENU "
+            print(cprint_horizontal(cl['sub'], " " * max(0, (shutil.get_terminal_size().columns - _vis_len(footer)) // 2) + footer))
 
-    def menu_security(self):
-        tools = [
-            ('Obfuscator V2', 'Python XOR + Anti-Print'),
-            ('Web Cloner', 'Clone websites locally'),
-            ('Cryptography', 'Base64/Hex/ROT13'),
-            ('QR Generator', 'Custom QR codes'),
-            ('Hash Tool', 'Hash + online lookup'),
-            ('Base64 Image', 'Encode/decode images'),
-            ('Ciphers', 'Caesar/Vigenere/Atbash/XOR'),
-            ('JWT Tools', 'Decode + generate JWT'),
-            ('CORS Tester', 'Test CORS headers'),
-            ('Entropy', 'Shannon entropy analysis'),
-            ('Password Check', 'Strength + breach check'),
-            ('Timestamp', 'Unix timestamp converter'),
-            ('Security Headers', 'Analyze HTTP headers'),
-            ('CSP Analyzer', 'Content Security Policy'),
-            ('Honeypot Detector', 'Detect honeypots'),
-            ('HTTP Status', 'HTTP status code lookup'),
-            ('Port Scanner', 'TCP scan + banner grab'),
-            ('Traceroute', 'Network path trace'),
-            ('Tor Check', 'Tor exit node detection'),
-            ('Link Tools', 'URL expand/track/info'),
-            ('IP Pinger', 'ICMP ping utility'),
-            ('System Info', 'CPU/RAM/Disk/OS details'),
-            ('Proxy Scraper', 'Grab proxies from GitHub lists'),
-            ('Proxy Checker', 'Validate proxies multi-threaded'),
-        ]
-        mapped = [('obfuscator', 'run'), ('web_cloner', 'run'),
-                  ('crypto', 'run'), ('qr_gen', 'run'),
-                  ('hash_tool', 'run'), ('base64_image', 'run'),
-                  ('ciphers', 'run'), ('jwt_tools', 'run'),
-                  ('cors_tester', 'run'), ('entropy', 'run'),
-                  ('passcheck', 'run'), ('timestamp', 'run'),
-                  ('security_headers', 'run'), ('csp_analyzer', 'run'),
-                  ('honeypot', 'run'), ('http_status', 'run'),
-                  ('port_scanner', 'run'), ('traceroute', 'run'),
-                  ('tor_check', 'run'), ('link_tools', 'run'),
-                  ('ip_pinger', 'run'), ('system_info', 'run'),
-                  ('proxy_scraper', 'run'), ('proxy_checker', 'run')]
-        self.tool_menu('SECURITY & UTILITIES', '🛡️', [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)], tab=3)
+            choice = self.input_choice()
+            if choice == '0':
+                return
+            if choice.lower() == 'n':
+                tab = tab % len(tabs) + 1
+                continue
+            if choice.lower() == 'p':
+                tab = (tab - 2) % len(tabs) + 1
+                continue
+            try:
+                idx = int(choice) - 1
+                if 0 <= idx < total:
+                    mod, func = info['mapped'][idx]
+                    self.run_module(mod, func)
+            except (ValueError, IndexError):
+                pass
 
-    def menu_web(self):
-        tools = [
-            ('Page Clone', 'Clone full websites'),
-            ('Site Viewer', 'View source + headers'),
-            ('Web Search', 'Search the web'),
-            ('Webhook Tester', 'Test webhook endpoints'),
-            ('Webhook Delete', 'Delete webhooks'),
-            ('Link Bypass', 'Bypass link shorteners'),
-            ('Link Spoof', 'View redirect chains'),
-            ('Link Tracker', 'Track link clicks'),
-            ('Browser FP', 'Browser fingerprint'),
-            ('WebRTC Leak', 'WebRTC IP detection'),
-            ('DNS over HTTPS', 'Encrypted DNS queries'),
-            ('Subdomain Enum', 'Find subdomains'),
-            ('Subnet Calculator', 'CIDR calculations'),
-        ]
-        mapped = [('page_clone', 'run'), ('site_viewer', 'run'),
-                  ('web_search', 'run'), ('webhook_tools', 'tester'),
-                  ('webhook_tools', 'delete'), ('link_tools', 'bypass'),
-                  ('link_tools', 'spoof'), ('link_tools', 'tracker'),
-                  ('browser_fp', 'run'), ('webrtc_leak', 'run'),
-                  ('doh', 'run'), ('subenum', 'run'),
-                  ('subnet_calc', 'run')]
-        self.tool_menu('WEB & NETWORK TOOLS', '🌐', [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)], tab=4)
-
-    def menu_text(self):
-        tools = [
-            ('Text Transform', 'Case/Reverse/Repeat'),
-            ('Slugify', 'URL-safe slugs'),
-            ('Sort Lines', 'Alphabetical/Numeric sort'),
-            ('Markdown Preview', 'Render markdown'),
-            ('Diff Tool', 'Compare two texts'),
-            ('CSV Viewer', 'Parse + display CSV'),
-            ('JSON Formatter', 'Pretty-print JSON'),
-            ('SQL Formatter', 'Format SQL queries'),
-            ('Regex Tester', 'Test regular expressions'),
-            ('Word Counter', 'Word/char/line count'),
-            ('HTML Entity', 'Encode/Decode entities'),
-            ('URL Encode', 'URL encode/decode'),
-            ('Unicode Tool', 'Unicode lookup/convert'),
-            ('Emoji Lookup', 'Find emoji codes'),
-            ('Text Stats', 'Readability analysis'),
-        ]
-        mapped = [('text_tools', 'transform'), ('text_tools', 'slugify'),
-                  ('text_tools', 'sort'), ('markdown_tools', 'run'),
-                  ('diff_tool', 'run'), ('csv_viewer', 'run'),
-                  ('json_formatter', 'run'), ('sql_formatter', 'run'),
-                  ('regex_tester', 'run'), ('text_tools', 'wordcount'),
-                  ('text_tools', 'html_entity'), ('text_tools', 'url_encode'),
-                  ('unicode_tool', 'run'), ('emoji_lookup', 'run'),
-                  ('text_tools', 'stats')]
-        self.tool_menu('TEXT & ENCODING', '📝', [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)], tab=5)
-
-    def menu_color(self):
-        tools = [
-            ('Color Converter', 'HEX/RGB/HSL conversion'),
-            ('Gradient Generator', 'CSS gradient builder'),
-            ('Contrast Checker', 'WCAG contrast ratio'),
-            ('Color Palette', 'Generate color palettes'),
-            ('Image Colors', 'Extract colors from image'),
-        ]
-        mapped = [('color_tools', 'converter'), ('color_tools', 'gradient'),
-                  ('color_tools', 'contrast'), ('color_tools', 'palette'),
-                  ('color_tools', 'image_colors')]
-        self.tool_menu('COLOR & DESIGN', '🎨', [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)], tab=6)
-
-    def menu_data(self):
-        tools = [
-            ('Base-N Encoder', 'Binary/Octal/Hex encode'),
-            ('Base64 Decode', 'Decode Base64 strings'),
-            ('Roman Numerals', 'Convert to/from Roman'),
-            ('Number System', 'Dec/Hex/Bin/Oct convert'),
-            ('Percentage Calc', 'Percentage calculations'),
-            ('YAML <-> TOML', 'Convert between formats'),
-            ('CSV Tools', 'Parse/merge CSV files'),
-            ('JSON <-> XML', 'Convert between formats'),
-            ('Receipt Generator', 'Fake receipt maker'),
-            ('UUID Generator', 'Generate UUIDs v4'),
-            ('Barcode Generator', 'Code128/Code39'),
-            ('Password Generator', 'Secure passwords'),
-            ('Random Data', 'Random numbers/strings'),
-            ('Duration Calc', 'Time duration math'),
-            ('Age Calculator', 'Calculate age from DOB'),
-        ]
-        mapped = [('base_n', 'run'), ('base64_decoder', 'run'),
-                  ('numerals', 'roman'), ('numerals', 'convert'),
-                  ('percentage', 'run'), ('yaml_toml', 'run'),
-                  ('csv_tools', 'run'), ('json_formatter', 'xml'),
-                  ('receipt', 'run'), ('uuid_gen', 'run'),
-                  ('barcode', 'run'), ('password_gen', 'run'),
-                  ('random_gen', 'run'), ('duration', 'run'),
-                  ('age_calc', 'run')]
-        self.tool_menu('DATA & CONVERSION', '💾', [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)], tab=7)
-
-    def menu_gaming(self):
-        tools = [
-            ('User Intel', 'Roblox user lookup'),
-            ('Group Intel', 'Roblox group lookup'),
-            ('Name History', 'Roblox previous usernames'),
-            ('Username Check', 'Roblox username availability'),
-            ('Cookie Login', 'Validate .ROBLOSECURITY'),
-            ('Asset Downloader', 'Download Roblox assets'),
-            ('Inventory Viewer', 'View user inventory'),
-            ('Game Info', 'Roblox game details'),
-        ]
-        mapped = [('roblox_intel', 'run'), ('roblox_intel', 'group_lookup'),
-                  ('roblox_intel', 'name_history'), ('roblox_intel', 'username_check'),
-                  ('roblox_control', 'run'), ('roblox_control', 'asset_download'),
-                  ('roblox_intel', 'inventory_view'), ('roblox_intel', 'game_info')]
-        self.tool_menu('GAME SUITE (ROBLOX)', '🎮', [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)], tab=8)
-
-    def menu_simulation(self):
-        tools = [
-            ('Identity Generator', 'Realistic fake identities'),
-            ('Credit Card Gen', 'Test card numbers (Luhn)'),
-            ('Crypto Wallets', 'Generate wallet addresses'),
-            ('Username Generator', 'Unique usernames'),
-            ('Password Generator', 'Secure passwords'),
-            ('Lorem Ipsum', 'Placeholder text'),
-            ('Fake Nitro Code', 'Random Nitro-style codes'),
-            ('Server Template', 'Discord server JSON'),
-            ('Fake Mail Gen', 'Fake email + password'),
-            ('Fake DDoS', 'Simulated DDoS attack'),
-            ('Fake Wallet Miner', 'Simulated mining rig'),
-            ('Social Botter', 'Simulated view botter'),
-            ('Fake PayPal OTP', 'Simulated OTP code'),
-            ('Fake Account Gen', 'Fake account credentials'),
-            ('Fake Fortnite Check', 'Simulated skin checker'),
-            ('Fake Exodus', 'Fake crypto seed phrase'),
-            ('Hacker Terminal', 'Fake hacker typer'),
-            ('Ransomware Sim', 'Simulated ransomware warn'),
-            ('Fake Bruteforcer', 'Simulated brute force'),
-            ('ASCII Art', 'Text to ASCII art'),
-            ('Stealth Art', 'Zalgo/glitch text'),
-            ('Creeper Text', 'Creeper text effect'),
-            ('Small Caps', 'Small caps text'),
-            ('Bubble Text', 'Bubble unicode text'),
-            ('Mirror Text', 'Flipped text'),
-        ]
-        mapped = [('faker_suite', 'identity_gen'), ('faker_suite', 'credit_card_gen'),
-                  ('faker_suite', 'wallet_gen'), ('faker_suite', 'username_gen'),
-                  ('faker_suite', 'password_gen'), ('faker_suite', 'lorem_ipsum'),
-                  ('faker_suite', 'fake_nitro'), ('faker_suite', 'server_template'),
-                  ('faker_suite', 'fake_mail'), ('faker_suite', 'fake_ddos'),
-                  ('faker_suite', 'fake_wallet_miner'), ('faker_suite', 'social_botter'),
-                  ('faker_suite', 'fake_paypal_otp'), ('faker_suite', 'fake_account_gen'),
-                  ('faker_suite', 'fake_fortnite_checker'), ('faker_suite', 'fake_exodus'),
-                  ('faker_suite', 'hacker_terminal'), ('faker_suite', 'ransomware_sim'),
-                  ('faker_suite', 'fake_bruteforcer'),
-                  ('ascii_art', 'run'), ('text_effects', 'zalgo'),
-                  ('text_effects', 'creeper'), ('text_effects', 'smallcaps'),
-                  ('text_effects', 'bubble'), ('text_effects', 'mirror')]
-        self.tool_menu('SIMULATION & GENERATORS', '🎭', [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)], tab=9)
-
-    def menu_network(self):
-        tools = [
-            ('Port Scanner', 'TCP port scan + banners'),
-            ('Traceroute', 'Network path trace'),
-            ('DNS Resolver', 'Resolve DNS records'),
-            ('DNS over HTTPS', 'Encrypted DNS'),
-            ('Subdomain Enum', 'Find subdomains'),
-            ('Subnet Calculator', 'CIDR math'),
-            ('Whois', 'Domain registration'),
-            ('IP Pinger', 'ICMP ping'),
-            ('ASN Lookup', 'ASN information'),
-            ('Blacklist Check', 'IP blacklist check'),
-        ]
-        mapped = [('port_scanner', 'run'), ('traceroute', 'run'),
-                  ('osint', 'dns_resolver'), ('doh', 'run'),
-                  ('subenum', 'run'), ('subnet_calc', 'run'),
-                  ('osint', 'whois_lookup'), ('ip_pinger', 'run'),
-                  ('asn_intel', 'run'), ('ip_blacklist', 'run')]
-        self.tool_menu('NETWORK & DNS', '📡', [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)], tab=10)
-
-    def menu_dev(self):
-        tools = [
-            ('Request Builder', 'Build HTTP requests'),
-            ('Header Inspector', 'View/edit headers'),
-            ('Cookie Inspector', 'View/edit cookies'),
-            ('JS Obfuscator', 'JavaScript obfuscation'),
-            ('Lua Obfuscator', 'Lua code obfuscation'),
-            ('Lua Sandbox', 'Run Lua code safely'),
-            ('Cron Builder', 'Build cron expressions'),
-            ('Cron Parser', 'Parse cron schedules'),
-            ('Code Formatter', 'Format source code'),
-            ('YAML/TOML', 'Config file conversion'),
-            ('JSON Formatter', 'Pretty-print JSON'),
-            ('SQL Formatter', 'Format SQL queries'),
-        ]
-        mapped = [('reqbuild', 'run'), ('header_inspector', 'run'),
-                  ('cookie_inspector', 'run'), ('js_obfuscator', 'run'),
-                  ('lua_obfuscator', 'run'), ('lua_sandbox', 'run'),
-                  ('cron_builder', 'run'), ('cron_parser', 'run'),
-                  ('code_formatter', 'run'), ('yaml_toml', 'run'),
-                  ('json_formatter', 'run'), ('sql_formatter', 'run')]
-        self.tool_menu('DEVELOPER TOOLS', '🔧', [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)], tab=11)
-
-    def menu_file(self):
-        tools = [
-            ('File Type Detector', 'Identify file types'),
-            ('Image to Base64', 'Encode images'),
-            ('Photo Metadata', 'EXIF extraction'),
-            ('Metadata Stripper', 'Remove metadata'),
-            ('Hex Dump', 'View hex data'),
-            ('Steganography', 'Hide data in images'),
-            ('File Checksum', 'MD5/SHA hash files'),
-            ('Binary Viewer', 'View binary data'),
-        ]
-        mapped = [('file_type', 'run'), ('base64_image', 'run'),
-                  ('photo_meta', 'run'), ('metadata_strip', 'run'),
-                  ('hex_dump', 'run'), ('steganography', 'run'),
-                  ('file_checksum', 'run'), ('hex_dump', 'binary')]
-        self.tool_menu('FILE & IMAGE TOOLS', '📁', [(t[0], t[1], mapped[i]) for i, t in enumerate(tools)], tab=12)
 
     def menu_settings(self):
         while True:
@@ -962,19 +894,14 @@ class KevTool:
             print(cprint_horizontal(cl['sub'], Center.XCenter(f"v{VERSION} | Theme: {self.theme_name} | {PC_USER}@kevbin")))
             print()
 
-            draw_card_box("THEMES & SETTINGS", {
-                "1": f"Modern (current)" if self.theme_name == "modern" else "Modern",
-                "2": f"Modern Red (current)" if self.theme_name == "modern_red" else "Modern Red",
-                "3": f"Modern Purple (current)" if self.theme_name == "modern_purple" else "Modern Purple",
-                "4": f"Blue (current)" if self.theme_name == "blue" else "Blue",
-                "5": f"Red (current)" if self.theme_name == "red" else "Red",
-                "6": f"Purple (current)" if self.theme_name == "purple" else "Purple",
-                "7": f"Green (current)" if self.theme_name == "green" else "Green",
-                "8": f"Yellow (current)" if self.theme_name == "yellow" else "Yellow",
-                "9": f"Rainbow (current)" if self.theme_name == "rainbow" else "Rainbow",
-                "U": "Check for updates",
-                "0": "Return to Main Menu",
-            })
+            theme_names = sorted(THEMES)
+            items = {}
+            for i, name in enumerate(theme_names, 1):
+                flag = " (current)" if self.theme_name == name else ""
+                items[str(i)] = name.replace("_", " ").title() + flag
+            items["U"] = "Check for updates"
+            items["0"] = "Return to Main Menu"
+            draw_card_box("THEMES & SETTINGS", items)
 
             choice = self.input_choice()
             if choice == '0':
@@ -983,13 +910,8 @@ class KevTool:
                 check_update()
                 continue
 
-            theme_map = {
-                '1': 'modern', '2': 'modern_red', '3': 'modern_purple',
-                '4': 'blue', '5': 'red', '6': 'purple',
-                '7': 'green', '8': 'yellow', '9': 'rainbow'
-            }
-            if choice in theme_map:
-                new_theme = theme_map[choice]
+            if choice.isdigit() and 1 <= int(choice) <= len(theme_names):
+                new_theme = theme_names[int(choice) - 1]
                 self.settings['current_theme'] = new_theme
                 save_json(CONFIG_PATH, self.settings)
                 self.theme_name = new_theme

@@ -38,7 +38,7 @@ works on **python 3.6+**, all platforms (windows, linux, macOS). if you dont hav
 
 ## what it does
 
-theres like 100+ tools split into 13 categories. loading screen takes 3 seconds, has a progress bar and the kevbin ascii banner. prompt looks like `username@kev>` and theres 9 themes you can switch between. on windows the console window title flickers/randomizes as an anti-close touch.
+theres like 100+ tools split into 13 categories. loading screen takes 3 seconds, has a progress bar and the kevbin ascii banner. prompt looks like `username@kevbin` with 29 themes you can switch between (modern, modern red, modern purple, blue, red, purple, green, yellow, rainbow, dracula, monokai, nord, ocean, matrix, midnight, sunset, fire, forest, gold, cyberpunk, synthwave, terminal, high contrast, bubblegum, mint, violet, rust, steel, peacock). the tool menus are tabs — `[N]` / `[P]` moves between the 13 category tabs, and every tool on a tab is shown in a centered grid. on windows the console window title flickers/randomizes as an anti-close touch.
 
 it auto-checks for updates on startup. compares the local `version.txt` to whats on github and if theres a new version it tells you and clones it.
 
@@ -230,7 +230,7 @@ it auto-checks for updates on startup. compares the local `version.txt` to whats
 - **Binary Viewer** — view binary data
 
 ### ⚙️ themes & settings
-- switch between 9 themes (modern, modern red, modern purple, rainbow, blue, red, purple, green, yellow)
+- switch between 29 themes (modern, modern red, modern purple, rainbow, blue, red, purple, green, yellow, + 20 more: dracula, monokai, nord, ocean, matrix, midnight, sunset, fire, forest, gold, cyberpunk, synthwave, terminal, high contrast, bubblegum, mint, violet, rust, steel, peacock)
 - check for updates
 - view version and user info
 
