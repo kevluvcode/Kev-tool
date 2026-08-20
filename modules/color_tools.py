@@ -114,6 +114,7 @@ def converter(kevbin):
         ]
         kevbin.box_table(rows, title="Color Conversion")
         kevbin.box_print("")
+    kevbin.pause()
 
 
 def gradient(kevbin):
@@ -151,6 +152,7 @@ def gradient(kevbin):
     kevbin.box_code(css, language="css")
     kevbin.box_print("")
     kevbin.box_print("[green]Copied to clipboard![/green]")
+    kevbin.pause()
 
 
 def contrast(kevbin):
@@ -188,6 +190,7 @@ def contrast(kevbin):
         ["AAA Large Text", "✓" if ratio >= 4.5 else "✗"],
     ]
     kevbin.box_table(rows, title="Contrast Analysis")
+    kevbin.pause()
 
 
 def palette(kevbin):
@@ -226,6 +229,7 @@ def palette(kevbin):
         rows.append([str(i), phex.upper(), f"rgb({pr},{pg},{pb})", f"hsl({ph:.0f},{ps:.0f}%,{pl:.0f}%)", f"[on {phex}]    [/on {phex}]"])
     
     kevbin.box_table(rows, title=f"{name} Palette")
+    kevbin.pause()
 
 
 def image_colors(kevbin):
@@ -274,6 +278,7 @@ def image_colors(kevbin):
         kevbin.box_print("[red]File not found[/red]")
     except Exception as e:
         kevbin.box_print(f"[red]Error: {e}[/red]")
+    kevbin.pause()
 
 
 def run(kevbin):
@@ -300,3 +305,4 @@ def run(kevbin):
         tool(kevbin)
     else:
         kevbin.box_print("[red]Invalid choice[/red]")
+    kevbin.pause()

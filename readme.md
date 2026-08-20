@@ -2,7 +2,7 @@
 
 a CLI multitool i made for learning/testing. bunch of scripts mostly for osint, security stuff, text encoding, roblox tools, discord stuff, and random generators. nothing crazy but it works.
 
-**version 1.2.0**
+**version 1.4.0**
 
 ---
 
@@ -38,11 +38,51 @@ works on **python 3.6+**, all platforms (windows, linux, macOS). if you dont hav
 
 ## what it does
 
-theres like 200+ tools split into 12 category tabs (a misc_tools module adds ~50 offline utilities: unit/byte converters, ciphers, fake-data generators, URL/curl builders, port & subnet helpers, file tools, and more). loading screen takes 3 seconds, has a progress bar and the kevbin ascii banner. prompt looks like `username@kevbin` with 29 themes you can switch between. the tool menus are tabs — `[N]` / `[P]` moves between the 12 category tabs, the active tab is marked with a `▲` under it and wrapped in `▌▐` (inactive tabs look like `|NAME_`), and the tab bar auto-fits your terminal width so it never wraps or scatters. every tool on a tab is shown in a centered, narrow grid, and platform tools carry their platform in the name (Discord Webhook, Roblox User Intel, ...). the app opens straight into the tabbed tool picker; `0` goes back to the main menu (which shows the category overview), `0` there exits. entering a tool always clears the screen first so the menu never shows through. on windows the console window title flickers/randomizes as an anti-close touch.
+207+ tools split into 13 category tabs. loading screen has a progress bar and the kevbin ASCII banner. prompt looks like `username@kevbin` with 100+ themes you can switch between. the tool menus are tabs — `[N]` / `[P]` moves between tabs, the active tab is marked with a `▲` under it and wrapped in `▌▐` (inactive tabs look like `|NAME_`), and the tab bar auto-fits your terminal width so it never wraps. every tool is shown in a centered, narrow grid. entering a tool clears the screen first. on windows the console title randomizes as an anti-close touch.
 
-it auto-checks for updates on startup. compares the local `version.txt` to whats on github and if theres a new version it tells you and clones it.
+---
 
-**proxy scraper/checker**: the scraper pulls http/https/socks4/socks5 from public lists (TheSpeedX/PROXY-List, proxifly/free-proxy-list, monogramm, roosterkid, jetkai, ...) and saves them to `proxies/http.txt`, `https.txt`, `socks4.txt`, `socks5.txt` + a combined `all.txt`. the checker validates them multi-threaded and writes every working one to **`valid_proxies.txt`** — use option **3 "Check ALL scraped lists"** to test everything at once (HTTP needs no deps, SOCKS needs `PySocks`).
+## auto-updating
+
+it auto-checks for updates on every launch. compares local `version.txt` to github. if there's a newer version it downloads the zip archive, extracts to a `KevTool-{version}/` folder, copies your `settings.json` over, and launches the new version. you never lose your theme/settings. can be toggled in settings or with `check_updates: false` in `modules/config/settings.json`.
+
+---
+
+## auto proxy validation
+
+on every boot it fetches the latest proxy list from the proxifly/free-proxy-list, tests them multi-threaded (HTTP via stdlib, SOCKS via PySocks) with 30 threads, and saves working ones to `valid_proxies.txt`. you see the progress live as it tests. this means valid proxies are always fresh without you having to run the checker manually.
+
+---
+
+## obfuscator V3
+
+the python obfuscator has been rebuilt from scratch with multiple layers of protection:
+- **XOR + Base64 layers** — multi-round XOR encryption with base64 encoding between each layer
+- **ROT + XOR + Base64** — rotation cipher combined with XOR and base64
+- **AST mangle** — renames variables/functions to non-obvious names
+- **String encrypt** — encrypts string literals at compile time
+- **Hex chunk encoding** — breaks strings into hex byte chunks
+- **Junk imports** — injects misleading import statements
+- **Opaque predicates** — adds dead-code branches that never execute
+- **Anti-debug** — detects debuggers and exits
+
+the **Lua obfuscator** was also upgraded with XOR string encrypt, control flow flattening, identifier mangling, opaque predicates, dead code injection, and string concatenation chaos.
+
+---
+
+## proxy scraper/checker
+
+the scraper pulls from **35+ public proxy list sources** (TheSpeedX, proxifly, monogramm, roosterkid, jetkai, mmpx12, Uptox, monosans, zimuq, yuceltoluyan, B4RC0DE-TM, pproxy, H4ck4ss3, and more) covering HTTP, HTTPS, SOCKS4, SOCKS5. saves to `proxies/http.txt`, `https.txt`, `socks4.txt`, `socks5.txt` + a combined `all.txt`. the checker validates them multi-threaded and writes every working one to `valid_proxies.txt`.
+
+---
+
+## themes
+
+100+ themes organized into two tiers:
+- **Core themes**: modern, modern red, modern purple, blue, red, purple, green, yellow, rainbow
+- **Extended themes**: dracula, monokai, nord, ocean, matrix, midnight, sunset, fire, forest, gold, cyberpunk, synthwave, terminal, high contrast, bubblegum, mint, violet, rust, steel, peacock, ember, aurora, lava, ice, candy, neon green/pink/blue/orange/purple/yellow, blood, toxic, royal, sakura, ocean deep, solarized dark/light, gruvbox, tokyo night, catppuccin, rose pine, everforest, palenight, material ocean, onedark, github dark/light, ayu dark, mellow yellow, deep sea, cherry blossom, emerald, amber, sky, crimson, jade, copper, slate, flame, twilight, spring, autumn, winter, neon rain, blood moon, deep space, sunset burn, electric, phantom, mango, coral reef, arctic fox, volcano, cosmic, jungle, honeycomb, storm, laser, horizon, nova, glacier, rebel, dream, phoenix, nebula, vapor, retro, hacker green, blood diamond, mystic
+
+each theme controls banner gradient, header color, number color, text color, subtitle color, and input color.
 
 ---
 
@@ -74,7 +114,7 @@ it auto-checks for updates on startup. compares the local `version.txt` to whats
 - **Blacklist Check** — is an IP on any blacklists
 
 ### 🛡️ security & utilities
-- **Obfuscator V2** — python xor + anti-print
+- **Obfuscator V3** — multi-layer XOR/B64, AST mangle, anti-debug
 - **Web Cloner** — save websites locally
 - **Cryptography** — base64/hex/rot13
 - **QR Generator** — make QR codes
@@ -96,8 +136,8 @@ it auto-checks for updates on startup. compares the local `version.txt` to whats
 - **Link Tools** — expand/track/info on URLs
 - **IP Pinger** — ICMP ping
 - **System Info** — CPU/RAM/disk/OS details (no psutil needed)
-- **Proxy Scraper** — grab public proxies (TheSpeedX, proxifly, etc.) → saves to `proxies/`
-- **Proxy Checker** — multi-threaded validation; working ones go to `valid_proxies.txt`
+- **Proxy Scraper** — grab public proxies from 35+ sources → saves to `proxies/`
+- **Proxy Checker** — multi-threaded validation → `valid_proxies.txt`
 
 ### 🌐 web & network tools
 - **Page Clone** — clone full websites
@@ -210,7 +250,7 @@ it auto-checks for updates on startup. compares the local `version.txt` to whats
 - **Header Inspector** — view/edit headers
 - **Cookie Inspector** — view/edit cookies
 - **JS Obfuscator** — javascript obfuscation
-- **Lua Obfuscator** — lua code obfuscation
+- **Lua Obfuscator** — lua code obfuscation (XOR, flow flatten, mangle, dead code)
 - **Lua Sandbox** — run lua code safely
 - **Cron Builder** — build cron expressions
 - **Cron Parser** — parse cron schedules
@@ -230,19 +270,11 @@ it auto-checks for updates on startup. compares the local `version.txt` to whats
 - **Binary Viewer** — view binary data
 
 ### ⚙️ themes & settings
-- switch between 29 themes (modern, modern red, modern purple, rainbow, blue, red, purple, green, yellow, + 20 more: dracula, monokai, nord, ocean, matrix, midnight, sunset, fire, forest, gold, cyberpunk, synthwave, terminal, high contrast, bubblegum, mint, violet, rust, steel, peacock)
-- check for updates
+- switch between 100+ themes
+- auto-update via zip download (preserves settings)
+- auto-proxy validation on boot
+- check for updates manually
 - view version and user info
-
----
-
-## updating
-
-it checks for updates automatically when you start it. reads the local `version.txt` and compares it to whats on github. if theres a newer version it tells you and runs `git clone https://github.com/kevluvcode/Kev-tool.git` so you get the latest.
-
-you can also check from settings menu (press `u`).
-
-or just do `git pull origin main` yourself.
 
 ---
 
@@ -252,18 +284,20 @@ or just do `git pull origin main` yourself.
 Kev-tool/
 ├── kevtool.py          # main app
 ├── kevtool.bat         # windows launcher
-├── valid_proxies.txt   # working proxies (created by the checker)
+├── valid_proxies.txt   # working proxies (auto-refreshed on boot)
 ├── proxies/            # scraped proxy lists (runtime output)
 └── modules/
-    ├── config/         # settings.json + themes.json
+    ├── config/         # settings.json
     ├── install.bat     # windows installer
     ├── install.sh      # linux/macOS installer
     ├── version.txt     # version tracking
     ├── requirements.txt# python dependencies
     ├── readme.md       # you're reading this
     ├── system_info.py  # system info
-    ├── proxy_scraper.py# proxy grabber
+    ├── proxy_scraper.py# proxy grabber (35+ sources)
     ├── proxy_checker.py# proxy validator
+    ├── obfuscator.py   # Obfuscator V3 (multi-layer)
+    ├── lua_obfuscator.py# lua obfuscation
     ├── discord_ops.py  # discord stuff
     ├── roblox_intel.py # roblox lookups
     ├── faker_suite.py  # simulation/generators

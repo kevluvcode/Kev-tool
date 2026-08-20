@@ -16,6 +16,9 @@ def run(kevbin):
         _codepoint_to_char(kevbin)
     elif choice == "3":
         _search_by_name(kevbin)
+    else:
+        kevbin.cprint(kevbin.t.error, "  [X] Invalid choice.")
+        kevbin.pause()
 
 def _char_to_info(kevbin):
     kevbin.clear()
