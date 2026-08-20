@@ -1,8 +1,37 @@
+"""Password Generator — Secure passwords + passphrases + memorable words."""
+
 import secrets
 import string
+import math
 
 
-def _generate_password(length: int, use_upper: bool, use_lower: bool, use_digits: bool, use_symbols: bool, exclude_ambiguous: bool) -> str:
+ADJECTIVES = [
+    'brave', 'calm', 'dark', 'eager', 'fair', 'glad', 'happy', 'keen',
+    'mild', 'nice', 'pale', 'rare', 'safe', 'tall', 'vast', 'warm',
+    'bold', 'cool', 'deep', 'fast', 'gold', 'iron', 'just', 'kind',
+    'lean', 'loud', 'mild', 'neat', 'open', 'pure', 'rich', 'soft',
+    'swift', 'true', 'wise', 'young', 'amber', 'black', 'blue', 'green',
+    'white', 'winter', 'summer', 'autumn', 'spring', 'silent', 'gentle',
+    'fierce', 'cosmic', 'lunar', 'solar', 'arctic', 'royal', 'silent',
+    'steady', 'quick', 'vivid', 'proud', 'sharp', 'bright', 'silent',
+]
+
+NOUNS = [
+    'bear', 'bird', 'deer', 'fish', 'fox', 'hawk', 'lion', 'wolf',
+    'star', 'moon', 'fire', 'wind', 'wave', 'storm', 'frost', 'stone',
+    'blade', 'crown', 'flame', 'shield', 'tower', 'river', 'mountain',
+    'eagle', 'tiger', 'dragon', 'phoenix', 'shadow', 'thunder', 'crystal',
+    'forest', 'harbor', 'island', 'jungle', 'ocean', 'planet', 'rocket',
+    'castle', 'garden', 'sunset', 'temple', 'legend', 'spark', 'blaze',
+]
+
+VERBS = [
+    'runs', 'leaps', 'flies', 'swims', 'dives', 'rides', 'hunts',
+    'guards', 'fights', 'shines', 'burns', 'grows', 'flows', 'roars',
+]
+
+
+def _generate_password(length, use_upper, use_lower, use_digits, use_symbols, exclude_ambiguous):
     chars = ""
     if use_upper:
         chars += string.ascii_uppercase
@@ -12,147 +41,148 @@ def _generate_password(length: int, use_upper: bool, use_lower: bool, use_digits
         chars += string.digits
     if use_symbols:
         chars += "!@#$%^&*()_+-=[]{}|;:,.<>?"
-    
     if exclude_ambiguous:
         ambiguous = "il1Lo0O"
         chars = "".join(c for c in chars if c not in ambiguous)
-    
     if not chars:
         raise ValueError("At least one character type must be selected")
-    
     return "".join(secrets.choice(chars) for _ in range(length))
 
 
-def _password_strength(password: str) -> tuple:
+def _generate_passphrase(word_count=4, separator='-', use_numbers=True):
+    words = []
+    words.append(secrets.choice(ADJECTIVES))
+    words.append(secrets.choice(NOUNS))
+    for _ in range(max(0, word_count - 2)):
+        words.append(secrets.choice(ADJECTIVES + NOUNS))
+    if use_numbers:
+        words.append(str(secrets.randbelow(900) + 100))
+    return separator.join(words)
+
+
+def _password_strength(password):
     score = 0
     checks = []
-    
-    if len(password) >= 8:
-        score += 1
-        checks.append("✓ Length ≥ 8")
-    else:
-        checks.append("✗ Length ≥ 8")
-    
-    if len(password) >= 12:
-        score += 1
-        checks.append("✓ Length ≥ 12")
-    else:
-        checks.append("✗ Length ≥ 12")
-    
+    checks.append(("Length >= 8", len(password) >= 8))
+    checks.append(("Length >= 12", len(password) >= 12))
+    checks.append(("Length >= 16", len(password) >= 16))
+    checks.append(("Lowercase", any(c.islower() for c in password)))
+    checks.append(("Uppercase", any(c.isupper() for c in password)))
+    checks.append(("Digits", any(c.isdigit() for c in password)))
+    checks.append(("Symbols", any(c in string.punctuation for c in password)))
+    checks.append(("No common", password.lower() not in [
+        'password', '123456', 'qwerty', 'admin', 'letmein', 'welcome']))
+    score = sum(1 for _, p in checks if p)
+    pool = 0
     if any(c.islower() for c in password):
-        score += 1
-        checks.append("✓ Lowercase")
-    else:
-        checks.append("✗ Lowercase")
-    
+        pool += 26
     if any(c.isupper() for c in password):
-        score += 1
-        checks.append("✓ Uppercase")
-    else:
-        checks.append("✗ Uppercase")
-    
+        pool += 26
     if any(c.isdigit() for c in password):
-        score += 1
-        checks.append("✓ Digits")
-    else:
-        checks.append("✗ Digits")
-    
-    if any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?" for c in password):
-        score += 1
-        checks.append("✓ Symbols")
-    else:
-        checks.append("✗ Symbols")
-    
-    ratings = ["Very Weak", "Weak", "Fair", "Good", "Strong", "Very Strong"]
-    rating = ratings[min(score, 5)]
-    
-    return rating, score, checks
+        pool += 10
+    if any(c in string.punctuation for c in password):
+        pool += 33
+    entropy = len(password) * math.log2(max(pool, 2))
+    ratings = ["Very Weak", "Weak", "Fair", "Good", "Strong", "Very Strong",
+               "Excellent", "Maximum"]
+    rating = ratings[min(score, len(ratings) - 1)]
+    return rating, score, checks, entropy
 
 
 def run(kevbin):
-    kevbin.box_title("Secure Password Generator")
-    kevbin.box_print("Generate cryptographically secure random passwords")
-    
     while True:
-        kevbin.box_print("")
-        
-        length_input = kevbin.box_input("Password length [16]: ").strip()
-        if length_input.lower() in ('q', 'quit', 'exit'):
-            break
-        
-        try:
-            length = int(length_input) if length_input else 16
-            if length < 4 or length > 128:
-                kevbin.box_print("[red]Length must be 4-128[/red]")
-                continue
-        except ValueError:
-            kevbin.box_print("[red]Invalid number[/red]")
-            continue
-        
-        use_upper = kevbin.box_input("Include uppercase? (y/n) [y]: ").strip().lower() != 'n'
-        use_lower = kevbin.box_input("Include lowercase? (y/n) [y]: ").strip().lower() != 'n'
-        use_digits = kevbin.box_input("Include digits? (y/n) [y]: ").strip().lower() != 'n'
-        use_symbols = kevbin.box_input("Include symbols? (y/n) [y]: ").strip().lower() != 'n'
-        exclude_ambiguous = kevbin.box_input("Exclude ambiguous chars (il1Lo0O)? (y/n) [n]: ").strip().lower() == 'y'
-        
-        count_input = kevbin.box_input("How many passwords? [1]: ").strip()
-        try:
-            count = int(count_input) if count_input else 1
-            count = max(1, min(50, count))
-        except ValueError:
-            count = 1
-        
-        passwords = []
-        for _ in range(count):
+        kevbin.clear()
+        kevbin.section_header('🔑', 'PASSWORD GENERATOR')
+        kevbin.cprint(kevbin.t.secondary, "  [1]  Random password")
+        kevbin.cprint(kevbin.t.secondary, "  [2]  Passphrase (word-based)")
+        kevbin.cprint(kevbin.t.secondary, "  [3]  Batch generate")
+        kevbin.cprint(kevbin.t.secondary, "  [4]  Check password strength")
+        kevbin.cprint(kevbin.t.secondary, "  [0]  Back")
+        kevbin.line()
+        choice = kevbin.input_choice()
+        if choice == '0':
+            return
+
+        if choice == '1':
+            length = kevbin.input_choice("  Length [16]: ").strip() or '16'
             try:
-                pwd = _generate_password(length, use_upper, use_lower, use_digits, use_symbols, exclude_ambiguous)
-                passwords.append(pwd)
-            except ValueError as e:
-                kevbin.box_print(f"[red]{e}[/red]")
-                break
-        else:
-            if count == 1:
-                pwd = passwords[0]
-                rating, score, checks = _password_strength(pwd)
-                
-                kevbin.box_print(f"\n[green]{pwd}[/green]")
-                kevbin.box_print(f"\nStrength: {rating} ({score}/6)")
-                for check in checks:
-                    kevbin.box_print(f"  {check}")
-                
-                copy = kevbin.box_input("\nCopy to clipboard? (y/n) [n]: ").strip().lower()
-                if copy == 'y':
-                    kevbin.box_print("[green]Copied![/green] (Note: actual clipboard copy not implemented)")
-            else:
-                rows = [["#", "Password", "Strength"]]
-                for i, pwd in enumerate(passwords, 1):
-                    rating, _, _ = _password_strength(pwd)
-                    rows.append([str(i), pwd, rating])
-                kevbin.box_table(rows, title=f"Generated {count} Passwords")
-            
-            save = kevbin.box_input("\nSave to file? (path or empty): ").strip().strip('"')
-            if save:
+                length = max(4, min(128, int(length)))
+            except ValueError:
+                length = 16
+            use_upper = kevbin.input_choice("  Uppercase? (Y/n): ").strip().lower() != 'n'
+            use_lower = kevbin.input_choice("  Lowercase? (Y/n): ").strip().lower() != 'n'
+            use_digits = kevbin.input_choice("  Digits? (Y/n): ").strip().lower() != 'n'
+            use_symbols = kevbin.input_choice("  Symbols? (Y/n): ").strip().lower() != 'n'
+            excl = kevbin.input_choice("  Exclude ambiguous (il1Lo0O)? (y/N): ").strip().lower() == 'y'
+            pwd = _generate_password(length, use_upper, use_lower, use_digits, use_symbols, excl)
+            rating, score, checks, entropy = _password_strength(pwd)
+            kevbin.cprint(kevbin.t.accent, f"\n  {pwd}")
+            kevbin.cprint(kevbin.t.accent, f"  Strength: {rating} ({score}/8)  Entropy: {entropy:.1f} bits")
+            for name, passed in checks:
+                icon = '+' if passed else '-'
+                kevbin.cprint(kevbin.t.secondary, f"    [{icon}] {name}")
+            save = kevbin.input_choice("\n  Save to file? (y/n): ").strip().lower()
+            if save == 'y':
+                path = kevbin.input_choice("  Path [passwords.txt]: ").strip() or 'passwords.txt'
                 try:
-                    with open(save, 'w', encoding='utf-8') as f:
-                        f.write("\n".join(passwords))
-                    kevbin.box_print(f"[green]Saved {count} passwords to {save}[/green]")
+                    with open(path, 'w') as f:
+                        f.write(pwd + '\n')
+                    kevbin.cprint(kevbin.t.success, f"  [+] Saved to {path}")
                 except Exception as e:
-                    kevbin.box_print(f"[red]Save error: {e}[/red]")
-            
-            another = kevbin.box_input("\nGenerate more? (y/n) [y]: ").strip().lower()
-            if another in ('n', 'no'):
-                break
+                    kevbin.cprint(kevbin.t.error, f"  [X] {e}")
+            kevbin.pause()
 
+        elif choice == '2':
+            wc = kevbin.input_choice("  Word count [4]: ").strip() or '4'
+            try:
+                wc = max(2, min(8, int(wc)))
+            except ValueError:
+                wc = 4
+            sep = kevbin.input_choice("  Separator [-]: ").strip() or '-'
+            use_nums = kevbin.input_choice("  Include number? (Y/n): ").strip().lower() != 'n'
+            for _ in range(5):
+                phrase = _generate_passphrase(wc, sep, use_nums)
+                rating, score, checks, entropy = _password_strength(phrase)
+                kevbin.cprint(kevbin.t.accent, f"  {phrase:<45} {rating} ({entropy:.0f} bits)")
+            kevbin.pause()
 
-if __name__ == "__main__":
-    class MockKevbin:
-        def box_title(self, t): print(f"\n=== {t} ===")
-        def box_print(self, t): print(t)
-        def box_input(self, t): return input(t + " ")
-        def box_table(self, rows, title=""):
-            if title: print(f"\n{title}")
-            for row in rows:
-                print(" | ".join(str(c) for c in row))
-        def box_code(self, code, language=""): print(code)
-    
-    run(MockKevbin())
+        elif choice == '3':
+            count = kevbin.input_choice("  How many [10]: ").strip() or '10'
+            try:
+                count = max(1, min(200, int(count)))
+            except ValueError:
+                count = 10
+            length = kevbin.input_choice("  Length [16]: ").strip() or '16'
+            try:
+                length = max(4, min(128, int(length)))
+            except ValueError:
+                length = 16
+            passwords = [_generate_password(length, True, True, True, True, False) for _ in range(count)]
+            kevbin.cprint(kevbin.t.accent, f"\n  Generated {count} passwords:\n")
+            for i, pwd in enumerate(passwords, 1):
+                kevbin.cprint(kevbin.t.txt, f"  {i:>3}. {pwd}")
+            save = kevbin.input_choice("\n  Save to file? (y/n): ").strip().lower()
+            if save == 'y':
+                path = kevbin.input_choice("  Path [passwords.txt]: ").strip() or 'passwords.txt'
+                try:
+                    with open(path, 'w') as f:
+                        f.write('\n'.join(passwords) + '\n')
+                    kevbin.cprint(kevbin.t.success, f"  [+] Saved {count} passwords to {path}")
+                except Exception as e:
+                    kevbin.cprint(kevbin.t.error, f"  [X] {e}")
+            kevbin.pause()
+
+        elif choice == '4':
+            pwd = kevbin.input_choice("  Password to check: ").strip()
+            if pwd:
+                rating, score, checks, entropy = _password_strength(pwd)
+                kevbin.cprint(kevbin.t.accent, f"\n  Strength: {rating} ({score}/8)")
+                kevbin.cprint(kevbin.t.accent, f"  Entropy:  {entropy:.1f} bits")
+                kevbin.cprint(kevbin.t.accent, f"  Length:   {len(pwd)} chars")
+                for name, passed in checks:
+                    icon = '+' if passed else '-'
+                    kevbin.cprint(kevbin.t.secondary, f"    [{icon}] {name}")
+                bar_len = int(entropy / 5)
+                bar = '#' * min(bar_len, 40) + '.' * max(0, 40 - bar_len)
+                kevbin.cprint(kevbin.t.accent, f"  [{bar}] {entropy:.0f} bits")
+            kevbin.pause()

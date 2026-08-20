@@ -2,7 +2,7 @@
 
 a CLI multitool i made for learning/testing. bunch of scripts mostly for osint, security stuff, text encoding, roblox tools, discord stuff, and random generators. nothing crazy but it works.
 
-**version 1.4.8**
+**version 1.5.0**
 
 ---
 
@@ -38,7 +38,7 @@ works on **python 3.6+**, all platforms (windows, linux, macOS). if you dont hav
 
 ## what it does
 
-207+ tools split into 13 category tabs. loading screen has a progress bar and the kevbin ASCII banner. prompt looks like `username@kevbin` with 100+ themes you can switch between. the tool menus are tabs — `[N]` / `[P]` moves between tabs, the active tab is marked with a `▲` under it and wrapped in `▌▐` (inactive tabs look like `|NAME_`), and the tab bar auto-fits your terminal width so it never wraps. every tool is shown in a centered, narrow grid. entering a tool clears the screen first. on windows the console title randomizes as an anti-close touch.
+215+ tools split into 13 category tabs. loading screen has a progress bar and the kevbin ASCII banner. prompt looks like `username@kevbin` with 100+ themes you can switch between. the tool menus are tabs — `[N]` / `[P]` moves between tabs, the active tab is marked with a `▲` under it and wrapped in `▌▐` (inactive tabs look like `|NAME_`), and the tab bar auto-fits your terminal width so it never wraps. every tool is shown in a centered, narrow grid. entering a tool clears the screen first. on windows the console title randomizes as an anti-close touch.
 
 ---
 
@@ -50,7 +50,7 @@ it auto-checks for updates on every launch. compares local `version.txt` to gith
 
 ## auto proxy validation
 
-on every boot it fetches the latest proxy list from the proxifly/free-proxy-list, tests them multi-threaded (HTTP via stdlib, SOCKS via PySocks) with 30 threads, and saves working ones to `valid_proxies.txt`. you see the progress live as it tests. this means valid proxies are always fresh without you having to run the checker manually.
+on every boot it fetches the latest proxy list from **55 sources** in parallel, tests them multi-threaded with 80 threads and 2s socket timeout, and saves working ones to `valid_proxies.txt`. you see a live progress bar as it tests. valid proxies are always fresh without you having to run the checker manually.
 
 ---
 
@@ -66,13 +66,48 @@ the python obfuscator has been rebuilt from scratch with multiple layers of prot
 - **Opaque predicates** — adds dead-code branches that never execute
 - **Anti-debug** — detects debuggers and exits
 
-the **Lua obfuscator** was also upgraded with XOR string encrypt, control flow flattening, identifier mangling, opaque predicates, dead code injection, and string concatenation chaos.
+the **Lua obfuscator** was also upgraded with XOR string encrypt, control flow flattening, identifier mangling, opaque predicates, dead code injection, and string concatenation chaos. now saves output to a file.
 
 ---
 
-## proxy scraper/checker
+## v1.5.0 new modules
 
-the scraper pulls from **35+ public proxy list sources** (TheSpeedX, proxifly, monogramm, roosterkid, jetkai, mmpx12, Uptox, monosans, zimuq, yuceltoluyan, B4RC0DE-TM, pproxy, H4ck4ss3, and more) covering HTTP, HTTPS, SOCKS4, SOCKS5. saves to `proxies/http.txt`, `https.txt`, `socks4.txt`, `socks5.txt` + a combined `all.txt`. the checker validates them multi-threaded and writes every working one to `valid_proxies.txt`.
+### hash cracker
+hash identification from any length, dictionary attack with built-in 220+ wordlist, file-based wordlist support, multi-threaded brute-force mode. returns hash algorithm, hex/digest, and cracked passwords.
+
+### WAF detector
+identifies web application firewalls (Cloudflare, Akamai, AWS WAF, Imperva, Sucuri, etc.) via response headers and HTML signatures. includes a payload testing mode to see which payloads get blocked.
+
+### directory bruteuter
+web directory and file brute-forcer. multi-threaded with custom or built-in wordlists, extension appending, status code filtering, hide 403/404, recursive mode, save results to file.
+
+### network scan
+local network utility: ARP sweep to find live hosts, port sweep on individual IPs, local IP info. all pure-socket, no external dependencies.
+
+### batch renamer
+bulk file renaming with preview. supports find/replace, prefix/suffix, sequence numbering, regex replacement. dry-run mode shows changes before committing.
+
+### log parser
+analyze log files (Apache, nginx, etc.). full analysis with status code breakdown, top IPs, top paths, bandwidth. filter by status code, IP, path, keyword search. top-N lists.
+
+### notes tool
+XOR-encrypted notes with user password. create, list, read, delete, and search notes stored in `modules/config/notes/`.
+
+### calculator
+scientific calculator (sin, cos, tan, log, sqrt, powers), base converter (bin/oct/hex/any base), random number generator with ranges, date calculator, mathematical constants reference.
+
+---
+
+## improved modules
+
+- **Hash Tool** — now supports HMAC, file hashing, CRC32, hash comparison, and all-algorithm hash
+- **Ciphers** — expanded to 9 ciphers: Caesar, Vigenere, Atbash, XOR, ROT13, Rail Fence, Baconian, Autokey, plus frequency analysis
+- **Password Generator** — added passphrase mode with word lists, batch generation, and strength checker with entropy visualization
+- **Port Scanner** — rewritten with presets (Web, Mail, DB, etc.), multi-threaded scanning, 1000+ service port database, banner grabbing
+- **Entropy** — added frequency bar chart, string comparison, crack time estimates
+- **UUID Generator** — added v1/v3/v5, UUID parsing/decoding, batch with format options
+- **Regex Tester** — added replace mode, group capture display, save result to file
+- **QR Generator** — added styled QR with custom colors, decode QR from image files
 
 ---
 
@@ -115,32 +150,33 @@ each theme controls banner gradient, header color, number color, text color, sub
 
 ### 🛡️ security & utilities
 - **Obfuscator V3** — multi-layer XOR/B64, AST mangle, anti-debug
-- **Web Cloner** — save websites locally
+- **Web Cloner** — save websites locally with all assets
 - **Cryptography** — base64/hex/rot13
-- **QR Generator** — make QR codes
-- **Hash Tool** — hash stuff and look it up online
+- **QR Generator** — make + decode QR codes
+- **Hash Tool** — hash files/strings + HMAC + CRC32
 - **Base64 Image** — encode/decode images to base64
-- **Ciphers** — caesar/vigenere/atbash/xor
+- **Ciphers** — 9 ciphers + frequency analysis
 - **JWT Tools** — decode and make JWT tokens
 - **CORS Tester** — test CORS headers
-- **Entropy** — shannon entropy analysis
+- **Entropy** — frequency analysis + entropy + crack times
 - **Password Check** — strength + breach check
 - **Timestamp** — unix timestamp converter
 - **Security Headers** — check HTTP security headers
 - **CSP Analyzer** — content security policy analysis
 - **Honeypot Detector** — detect honeypots
 - **HTTP Status** — status code lookup
-- **Port Scanner** — TCP scan + banner grab
+- **Port Scanner** — multi-threaded + service detection
 - **Traceroute** — trace network path
 - **Tor Check** — check if IP is a tor exit node
 - **Link Tools** — expand/track/info on URLs
 - **IP Pinger** — ICMP ping
 - **System Info** — CPU/RAM/disk/OS details (no psutil needed)
-- **Proxy Scraper** — grab public proxies from 35+ sources → saves to `proxies/`
-- **Proxy Checker** — multi-threaded validation → `valid_proxies.txt`
+- **Proxy Scraper** — grab public proxies from 35+ sources
+- **Proxy Checker** — multi-threaded validation
+- **Hash Cracker** — hash ID + wordlist crack + brute-force
 
 ### 🌐 web & network tools
-- **Page Clone** — clone full websites
+- **Web Cloner** — save websites locally with all assets
 - **Site Viewer** — view source + headers
 - **Web Search** — search the web from CLI
 - **Webhook Tester** — test webhook endpoints
@@ -149,10 +185,16 @@ each theme controls banner gradient, header color, number color, text color, sub
 - **Link Spoof** — see redirect chains
 - **Link Tracker** — track link clicks
 - **Browser FP** — browser fingerprinting
-- **Webrtc Leak** — detect WebRTC IP leaks
+- **WebRTC Leak** — detect WebRTC IP leaks
 - **DNS over HTTPS** — encrypted DNS queries
 - **Subdomain Enum** — find subdomains
 - **Subnet Calculator** — CIDR math
+- **Curl Builder** — generate curl commands
+- **URL Parser** — break down a URL
+- **User-Agent Gen** — random real UAs
+- **WAF Detector** — identify web application firewalls
+- **Directory Brute** — web directory/file brute forcer
+- **Calculator** — scientific calculator + base converter
 
 ### 📝 text & encoding
 - **Text Transform** — case/reverse/repeat
@@ -163,7 +205,7 @@ each theme controls banner gradient, header color, number color, text color, sub
 - **CSV Viewer** — parse and display CSV
 - **JSON Formatter** — pretty-print JSON
 - **SQL Formatter** — format SQL queries
-- **Regex Tester** — test regular expressions
+- **Regex Tester** — test regular expressions + replace
 - **Word Counter** — word/char/line count
 - **Slugify** — convert to slug format
 - **HTML Entity** — encode/decode HTML entities
@@ -189,9 +231,9 @@ each theme controls banner gradient, header color, number color, text color, sub
 - **CSV Tools** — parse/merge CSV files
 - **JSON ↔ XML** — convert between formats
 - **Receipt Generator** — make fake receipts
-- **UUID Generator** — generate UUIDs v4
+- **UUID Generator** — UUID v1/v3/v4/v5 + parse/decode
 - **Barcode Generator** — code128/code39
-- **Password Generator** — make secure passwords
+- **Password Generator** — passphrases + strength checker
 - **Random Data** — random numbers/strings
 - **Duration Calc** — time duration math
 - **Age Calculator** — calculate age from DOB
@@ -234,7 +276,7 @@ each theme controls banner gradient, header color, number color, text color, sub
 - **Mirror Text** — flipped/mirrored text
 
 ### 📡 network & DNS
-- **Port Scanner** — TCP scan + banners
+- **Port Scanner** — multi-threaded + banner grab
 - **Traceroute** — trace network path
 - **DNS Resolver** — resolve DNS records
 - **DNS over HTTPS** — encrypted DNS
@@ -244,13 +286,14 @@ each theme controls banner gradient, header color, number color, text color, sub
 - **IP Pinger** — ICMP ping
 - **ASN Lookup** — ASN info
 - **Blacklist Check** — IP blacklist check
+- **Network Scan** — ARP sweep + port sweep
 
 ### 🔧 developer tools
 - **Request Builder** — build HTTP requests
 - **Header Inspector** — view/edit headers
 - **Cookie Inspector** — view/edit cookies
 - **JS Obfuscator** — javascript obfuscation
-- **Lua Obfuscator** — lua code obfuscation (XOR, flow flatten, mangle, dead code)
+- **Lua Obfuscator** — lua code obfuscation (saves to file)
 - **Lua Sandbox** — run lua code safely
 - **Cron Builder** — build cron expressions
 - **Cron Parser** — parse cron schedules
@@ -268,11 +311,24 @@ each theme controls banner gradient, header color, number color, text color, sub
 - **Steganography** — hide data in images
 - **File Checksum** — MD5/SHA hash files
 - **Binary Viewer** — view binary data
+- **Batch Renamer** — bulk rename files with preview
+
+### 📋 notes & analysis
+- **Notes Tool** — XOR-encrypted notes with password
+- **Log Parser** — analyze/filter web server logs
+- **Hash Cracker** — hash ID + dictionary/brute attack
+
+### 🧮 calculators & converters
+- **Calculator** — scientific calc + base converter + date calc
+- **Calculator** — trig, log, sqrt, powers, constants
+- **Base Converter** — any base (2-36)
+- **Date Calculator** — days between dates
+- **Random Number** — ranges, seeds, distributions
 
 ### ⚙️ themes & settings
 - switch between 100+ themes
 - auto-update via zip download (preserves settings)
-- auto-proxy validation on boot
+- auto-proxy validation on boot (55 sources, 80 threads)
 - check for updates manually
 - view version and user info
 
@@ -282,24 +338,39 @@ each theme controls banner gradient, header color, number color, text color, sub
 
 ```
 Kev-tool/
-├── kevtool.py          # main app
-├── kevtool.bat         # windows launcher
-├── valid_proxies.txt   # working proxies (auto-refreshed on boot)
-├── proxies/            # scraped proxy lists (runtime output)
+├── kevtool.py              # main app
+├── kevtool.bat             # windows launcher
+├── valid_proxies.txt       # working proxies (auto-refreshed on boot)
+├── proxies/                # scraped proxy lists (runtime output)
 └── modules/
-    ├── config/         # settings.json
-    ├── install.bat     # windows installer
-    ├── install.sh      # linux/macOS installer
-    ├── version.txt     # version tracking
-    ├── requirements.txt# python dependencies
-    ├── readme.md       # you're reading this
-    ├── system_info.py  # system info
-    ├── proxy_scraper.py# proxy grabber (35+ sources)
-    ├── proxy_checker.py# proxy validator
-    ├── obfuscator.py   # Obfuscator V3 (multi-layer)
-    ├── lua_obfuscator.py# lua obfuscation
-    ├── discord_ops.py  # discord stuff
-    ├── roblox_intel.py # roblox lookups
-    ├── faker_suite.py  # simulation/generators
-    └── ...             # more modules
+    ├── config/             # settings.json + notes/
+    ├── install.bat         # windows installer
+    ├── install.sh          # linux/macOS installer
+    ├── version.txt         # version tracking
+    ├── requirements.txt    # python dependencies
+    ├── obfuscator.py       # Obfuscator V3 (multi-layer)
+    ├── lua_obfuscator.py   # lua obfuscation (saves to file)
+    ├── hash_cracker.py     # hash ID + crack (NEW)
+    ├── waf_detect.py       # WAF detection (NEW)
+    ├── directory_brute.py  # web dir brute (NEW)
+    ├── network_scan.py     # ARP + port scan (NEW)
+    ├── batch_renamer.py    # bulk rename (NEW)
+    ├── log_parser.py       # log analysis (NEW)
+    ├── notes_tool.py       # encrypted notes (NEW)
+    ├── calculator.py       # scientific calc (NEW)
+    ├── port_scanner.py     # multi-threaded scanner
+    ├── password_gen.py     # passphrases + batch + strength
+    ├── hash_tool.py        # hash + HMAC + CRC32
+    ├── ciphers.py          # 9 ciphers + freq analysis
+    ├── entropy.py          # frequency chart + crack times
+    ├── uuid_gen.py         # v1/v3/v4/v5 + parse
+    ├── regex_tester.py     # regex + replace + groups
+    ├── qr_gen.py           # QR gen + decode + styled
+    ├── proxy_scraper.py    # proxy grabber (35+ sources)
+    ├── proxy_checker.py    # proxy validator
+    ├── system_info.py      # system info
+    ├── discord_ops.py      # discord stuff
+    ├── roblox_intel.py     # roblox lookups
+    ├── faker_suite.py      # simulation/generators
+    └── ...                 # more modules
 ```
