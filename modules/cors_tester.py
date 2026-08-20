@@ -42,8 +42,8 @@ def run(kevbin):
             else:
                 kevbin.cprint(kevbin.t.success, f"    No ACAO header")
             if acam:
-                kevbin.cprint(kevbin.t.dim, f"    Methods: {acam}")
-            kevbin.cprint(kevbin.t.dim, "")
+                kevbin.cprint(kevbin.t.txt, f"    Methods: {acam}")
+            kevbin.cprint(kevbin.t.txt, "")
         except Exception as e:
-            kevbin.cprint(kevbin.t.dim, f"  {origin}: {e}")
+            kevbin.cprint(kevbin.t.warning, f"  {origin}: {e}")
     kevbin.pause()

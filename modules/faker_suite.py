@@ -400,7 +400,7 @@ def fake_ddos(kevbin):
                       f"avg {total_sent // sec:>6,}/s")
         time.sleep(0.08)
     kevbin.cprint(kevbin.t.highlight, f"\n  Complete — {total_sent:,} packets in {duration}s")
-    kevbin.cprint(kevbin.t.dim, f"  Avg throughput: {total_sent // duration:,} pps")
+    kevbin.cprint(kevbin.t.txt, f"  Avg throughput: {total_sent // duration:,} pps")
     kevbin.pause()
 
 
@@ -758,5 +758,5 @@ def fake_bruteforcer(kevbin):
         kevbin.cprint(kevbin.t.highlight, f"\n  CRACKED in {attempts:,} attempts")
         kevbin.cprint(kevbin.t.success, f"  Hash:   {target[:40]}")
         kevbin.cprint(kevbin.t.success, f"  Plain:  {cracked}")
-        kevbin.cprint(kevbin.t.dim, f"  Time:   {random.randint(1,45)}s | Speed: {speed:,}/s")
+        kevbin.cprint(kevbin.t.txt, f"  Time:   {random.randint(1,45)}s | Speed: {speed:,}/s")
     kevbin.pause()

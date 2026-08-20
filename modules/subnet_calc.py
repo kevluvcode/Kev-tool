@@ -48,7 +48,7 @@ def run(kevbin):
             kevbin.cprint(kevbin.t.accent, "\n  Usable Range:")
             hosts = list(network.hosts())
             if hosts:
-                kevbin.cprint(kevbin.t.dim, f"    {hosts[0]}  -  {hosts[-1]}")
+                kevbin.cprint(kevbin.t.txt, f"    {hosts[0]}  -  {hosts[-1]}")
     except Exception as e:
         kevbin.cprint(kevbin.t.error, f"  [X] {e}")
     kevbin.pause()

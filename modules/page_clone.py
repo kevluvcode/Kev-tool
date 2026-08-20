@@ -46,8 +46,8 @@ def run(kevbin):
             f.write(r.text)
 
         kevbin.cprint(kevbin.t.success, f"\n  [+] Saved to: {out_path}")
-        kevbin.cprint(kevbin.t.dim, f"  Size: {len(r.text)} bytes")
-        kevbin.cprint(kevbin.t.dim, f"  Status: {r.status_code}")
+        kevbin.cprint(kevbin.t.txt, f"  Size: {len(r.text)} bytes")
+        kevbin.cprint(kevbin.t.txt, f"  Status: {r.status_code}")
 
         assets = re.findall(r'(?:src|href)=["\']([^"\']+)["\']', r.text)
         css_js = [a for a in assets if a.endswith(('.css', '.js'))]

@@ -52,7 +52,7 @@ def run(kevbin):
             if data.get('ipv4_prefixes'):
                 kevbin.cprint(kevbin.t.accent, "\n  IPv4 Prefixes:")
                 for p in data['ipv4_prefixes'][:10]:
-                    kevbin.cprint(kevbin.t.dim, f"    {p.get('prefix','')}  {p.get('description','')}")
+                    kevbin.cprint(kevbin.t.txt, f"    {p.get('prefix','')}  {p.get('description','')}")
         else:
             kevbin.cprint(kevbin.t.highlight, f"\n  +------------------+----------------------------------+")
             kevbin.cprint(kevbin.t.highlight, f"  | Field            | Value                            |")

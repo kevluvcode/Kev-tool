@@ -112,7 +112,7 @@ def email_lookup(kevbin):
         elif resp.status_code == 404:
             kevbin.cprint(kevbin.t.success, "  [✓] No breaches found for this email.")
         else:
-            kevbin.cprint(kevbin.t.dim, f"  Status: {resp.status_code}")
+            kevbin.cprint(kevbin.t.txt, f"  Status: {resp.status_code}")
     except Exception as e:
         kevbin.cprint(kevbin.t.error, f"  [X] Error: {e}")
     kevbin.pause()
@@ -185,8 +185,8 @@ def username_check(kevbin):
             else:
                 kevbin.cprint(kevbin.t.success, f"    ✓ {name:12s}  AVAILABLE (or undetermined)")
         except Exception:
-            kevbin.cprint(kevbin.t.dim, f"    ? {name:12s}  ERROR")
+            kevbin.cprint(kevbin.t.warning, f"    ? {name:12s}  ERROR")
         time.sleep(0.3)
 
-    kevbin.cprint(kevbin.t.dim, "\n  Note: Results may vary. Some platforms block automated checks.")
+    kevbin.cprint(kevbin.t.sub, "\n  Note: Results may vary. Some platforms block automated checks.")
     kevbin.pause()

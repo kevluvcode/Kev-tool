@@ -48,7 +48,7 @@ def run(kevbin):
             kevbin.cprint(kevbin.t.secondary, f"  | {directive:<16} | {value[:34]:<34} |")
         kevbin.cprint(kevbin.t.highlight, f"  +------------------+----------------------------------+")
 
-        kevbin.cprint(kevbin.t.dim, f"\n  Raw: {csp[:80]}")
+        kevbin.cprint(kevbin.t.txt, f"\n  Raw: {csp[:80]}")
         if 'unsafe-inline' in csp:
             kevbin.cprint(kevbin.t.warning, "  [!] Contains 'unsafe-inline'")
         if 'unsafe-eval' in csp:

@@ -43,9 +43,9 @@ def run(kevbin):
         if sans:
             kevbin.cprint(kevbin.t.secondary, f"  │ SANs:        {len(sans)} domains")
             for san_type, san_val in sans[:5]:
-                kevbin.cprint(kevbin.t.dim, f"  │   {san_val}")
+                kevbin.cprint(kevbin.t.txt, f"  │   {san_val}")
             if len(sans) > 5:
-                kevbin.cprint(kevbin.t.dim, f"  │   ... +{len(sans)-5} more")
+                kevbin.cprint(kevbin.t.txt, f"  │   ... +{len(sans)-5} more")
 
         serial = cert.get('serialNumber', '?')
         kevbin.cprint(kevbin.t.secondary, f"  │ Serial:      {serial}")

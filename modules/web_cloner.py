@@ -84,7 +84,7 @@ def run(kevbin):
     seen = set()
     downloaded = 0
 
-    kevbin.cprint(kevbin.t.dim, f"  Fetching {url}...")
+    kevbin.cprint(kevbin.t.txt, f"  Fetching {url}...")
 
     # ——— 1. Fetch main HTML ———
     try:

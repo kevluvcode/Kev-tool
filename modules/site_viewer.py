@@ -45,7 +45,7 @@ def run(kevbin):
         kevbin.cprint(kevbin.t.highlight, f"  +------------------+----------------------------------+")
 
         kevbin.cprint(kevbin.t.accent, "\n  HTML Source (first 2000 chars):")
-        kevbin.cprint(kevbin.t.dim, f"  {r.text[:2000]}")
+        kevbin.cprint(kevbin.t.txt, f"  {r.text[:2000]}")
     except Exception as e:
         kevbin.cprint(kevbin.t.error, f"  [X] {e}")
     kevbin.pause()

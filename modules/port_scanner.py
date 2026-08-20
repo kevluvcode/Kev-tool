@@ -72,9 +72,9 @@ def run(kevbin):
         for p, banner in open_ports:
             kevbin.cprint(kevbin.t.accent, f"    Port {p:5d}  OPEN")
             if banner:
-                kevbin.cprint(kevbin.t.dim, f"           Banner: {banner[:60]}")
+                kevbin.cprint(kevbin.t.txt, f"           Banner: {banner[:60]}")
     else:
         kevbin.cprint(kevbin.t.warning, f"\n  [!] No open ports found.")
 
-    kevbin.cprint(kevbin.t.dim, f"\n  Scanned {len(list(ports))} ports in {elapsed:.2f}s")
+    kevbin.cprint(kevbin.t.txt, f"\n  Scanned {len(list(ports))} ports in {elapsed:.2f}s")
     kevbin.pause()

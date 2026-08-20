@@ -27,7 +27,7 @@ def run(kevbin):
             if re.match(pattern, email):
                 kevbin.cprint(kevbin.t.success, f"\n  [✓] Valid format: {email}")
                 domain = email.split('@')[1]
-                kevbin.cprint(kevbin.t.dim, f"  Domain: {domain}")
+                kevbin.cprint(kevbin.t.txt, f"  Domain: {domain}")
             else:
                 kevbin.cprint(kevbin.t.error, f"\n  [X] Invalid format: {email}")
             kevbin.pause()
@@ -36,7 +36,7 @@ def run(kevbin):
             domain = kevbin.input_choice("  Domain: ").strip()
             if not domain:
                 continue
-            kevbin.cprint(kevbin.t.dim, f"\n  MX records for {domain}:")
+            kevbin.cprint(kevbin.t.txt, f"\n  MX records for {domain}:")
             try:
                 import dns.resolver
                 answers = dns.resolver.resolve(domain, 'MX')

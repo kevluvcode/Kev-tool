@@ -584,7 +584,7 @@ def run(kevbin):
             kevbin.box.warn("  No target.")
             kevbin.pause()
             return
-        kevbin.cprint(kevbin.t.dim, f"\n  Scanning {ip} ({len(HONEYPOT_PORTS)} ports)...\n")
+        kevbin.cprint(kevbin.t.txt, f"\n  Scanning {ip} ({len(HONEYPOT_PORTS)} ports)...\n")
         rows, hp_hits = scan_ports(kevbin, ip)
         if rows:
             kevbin.box.table(['Port', 'Service', 'Banner', 'Note'], rows, title='PORT RESULTS')

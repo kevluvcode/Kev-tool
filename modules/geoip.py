@@ -23,7 +23,7 @@ def run(kevbin):
         try:
             r = requests.get('https://ipinfo.io/json', timeout=5)
             ip = r.json().get('ip', '')
-            kevbin.cprint(kevbin.t.dim, f"  Your IP: {ip}")
+            kevbin.cprint(kevbin.t.txt, f"  Your IP: {ip}")
         except Exception:
             kevbin.cprint(kevbin.t.error, "  [X] Could not detect your IP.")
             kevbin.pause()

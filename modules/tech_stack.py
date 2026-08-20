@@ -96,7 +96,7 @@ def run(kevbin):
             kevbin.cprint(kevbin.t.dim, f"  | (none detected)  |")
         kevbin.cprint(kevbin.t.highlight, f"  +------------------+")
 
-        kevbin.cprint(kevbin.t.dim, f"\n  Status: {r.status_code} | Server: {r.headers.get('Server', '?')}")
+        kevbin.cprint(kevbin.t.txt, f"\n  Status: {r.status_code} | Server: {r.headers.get('Server', '?')}")
     except Exception as e:
         kevbin.cprint(kevbin.t.error, f"  [X] {e}")
     kevbin.pause()

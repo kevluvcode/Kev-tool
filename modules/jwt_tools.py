@@ -50,7 +50,7 @@ def run(kevbin):
                         val += f" ({time.strftime('%Y-%m-%d %H:%M', time.gmtime(v))})"
                     kevbin.cprint(kevbin.t.accent, f"  │ {k}: {val}")
                 kevbin.cprint(kevbin.t.highlight, "  └──────────────────────────────────")
-                kevbin.cprint(kevbin.t.dim, "  ⚠ Signature NOT verified (read-only decode)")
+                kevbin.cprint(kevbin.t.warning, "  ⚠ Signature NOT verified (read-only decode)")
             except Exception as e:
                 kevbin.cprint(kevbin.t.error, f"  [X] Decode error: {e}")
             kevbin.pause()

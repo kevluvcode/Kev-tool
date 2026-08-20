@@ -30,13 +30,13 @@ def run(kevbin):
             for b in breaches[:15]:
                 kevbin.cprint(kevbin.t.error, f"    {b.get('Name', '?'):30s} {b.get('BreachDate', '?')}")
                 if b.get('DataClasses'):
-                    kevbin.cprint(kevbin.t.dim, f"      Data: {', '.join(b['DataClasses'][:5])}")
+                    kevbin.cprint(kevbin.t.txt, f"      Data: {', '.join(b['DataClasses'][:5])}")
         elif r.status_code == 404:
             kevbin.cprint(kevbin.t.success, "  [✓] No breaches found.")
         elif r.status_code == 401:
-            kevbin.cprint(kevbin.t.dim, "  API key required for this endpoint.")
+            kevbin.cprint(kevbin.t.warning, "  API key required for this endpoint.")
         else:
-            kevbin.cprint(kevbin.t.dim, f"  Status: {r.status_code}")
+            kevbin.cprint(kevbin.t.txt, f"  Status: {r.status_code}")
     except Exception as e:
         kevbin.cprint(kevbin.t.error, f"  [X] {e}")
     kevbin.pause()

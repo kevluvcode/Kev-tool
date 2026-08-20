@@ -316,6 +316,6 @@ def run(kevbin):
         f.write(out)
 
     kevbin.cprint(kevbin.t.success, f"\n  [✓] Saved: {out_path}")
-    kevbin.cprint(kevbin.t.dim, f"  Original: {len(source)} chars -> Obfuscated: {len(out)} chars")
-    kevbin.cprint(kevbin.t.dim, f"  Layers: {mode} | Tries: {tries + 1}")
+    kevbin.cprint(kevbin.t.txt, f"  Original: {len(source)} chars -> Obfuscated: {len(out)} chars")
+    kevbin.cprint(kevbin.t.txt, f"  Layers: {mode} | Tries: {tries + 1}")
     kevbin.pause()
