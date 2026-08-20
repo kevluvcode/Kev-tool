@@ -794,11 +794,14 @@ def _proxy_worker(queue, valid_out, lock, done_count):
 
 def auto_proxy_check(max_proxies=100, threads=30):
     """Fetch proxies from proxifly, test them, save valid to valid_proxies.txt."""
+    cl = get_theme()
+    print(cprint_horizontal(cl['sub'], "  [~] Fetching proxy list from proxifly..."))
     try:
         req = urllib.request.Request(PROXY_LIST_URL, headers={'User-Agent': 'KevTool'})
         with urllib.request.urlopen(req, timeout=15) as r:
             raw = r.read().decode('utf-8', errors='ignore')
-    except Exception:
+    except Exception as e:
+        print(cprint_horizontal(cl['num'], f"  [!] Proxy fetch failed: {e}"))
         return
     seen = set()
     queue = []
@@ -808,11 +811,13 @@ def auto_proxy_check(max_proxies=100, threads=30):
             seen.add((addr, proto))
             queue.append((addr, proto))
     if not queue:
+        print(cprint_horizontal(cl['num'], "  [!] No proxies found in list"))
         return
     if len(queue) > max_proxies:
         random.shuffle(queue)
         queue = queue[:max_proxies]
     random.shuffle(queue)
+    print(cprint_horizontal(cl['sub'], f"  [~] Testing {len(queue)} proxies ({threads} threads)..."))
     valid = []
     lock = threading.Lock()
     done_count = [0]
@@ -820,14 +825,27 @@ def auto_proxy_check(max_proxies=100, threads=30):
                for _ in range(min(threads, len(queue)))]
     for t in workers:
         t.start()
+    try:
+        while done_count[0] < len(queue):
+            time.sleep(0.3)
+            pct = int(done_count[0] / len(queue) * 100)
+            sys.stdout.write(f"\r  [~] Testing proxies... {done_count[0]}/{len(queue)} ({pct}%) valid: {len(valid)}  ")
+            sys.stdout.flush()
+    except KeyboardInterrupt:
+        pass
     for t in workers:
-        t.join(timeout=30)
+        t.join(timeout=5)
+    sys.stdout.write("\r" + " " * 60 + "\r")
+    sys.stdout.flush()
     if valid:
         try:
             with open(VALID_PROXIES_PATH, 'w', encoding='utf-8') as f:
                 f.write('\n'.join(valid) + '\n')
         except Exception:
             pass
+        print(cprint_horizontal(cl['head'], f"  [+] {len(valid)} working proxies saved to valid_proxies.txt"))
+    else:
+        print(cprint_horizontal(cl['num'], "  [!] No working proxies found"))
 
 
 class KevTool:
@@ -1274,10 +1292,7 @@ def main():
         if cfg.get('check_updates', True):
             check_update(auto=True)
     if not no_update:
-        try:
-            auto_proxy_check()
-        except Exception:
-            pass
+        auto_proxy_check()
     KevTool().tool_menu(1)
 
 if __name__ == '__main__':
