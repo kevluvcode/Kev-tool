@@ -275,4 +275,17 @@ def run(kevbin):
 
     kevbin.cprint(kevbin.t.success, f"\n  [✓] Obfuscated ({mode})")
     kevbin.box.code(code)
+
+    save = kevbin.input_choice("\n  Save to file? (y/n): ").strip().lower()
+    if save == 'y':
+        out_path = kevbin.input_choice("  Output path [obfuscated.lua]: ").strip().strip('"').strip("'")
+        if not out_path:
+            out_path = "obfuscated.lua"
+        try:
+            with open(out_path, 'w', encoding='utf-8') as f:
+                f.write(code)
+            kevbin.cprint(kevbin.t.success, f"  [✓] Saved to {out_path}")
+        except Exception as e:
+            kevbin.cprint(kevbin.t.error, f"  [X] {e}")
+
     kevbin.pause()
