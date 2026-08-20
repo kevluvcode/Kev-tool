@@ -87,8 +87,64 @@ AUTHOR = "KevBin"
 GITHUB_REPO = "kevluvcode/Kev-tool"
 GITHUB_RAW_VERSION = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/modules/version.txt"
 GITHUB_ZIP_URL = f"https://github.com/{GITHUB_REPO}/archive/refs/heads/main.zip"
-PROXY_LIST_URL = "https://raw.githubusercontent.com/proxifly/free-proxy-list/refs/heads/main/proxies/all/data.txt"
 VALID_PROXIES_PATH = os.path.join(BASE_DIR, 'valid_proxies.txt')
+
+PROXY_SOURCES = [
+    ('TheSpeedX HTTP', 'https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt'),
+    ('TheSpeedX HTTPS', 'https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/https.txt'),
+    ('TheSpeedX SOCKS4', 'https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks4.txt'),
+    ('TheSpeedX SOCKS5', 'https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks5.txt'),
+    ('Proxifly ALL', 'https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/all/data.txt'),
+    ('Proxifly HTTP', 'https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/http/data.txt'),
+    ('Proxifly HTTPS', 'https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/https/data.txt'),
+    ('Proxifly SOCKS4', 'https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/socks4/data.txt'),
+    ('Proxifly SOCKS5', 'https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/socks5/data.txt'),
+    ('mmpx12 HTTP', 'https://raw.githubusercontent.com/mmpx12/proxy-list/master/http.txt'),
+    ('mmpx12 HTTPS', 'https://raw.githubusercontent.com/mmpx12/proxy-list/master/https.txt'),
+    ('mmpx12 SOCKS4', 'https://raw.githubusercontent.com/mmpx12/proxy-list/master/socks4.txt'),
+    ('mmpx12 SOCKS5', 'https://raw.githubusercontent.com/mmpx12/proxy-list/master/socks5.txt'),
+    ('Uptox HTTP', 'https://raw.githubusercontent.com/Uptox/Proxy-List/main/http.txt'),
+    ('Uptox HTTPS', 'https://raw.githubusercontent.com/Uptox/Proxy-List/main/https.txt'),
+    ('Uptox SOCKS4', 'https://raw.githubusercontent.com/Uptox/Proxy-List/main/socks4.txt'),
+    ('Uptox SOCKS5', 'https://raw.githubusercontent.com/Uptox/Proxy-List/main/socks5.txt'),
+    ('monosans HTTP', 'https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt'),
+    ('monosans HTTPS', 'https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/https.txt'),
+    ('monosans SOCKS4', 'https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks4.txt'),
+    ('monosans SOCKS5', 'https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks5.txt'),
+    ('monogramm HTTP', 'https://raw.githubusercontent.com/monogramm/proxy_list/main/http.txt'),
+    ('monogramm HTTPS', 'https://raw.githubusercontent.com/monogramm/proxy_list/main/https.txt'),
+    ('monogramm SOCKS4', 'https://raw.githubusercontent.com/monogramm/proxy_list/main/socks4.txt'),
+    ('monogramm SOCKS5', 'https://raw.githubusercontent.com/monogramm/proxy_list/main/socks5.txt'),
+    ('roosterkid HTTPS', 'https://raw.githubusercontent.com/roosterkid/openproxylist/main/HTTPS_RAW.txt'),
+    ('roosterkid SOCKS4', 'https://raw.githubusercontent.com/roosterkid/openproxylist/main/SOCKS4_RAW.txt'),
+    ('roosterkid SOCKS5', 'https://raw.githubusercontent.com/roosterkid/openproxylist/main/SOCKS5_RAW.txt'),
+    ('hookzof SOCKS5', 'https://raw.githubusercontent.com/hookzof/socks5_list/master/socks5.txt'),
+    ('clarketm HTTP', 'https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt'),
+    ('ShiftyTR HTTP', 'https://raw.githubusercontent.com/ShiftyTR/Proxy-List/master/http.txt'),
+    ('ShiftyTR HTTPS', 'https://raw.githubusercontent.com/ShiftyTR/Proxy-List/master/https.txt'),
+    ('ShiftyTR SOCKS4', 'https://raw.githubusercontent.com/ShiftyTR/Proxy-List/master/socks4.txt'),
+    ('ShiftyTR SOCKS5', 'https://raw.githubusercontent.com/ShiftyTR/Proxy-List/master/socks5.txt'),
+    ('jetkai HTTP', 'https://raw.githubusercontent.com/jetkai/proxy-list/main/online-proxies/http.txt'),
+    ('jetkai SOCKS4', 'https://raw.githubusercontent.com/jetkai/proxy-list/main/online-proxies/socks4.txt'),
+    ('jetkai SOCKS5', 'https://raw.githubusercontent.com/jetkai/proxy-list/main/online-proxies/socks5.txt'),
+    ('zimuq HTTP', 'https://raw.githubusercontent.com/zimuq/proxy/master/http.txt'),
+    ('zimuq HTTPS', 'https://raw.githubusercontent.com/zimuq/proxy/master/https.txt'),
+    ('zimuq SOCKS4', 'https://raw.githubusercontent.com/zimuq/proxy/master/socks4.txt'),
+    ('zimuq SOCKS5', 'https://raw.githubusercontent.com/zimuq/proxy/master/socks5.txt'),
+    ('yuceltoluyan HTTP', 'https://raw.githubusercontent.com/yuceltoluyan/proxy-list/main/http.txt'),
+    ('yuceltoluyan HTTPS', 'https://raw.githubusercontent.com/yuceltoluyan/proxy-list/main/https.txt'),
+    ('yuceltoluyan SOCKS5', 'https://raw.githubusercontent.com/yuceltoluyan/proxy-list/main/socks5.txt'),
+    ('B4RC0DE HTTP', 'https://raw.githubusercontent.com/B4RC0DE-TM/proxy-list/main/http.txt'),
+    ('B4RC0DE HTTPS', 'https://raw.githubusercontent.com/B4RC0DE-TM/proxy-list/main/https.txt'),
+    ('B4RC0DE SOCKS4', 'https://raw.githubusercontent.com/B4RC0DE-TM/proxy-list/main/socks4.txt'),
+    ('B4RC0DE SOCKS5', 'https://raw.githubusercontent.com/B4RC0DE-TM/proxy-list/main/socks5.txt'),
+    ('pproxy HTTP', 'https://raw.githubusercontent.com/pproxy/proxy/master/http.txt'),
+    ('pproxy SOCKS5', 'https://raw.githubusercontent.com/pproxy/proxy/master/socks5.txt'),
+    ('H4ck4ss3 HTTP', 'https://raw.githubusercontent.com/H4ck4ss3/PROXY-List/master/http.txt'),
+    ('H4ck4ss3 HTTPS', 'https://raw.githubusercontent.com/H4ck4ss3/PROXY-List/master/https.txt'),
+    ('H4ck4ss3 SOCKS4', 'https://raw.githubusercontent.com/H4ck4ss3/PROXY-List/master/socks4.txt'),
+    ('H4ck4ss3 SOCKS5', 'https://raw.githubusercontent.com/H4ck4ss3/PROXY-List/master/socks5.txt'),
+]
 
 def _hex(rgb: str) -> str:
     r, g, b = int(rgb[0:2], 16), int(rgb[2:4], 16), int(rgb[4:6], 16)
@@ -935,44 +991,62 @@ def _proxy_worker(queue, valid_out, lock, done_count):
                 valid_out.append(f"{proto}://{addr}" if proto != 'http' else addr)
 
 
-def auto_proxy_check(max_proxies=100, threads=30):
-    """Fetch proxies from proxifly, test them, save valid to valid_proxies.txt."""
+def auto_proxy_check(max_proxies=500, threads=30):
+    """Fetch proxies from all sources, test them, save valid to valid_proxies.txt."""
     cl = get_theme()
-    print(cprint_horizontal(cl['sub'], "  [~] Fetching proxy list from proxifly..."))
-    try:
-        req = urllib.request.Request(PROXY_LIST_URL, headers={'User-Agent': 'KevTool'})
-        with urllib.request.urlopen(req, timeout=15) as r:
-            raw = r.read().decode('utf-8', errors='ignore')
-    except Exception as e:
-        print(cprint_horizontal(cl['num'], f"  [!] Proxy fetch failed: {e}"))
-        return
+    print(cprint_horizontal(cl['sub'], f"  [~] Fetching proxies from {len(PROXY_SOURCES)} sources..."))
     seen = set()
     queue = []
-    for line in raw.splitlines():
-        addr, proto = _proxy_parse(line)
-        if addr and (addr, proto) not in seen:
-            seen.add((addr, proto))
-            queue.append((addr, proto))
+    fetch_lock = threading.Lock()
+    fetch_stats = [0, 0]  # [ok, fail]
+
+    def _fetch_one(name_url):
+        name, url = name_url
+        try:
+            req = urllib.request.Request(url, headers={'User-Agent': 'KevTool'})
+            with urllib.request.urlopen(req, timeout=10) as r:
+                raw = r.read().decode('utf-8', errors='ignore')
+            count = 0
+            for line in raw.splitlines():
+                addr, proto = _proxy_parse(line)
+                if addr and (addr, proto) not in seen:
+                    seen.add((addr, proto))
+                    queue.append((addr, proto))
+                    count += 1
+            with fetch_lock:
+                fetch_stats[0] += 1
+        except Exception:
+            with fetch_lock:
+                fetch_stats[1] += 1
+
+    fetch_threads = [threading.Thread(target=_fetch_one, args=(s,), daemon=True) for s in PROXY_SOURCES]
+    for t in fetch_threads:
+        t.start()
+    for t in fetch_threads:
+        t.join(timeout=15)
+
+    print(cprint_horizontal(cl['sub'], f"  [+] {fetch_stats[0]} sources reached, {fetch_stats[1]} failed — {len(queue)} proxies collected"))
     if not queue:
-        print(cprint_horizontal(cl['num'], "  [!] No proxies found in list"))
+        print(cprint_horizontal(cl['num'], "  [!] No proxies found from any source"))
         return
     if len(queue) > max_proxies:
         random.shuffle(queue)
         queue = queue[:max_proxies]
     random.shuffle(queue)
-    print(cprint_horizontal(cl['sub'], f"  [~] Testing {len(queue)} proxies ({threads} threads)..."))
+    total = len(queue)
+    print(cprint_horizontal(cl['sub'], f"  [~] Testing {total} proxies ({threads} threads)..."))
     valid = []
     lock = threading.Lock()
     done_count = [0]
     workers = [threading.Thread(target=_proxy_worker, args=(queue, valid, lock, done_count), daemon=True)
-               for _ in range(min(threads, len(queue)))]
+               for _ in range(min(threads, total))]
     for t in workers:
         t.start()
     try:
-        while done_count[0] < len(queue):
+        while done_count[0] < total:
             time.sleep(0.3)
-            pct = int(done_count[0] / len(queue) * 100)
-            sys.stdout.write(f"\r  [~] Testing proxies... {done_count[0]}/{len(queue)} ({pct}%) valid: {len(valid)}  ")
+            pct = int(done_count[0] / total * 100) if total else 0
+            sys.stdout.write(f"\r  [~] Testing proxies... {done_count[0]}/{total} ({pct}%) valid: {len(valid)}  ")
             sys.stdout.flush()
     except KeyboardInterrupt:
         pass
@@ -1153,6 +1227,7 @@ class KevTool:
         except Exception as e:
             self.cprint(self.t.num, f"  [!] {e}")
             self.pause()
+        self.pause()
         self.clear()
 
     def _draw_tab_bar(self, active):
