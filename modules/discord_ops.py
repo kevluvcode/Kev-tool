@@ -170,3 +170,35 @@ def status_rotator(kevbin):
     kevbin.cprint(kevbin.t.dim, "  Endpoint: PATCH https://discord.com/api/v10/users/@me/settings")
     kevbin.cprint(kevbin.t.dim, '  Body: {"custom_status": {"text": "your status"}}')
     kevbin.pause()
+
+
+def bot_invite_gen(kevbin):
+    kevbin.clear()
+    kevbin.section_header('📡', 'BOT INVITE')
+    kevbin.cprint(kevbin.t.dim, "  Generate a bot invite URL (read-only builder).\n")
+
+    bot_id = kevbin.input_choice("  Bot/Application ID: ").strip()
+    if not bot_id or not bot_id.isdigit():
+        kevbin.cprint(kevbin.t.error, "  [X] Invalid bot ID.")
+        kevbin.pause()
+        return
+
+    kevbin.cprint(kevbin.t.dim, "\n  Select permissions (comma-separated, e.g. 1,2,8,16,32):")
+    kevbin.cprint(kevbin.t.dim, "   1=Administrator  2=Manage Channels  4=Manage Server  8=Kick  16=Ban")
+    kevbin.cprint(kevbin.t.dim, "   32=Manage Webhooks  1024=Send Messages  2048=Manage Messages")
+    perms_text = kevbin.input_choice("  Permissions: ").strip()
+    perm = 0
+    for token in re.split(r'[\s,]+', perms_text):
+        if token.isdigit():
+            perm |= int(token)
+    perm_bits = str(perm)
+
+    gate = kevbin.input_choice("  Require OAuth2 flow? (y/n, default n): ").strip().lower()
+
+    scopes = 'bot%20applications.commands'
+    url = f"https://discord.com/api/oauth2/authorize?client_id={bot_id}&permissions={perm_bits}&scope={scopes}"
+
+    kevbin.cprint(kevbin.t.highlight + kevbin.t.B, "\n  ┌─ BOT INVITE URL ─" + "─" * 37)
+    kevbin.cprint(kevbin.t.accent, f"  {url}")
+    kevbin.cprint(kevbin.t.highlight, "  └" + "─" * 53)
+    kevbin.pause()

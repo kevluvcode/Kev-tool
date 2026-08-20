@@ -199,3 +199,121 @@ def server_template(kevbin):
     kevbin.box.title("Discord Server Template")
     template = _server_template()
     kevbin.box.code(template)
+def fake_mail(kevbin):
+    kevbin.box.title("Fake Mail Generator")
+    name = _fake_username()
+    kevbin.box.table(
+        ["Field", "Value"],
+        [["Email", f"{name}@mailto.plus"],
+         ["Password", _fake_password(14)],
+         ["Username", name],
+         ["Domain", "mailto.plus"]]
+    )
+
+
+def fake_ddos(kevbin):
+    kevbin.box.title("Fake DDoS Simulator (SIMULATION ONLY)")
+    target = kevbin.box.input("Target (e.g. 1.1.1.1): ", "1.1.1.1")
+    kevbin.box.warn("Simulated output only - no packets are sent.")
+    kevbin.box.info(f"Initializing flood against {target}...")
+    for i in range(1, 11):
+        kevbin.box.info(f"[{i * 10}%] Sending {i * 137} fake packets (simulated)")
+        time.sleep(0.15)
+    kevbin.box.success("Simulation complete - nothing was sent.")
+
+
+def fake_wallet_miner(kevbin):
+    kevbin.box.title("Fake Wallet Miner")
+    kevbin.box.warn("Simulation only - no crypto is mined.")
+    hashrate = 0
+    for i in range(1, 9):
+        hashrate += 4.25
+        kevbin.box.info(f"Hashrate: {hashrate:.2f} MH/s | Accepted shares: {i * 12} (simulated)")
+        time.sleep(0.2)
+    kevbin.box.success("Simulated balance: 0.00000000 BTC")
+
+
+def social_botter(kevbin):
+    kevbin.box.title("Social Botter (Simulation)")
+    url = kevbin.box.input("Target link: ", "https://example.com")
+    kevbin.box.warn("Simulated views only - no bot traffic sent.")
+    views = 0
+    for i in range(1, 13):
+        views += 1337
+        kevbin.box.info(f"Views: {views:,} | Likes: {views // 10:,} | Subs: {views // 75:,} (simulated)")
+        time.sleep(0.12)
+    kevbin.box.success("Simulation complete.")
+
+
+def fake_paypal_otp(kevbin):
+    kevbin.box.title("Fake PayPal OTP")
+    kevbin.box.warn("SIMULATION - this code is not real and works nowhere.")
+    otp = ''.join(str(random.randint(0, 9)) for _ in range(6))
+    kevbin.box.table(["Code", "Expires"], [[otp, "60 seconds (simulated)"]])
+    kevbin.box.info("No real PayPal account or SMS is involved.")
+
+
+def fake_account_gen(kevbin):
+    kevbin.box.title("Fake Account Generator")
+    count = 5
+    rows = []
+    for _ in range(count):
+        user = _fake_username()
+        rows.append([user, f"{user}@mailto.plus", _fake_password(14)])
+    kevbin.box.table(["Username", "Email", "Password (simulated)"], rows)
+    kevbin.box.warn("These are fake credentials for testing only.")
+
+
+def fake_fortnite_checker(kevbin):
+    kevbin.box.title("Fake Fortnite Checker (Simulation)")
+    email = kevbin.box.input("Email: ", "test@example.com")
+    kevbin.box.warn("Simulation only - no accounts are checked.")
+    for combo, skin in [("Default", "Raven"), ("Elite", "Galaxy"), ("Legendary", "Renegade Raider")]:
+        kevbin.box.info(f"Checking {combo}... found skin: {skin} (simulated)")
+        time.sleep(0.2)
+    kevbin.box.info(f"{email} -> qualifies for random skin (simulated result)")
+
+
+def fake_exodus(kevbin):
+    kevbin.box.title("Fake Exodus Seed Phrase")
+    kevbin.box.warn("SIMULATION - never type a real seed anywhere. This is fake.")
+    words = ("abandon ability able about above absent absorb abstract absurd abuse "
+             "access accident account accuse achieve acid acoustic acquire across").split()
+    seed = " ".join(random.choice(words) for _ in range(12))
+    kevbin.box.code(seed)
+    kevbin.box.info("This seed controls no funds and has no value.")
+
+
+def hacker_terminal(kevbin):
+    kevbin.box.title("Hacker Terminal (Movie Mode)")
+    kevbin.box.info("Root@kevbin:~$ grep -R topsecret /etc/passwd")
+    lines = ["[ OK ] connecting to mainframe...",
+             "[ OK ] bypassing firewall (simulated)",
+             "[ OK ] injecting payload (visual only)",
+             "[ OK ] decrypting traffic (fake)",
+             "[ OK ] access granted (not really)"]
+    for ln in lines:
+        kevbin.box.success(ln)
+        time.sleep(0.25)
+    kevbin.box.warn("This is a movie-style simulation. Nothing was hacked.")
+
+
+def ransomware_sim(kevbin):
+    kevbin.box.title("Ransomware Simulator (Simulation)")
+    kevbin.box.warn("SIMULATION ONLY - no files are encrypted or touched.")
+    kevbin.box.info("Simulated ransom note (display only):")
+    note = ("!! ATTENTION !!\\nYour files have been declared \"encrypted\" "
+            "(simulated).\\nTo \"restore\" them, press Enter. Total: 0 bytes")
+    kevbin.box.code(note)
+    kevbin.box.input("Press Enter to 'restore' your files...", "")
+    kevbin.box.success("Restored - nothing actually happened. Stay safe out there.")
+
+
+def fake_bruteforcer(kevbin):
+    kevbin.box.title("Fake Bruteforcer (Simulation)")
+    target = kevbin.box.input("Hash to 'crack': ", "5e884898da28047151d0e56f8dc6292773603d0d")
+    kevbin.box.warn("Simulation only - no real cracking is performed.")
+    for i in range(1, 13):
+        kevbin.box.info(f"[{i * 8}%] Trying pattern {random.choice(['aaaaaa', 'abc123', 'password', 'qwerty'])}... (simulated)")
+        time.sleep(0.12)
+    kevbin.box.success(f"Cracked (simulated): password  |  hash: {target[:12]}...")
