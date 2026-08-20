@@ -1105,6 +1105,8 @@ class KevTool:
         return _Box(self)
 
     def clear(self):
+        sys.stdout.write('\033[0m')
+        sys.stdout.flush()
         clr()
 
     def _bw(self):
@@ -1241,7 +1243,6 @@ class KevTool:
         except Exception as e:
             self.cprint(self.t.num, f"  [!] {e}")
             self.pause()
-        self.pause()
         self.clear()
 
     def _draw_tab_bar(self, active):
