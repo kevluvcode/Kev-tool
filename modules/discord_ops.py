@@ -38,7 +38,7 @@ def webhook_info(kevbin):
         resp = requests.get(url, timeout=10)
         if resp.status_code == 200:
             data = resp.json()
-            kevbin.cprint(kevbin.t.highlight + kevbin.t.B, f"\n  ┌─ WEBHOOK INFO {'─' * 37}")
+            kevbin.cprint(kevbin.t.highlight, f"\n  ┌─ WEBHOOK INFO {'─' * 37}")
             kevbin.cprint(kevbin.t.secondary, f"  │ Name:       {data.get('name', '?')}")
             kevbin.cprint(kevbin.t.secondary, f"  │ Channel:    {data.get('channel_id', '?')}")
             kevbin.cprint(kevbin.t.secondary, f"  │ Guild:      {data.get('guild_id', '?')}")
@@ -69,7 +69,7 @@ def token_decode(kevbin):
         kevbin.pause()
         return
 
-    kevbin.cprint(kevbin.t.highlight + kevbin.t.B, f"\n  ┌─ TOKEN ANALYSIS {'─' * 36}")
+    kevbin.cprint(kevbin.t.highlight, f"\n  ┌─ TOKEN ANALYSIS {'─' * 36}")
     kevbin.cprint(kevbin.t.secondary, f"  │ Parts:      {len(parts)}")
     kevbin.cprint(kevbin.t.secondary, f"  │ Length:     {len(token)} chars")
 
@@ -110,7 +110,7 @@ def account_info(kevbin):
         resp = requests.get("https://discord.com/api/v10/users/@me", headers=_headers(token), timeout=10)
         if resp.status_code == 200:
             data = resp.json()
-            kevbin.cprint(kevbin.t.highlight + kevbin.t.B, f"\n  ┌─ ACCOUNT INFO {'─' * 38}")
+            kevbin.cprint(kevbin.t.highlight, f"\n  ┌─ ACCOUNT INFO {'─' * 38}")
             kevbin.cprint(kevbin.t.secondary, f"  │ Username:    {data.get('username', '?')}#{data.get('discriminator', '0')}")
             kevbin.cprint(kevbin.t.secondary, f"  │ Display:     {data.get('global_name', '?')}")
             kevbin.cprint(kevbin.t.secondary, f"  │ ID:          {data.get('id', '?')}")
@@ -145,7 +145,7 @@ def server_info(kevbin):
         resp = requests.get(f"https://discord.com/api/v10/guilds/{server_id}", headers=_headers(token), timeout=10)
         if resp.status_code == 200:
             data = resp.json()
-            kevbin.cprint(kevbin.t.highlight + kevbin.t.B, f"\n  ┌─ SERVER INFO {'─' * 40}")
+            kevbin.cprint(kevbin.t.highlight, f"\n  ┌─ SERVER INFO {'─' * 40}")
             kevbin.cprint(kevbin.t.secondary, f"  │ Name:        {data.get('name', '?')}")
             kevbin.cprint(kevbin.t.secondary, f"  │ ID:          {data.get('id', '?')}")
             kevbin.cprint(kevbin.t.secondary, f"  │ Owner ID:    {data.get('owner_id', '?')}")
@@ -198,7 +198,7 @@ def bot_invite_gen(kevbin):
     scopes = 'bot%20applications.commands'
     url = f"https://discord.com/api/oauth2/authorize?client_id={bot_id}&permissions={perm_bits}&scope={scopes}"
 
-    kevbin.cprint(kevbin.t.highlight + kevbin.t.B, "\n  ┌─ BOT INVITE URL ─" + "─" * 37)
+    kevbin.cprint(kevbin.t.highlight, "\n  ┌─ BOT INVITE URL ─" + "─" * 37)
     kevbin.cprint(kevbin.t.accent, f"  {url}")
     kevbin.cprint(kevbin.t.highlight, "  └" + "─" * 53)
     kevbin.pause()

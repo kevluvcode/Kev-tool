@@ -143,7 +143,7 @@ def run(kevbin):
     kevbin.cprint(kevbin.t.dim, f"\n  Scraping {len(proto_map[choice])} protocol-type sources...")
     results, ok = _scrape(proto_map[choice])
 
-    kevbin.cprint(kevbin.t.highlight + kevbin.t.B, f"\n  [+] Done — {ok} sources reached")
+    kevbin.cprint(kevbin.t.highlight, f"\n  [+] Done — {ok} sources reached")
     for proto, proxies in sorted(results.items()):
         kevbin.cprint(kevbin.t.success, f"      {proto:<6}{len(proxies):>7} saved  ->  proxies/{proto.lower()}.txt")
     kevbin.cprint(kevbin.t.success, f"      {'ALL':<6}{sum(len(v) for v in results.values()):>7} saved  ->  proxies/all.txt")

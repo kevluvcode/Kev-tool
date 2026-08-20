@@ -33,7 +33,7 @@ def run(kevbin):
             try:
                 r = requests.get(url, timeout=10, allow_redirects=False, verify=False,
                                headers={'User-Agent': 'Mozilla/5.0'})
-                kevbin.cprint(kevbin.t.highlight + kevbin.t.B, f"\n  ┌─ LINK INFO {'─' * 41}")
+                kevbin.cprint(kevbin.t.highlight, f"\n  ┌─ LINK INFO {'─' * 41}")
                 kevbin.cprint(kevbin.t.secondary, f"  │ Final URL:   {r.url[:70]}")
                 kevbin.cprint(kevbin.t.secondary, f"  │ Status:      {r.status_code}")
                 kevbin.cprint(kevbin.t.secondary, f"  │ Server:      {r.headers.get('Server', '?')}")
@@ -59,12 +59,12 @@ def run(kevbin):
 
 
 def bypass(kevbin):
-    run(navi)
+    run(kevbin)
 
 
 def spoof(kevbin):
-    run(navi)
+    run(kevbin)
 
 
 def tracker(kevbin):
-    run(navi)
+    run(kevbin)

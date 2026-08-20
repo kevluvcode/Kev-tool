@@ -1,7 +1,7 @@
 def run(kevbin):
     kevbin.clear()
     kevbin.section_header("🔀", "Diff Tool")
-    kevbin.cprint("dim", "Enter first text (empty line to finish):")
+    kevbin.cprint(kevbin.t.dim, "Enter first text (empty line to finish):")
     
     text1_lines = []
     while True:
@@ -13,7 +13,7 @@ def run(kevbin):
     if not text1_lines:
         return
     
-    kevbin.cprint("dim", "Enter second text (empty line to finish):")
+    kevbin.cprint(kevbin.t.dim, "Enter second text (empty line to finish):")
     text2_lines = []
     while True:
         line = kevbin.input_choice("B> ")
@@ -34,9 +34,9 @@ def run(kevbin):
         if tag == ' ':
             kevbin.box_row("  ", line[:76])
         elif tag == '-':
-            kevbin.cprint("error", f"  - {line[:76]}")
+            kevbin.cprint(kevbin.t.error, f"  - {line[:76]}")
         elif tag == '+':
-            kevbin.cprint("success", f"  + {line[:76]}")
+            kevbin.cprint(kevbin.t.success, f"  + {line[:76]}")
     kevbin.box_bottom()
     kevbin.pause()
 

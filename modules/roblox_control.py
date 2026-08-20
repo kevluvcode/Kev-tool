@@ -37,7 +37,7 @@ def run(kevbin):
             kevbin.cprint(kevbin.t.success, f"\n  [✓] Valid!")
             rows = [('Name', d.get('name', '?')), ('Display', d.get('displayName', '?')),
                     ('ID', d.get('id', '?')), ('Created', d.get('created', '?'))]
-            kevbin.cprint(kevbin.t.highlight + kevbin.t.B, f"  ┌─ ACCOUNT {'─' * 42}")
+            kevbin.cprint(kevbin.t.highlight, f"  ┌─ ACCOUNT {'─' * 42}")
             for k, v in rows:
                 kevbin.cprint(kevbin.t.secondary, f"  │ {k:12s} {v}")
             kevbin.cprint(kevbin.t.highlight, f"  └{'─' * 53}")

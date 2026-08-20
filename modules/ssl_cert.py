@@ -27,7 +27,7 @@ def run(kevbin):
             s.connect((domain, 443))
             cert = s.getpeercert()
 
-        kevbin.cprint(kevbin.t.highlight + kevbin.t.B, f"\n  ┌─ SSL CERTIFICATE {'─' * 35}")
+        kevbin.cprint(kevbin.t.highlight, f"\n  ┌─ SSL CERTIFICATE {'─' * 35}")
         subject = dict(x[0] for x in cert.get('subject', []))
         issuer = dict(x[0] for x in cert.get('issuer', []))
         kevbin.cprint(kevbin.t.secondary, f"  │ Domain:      {subject.get('commonName', '?')}")

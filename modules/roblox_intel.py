@@ -95,7 +95,7 @@ def inventory_view(kevbin):
     uid = data['data'][0]['id']
     inv = _get(f"{INVENTORY}/v2/users/{uid}/inventory/0", params={'limit': 25})
     if inv and inv.get('data'):
-        kevbin.cprint(kevbin.t.highlight + kevbin.t.B, f"\n  â”€â”€ INVENTORY ({username}) â”€â”€")
+        kevbin.cprint(kevbin.t.highlight, f"\n  â”€â”€ INVENTORY ({username}) â”€â”€")
         for item in inv['data'][:25]:
             kevbin.cprint(kevbin.t.accent, f"  {item.get('name', '?')[:40]} (ID: {item.get('id', '?')})")
     else:
@@ -146,7 +146,7 @@ def name_history(kevbin):
     hist = _get(f"{BASE}/v1/users/{uid}/username-history", params={'limit': 100})
     if hist and hist.get('data'):
         names = [n.get('name', '?') for n in hist['data']]
-        kevbin.cprint(kevbin.t.highlight + kevbin.t.B,
+        kevbin.cprint(kevbin.t.highlight,
                       f"\n  ── {len(names)} PREVIOUS NAME(S) ──")
         for i, n in enumerate(names, 1):
             kevbin.cprint(kevbin.t.accent, f"  {i:>3}. {n}")

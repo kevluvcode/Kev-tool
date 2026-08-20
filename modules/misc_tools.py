@@ -1301,3 +1301,562 @@ def random_qr_style(kevbin):
     """Skip — placeholder kept for menu safety."""
     kevbin.box.info("not implemented")
     kevbin.pause()
+
+
+def app_decrypter(kevbin):
+    """Analyse APK/IPA/DEX/AXML files — header dumps, structure map, manifest decode."""
+    import struct
+    import zipfile
+    import io
+
+    kevbin.clear()
+    kevbin.box.title("APP DECRYPTER")
+    kevbin.box.info("Supports: APK (ZIP), DEX, AndroidManifest.xml (AXML binary), IPA (ZIP)")
+    path = kevbin.box.input("Path to file: ").strip().strip('"').strip("'")
+    if not path or not os.path.isfile(path):
+        kevbin.box.error("File not found.")
+        kevbin.pause()
+        return
+
+    with open(path, 'rb') as f:
+        header = f.read(64)
+
+    magic = header[:4]
+
+    # ——— ZIP-based (APK / IPA) ———
+    if header[:2] == b'PK':
+        try:
+            zf = zipfile.ZipFile(path, 'r')
+        except Exception as e:
+            kevbin.box.error(f"Not a valid ZIP: {e}")
+            kevbin.pause()
+            return
+        names = zf.namelist()
+        rows = [("Entry", "Size", "Method")]
+        dex_count = 0
+        has_manifest = False
+        so_files = []
+        for info in zf.infolist():
+            method = "Deflate" if info.compress_type == zipfile.ZIP_DEFLATED else "Store"
+            rows.append((info.filename[:48], _fmt_bytes(info.file_size), method))
+            if info.filename.endswith('.dex'):
+                dex_count += 1
+            if info.filename.endswith('AndroidManifest.xml'):
+                has_manifest = True
+            if info.filename.endswith('.so'):
+                so_files.append(info.filename)
+
+        kevbin.box.table(rows[:40], title=f"Contents ({len(names)} files)")
+        summary = [
+            ("Type", "APK" if has_manifest else "IPA/ZIP"),
+            ("Files", str(len(names))),
+            ("DEX files", str(dex_count)),
+            ("Native libs", str(len(so_files))),
+            ("Manifest", "Yes" if has_manifest else "No"),
+        ]
+        if so_files:
+            summary.append(("Libs", ", ".join(so_files[:5])))
+        kevbin.box.table(summary, title="Summary")
+
+        if has_manifest:
+            kevbin.box.info("\nAttempting AXML manifest decode...")
+            try:
+                axml_data = zf.read('AndroidManifest.xml')
+                decoded = _decode_axml(axml_data)
+                if decoded:
+                    for line in decoded[:60]:
+                        kevbin.box.print(f"  {line}")
+                else:
+                    kevbin.box.warn("Could not decode AXML (may use high API level compression).")
+            except Exception as e:
+                kevbin.box.warn(f"Manifest decode failed: {e}")
+
+        if dex_count > 0:
+            for name in names:
+                if name.endswith('.dex'):
+                    try:
+                        dex_data = zf.read(name)
+                        _dump_dex_header(kevbin, name, dex_data)
+                    except Exception as e:
+                        kevbin.box.warn(f"{name}: {e}")
+        zf.close()
+        kevbin.pause()
+        return
+
+    # ——— Raw DEX ———
+    if magic == b'dex\n':
+        with open(path, 'rb') as f:
+            data = f.read()
+        _dump_dex_header(kevbin, os.path.basename(path), data)
+        kevbin.pause()
+        return
+
+    # ——— AXML binary ———
+    if header[:4] == b'\x03\x00\x08\x00' or header[:4] == b'\x01\x00\x08\x00':
+        with open(path, 'rb') as f:
+            data = f.read()
+        decoded = _decode_axml(data)
+        if decoded:
+            for line in decoded[:80]:
+                kevbin.box.print(f"  {line}")
+        else:
+            kevbin.box.warn("Could not decode AXML.")
+        kevbin.pause()
+        return
+
+    kevbin.box.error("Unrecognised format. Expected APK/ZIP, DEX, or AXML.")
+    kevbin.pause()
+
+
+def _decode_axml(data):
+    """Best-effort Android Binary XML (AXML) decoder — string pool + start-namespace tree."""
+    import struct
+    if len(data) < 8:
+        return None
+    magic = struct.unpack_from('<H', data, 0)[0]
+    if magic not in (0x0003, 0x0001):
+        return None
+    file_size = struct.unpack_from('<I', data, 4)[0]
+    out = []
+    try:
+        # String pool chunk (0x0001)
+        sp_start = 8
+        if sp_start + 8 > len(data):
+            return None
+        sp_type, sp_hdr_size, sp_size = struct.unpack_from('<HHI', data, sp_start)
+        if sp_type != 0x0001:
+            return None
+        sp_count = struct.unpack_from('<I', data, sp_start + 8)[0]
+        sp_flags = struct.unpack_from('<I', data, sp_start + 12)[0]
+        strings_start_off = struct.unpack_from('<I', data, sp_start + 16)[0]
+        styles_start_off = struct.unpack_from('<I', data, sp_start + 20)[0]
+        is_utf8 = bool(sp_flags & (1 << 8))
+
+        offsets_start = sp_start + 28
+        str_offsets = []
+        for i in range(sp_count):
+            off = struct.unpack_from('<I', data, offsets_start + i * 4)[0]
+            str_offsets.append(off)
+
+        abs_strings = sp_start + strings_start_off
+        strings = []
+        for off in str_offsets:
+            pos = abs_strings + off
+            if pos >= len(data):
+                strings.append("")
+                continue
+            if is_utf8:
+                # skip 2 length bytes (char count + byte count)
+                if pos + 2 > len(data):
+                    strings.append("")
+                    continue
+                char_len = data[pos]
+                byte_len = data[pos + 1] if pos + 1 < len(data) else 0
+                pos += 2
+                if char_len & 0x80:
+                    byte_len = ((char_len & 0x7F) << 8) | data[pos] if pos < len(data) else 0
+                    pos += 1
+                raw = data[pos:pos + byte_len]
+                try:
+                    strings.append(raw.decode('utf-8', errors='replace'))
+                except Exception:
+                    strings.append("")
+            else:
+                strlen = struct.unpack_from('<H', data, pos)[0]
+                pos += 2
+                raw = data[pos:pos + strlen * 2]
+                try:
+                    strings.append(raw.decode('utf-16-le', errors='replace'))
+                except Exception:
+                    strings.append("")
+
+        out.append(f"Strings: {len(strings)}  (UTF-8: {is_utf8})")
+
+        # Walk XML elements (simplified tree walk)
+        pos = sp_start + sp_size
+        depth = 0
+        ns_stack = []
+        elem_count = 0
+        while pos + 8 <= len(data) and elem_count < 200:
+            chunk_type, chunk_hdr, chunk_size = struct.unpack_from('<HHI', data, pos)
+            if chunk_size < 8 or pos + chunk_size > len(data):
+                break
+            if chunk_type == 0x0102:  # START_NAMESPACE
+                prefix_idx = struct.unpack_from('<I', data, pos + 8)[0]
+                uri_idx = struct.unpack_from('<I', data, pos + 12)[0]
+                pfx = strings[prefix_idx] if prefix_idx < len(strings) else f"ns{prefix_idx}"
+                uri = strings[uri_idx] if uri_idx < len(strings) else f"uri{uri_idx}"
+                ns_stack.append((pfx, uri))
+                out.append(f"{'  ' * depth}xmlns:{pfx} = \"{uri}\"")
+            elif chunk_type == 0x0103:  # END_NAMESPACE
+                if ns_stack:
+                    ns_stack.pop()
+            elif chunk_type == 0x0100:  # START_ELEMENT
+                ns_idx = struct.unpack_from('<I', data, pos + 8)[0]
+                name_idx = struct.unpack_from('<I', data, pos + 12)[0]
+                attr_start = struct.unpack_from('<H', data, pos + 16)[0]
+                attr_size = struct.unpack_from('<H', data, pos + 18)[0]
+                attr_count = struct.unpack_from('<H', data, pos + 20)[0]
+                name = strings[name_idx] if name_idx < len(strings) else f"elem{name_idx}"
+                ns_uri = strings[ns_idx] if ns_idx < len(strings) else ""
+                prefix = ""
+                for p, u in ns_stack:
+                    if u == ns_uri:
+                        prefix = p
+                        break
+                tag = f"{prefix}:{name}" if prefix else name
+                attrs = []
+                apos = pos + 28 + attr_start
+                for _ in range(attr_count):
+                    if apos + 20 > len(data):
+                        break
+                    a_ns, a_name, a_raw, a_type_info = struct.unpack_from('<IIiI', data, apos)
+                    a_name_str = strings[a_name] if a_name < len(strings) else f"a{a_name}"
+                    a_type = (a_type_info >> 8) & 0xFF
+                    if a_type == 0x03:  # string
+                        val = strings[a_raw] if 0 <= a_raw < len(strings) else str(a_raw)
+                    elif a_type == 0x12:  # bool
+                        val = "true" if a_raw else "false"
+                    elif a_type in (0x10, 0x11):  # int hex / dec
+                        val = f"0x{a_raw & 0xFFFFFFFF:x}" if a_type == 0x10 else str(a_raw)
+                    elif a_type == 0x14:  # reference
+                        val = f"@0x{a_raw & 0xFFFFFFFF:08x}"
+                    else:
+                        val = str(a_raw)
+                    attrs.append(f"{a_name_str}=\"{val}\"")
+                    apos += 20
+                attr_str = " ".join(attrs)
+                out.append(f"{'  ' * depth}<{tag}{' ' + attr_str if attr_str else ''}>")
+                depth += 1
+                elem_count += 1
+            elif chunk_type == 0x0101:  # END_ELEMENT
+                depth = max(0, depth - 1)
+                name_idx = struct.unpack_from('<I', data, pos + 8)[0]
+                name = strings[name_idx] if name_idx < len(strings) else f"elem{name_idx}"
+                out.append(f"{'  ' * depth}</{name}>")
+            pos += chunk_size
+        return out
+    except Exception:
+        return out if out else None
+
+
+def _dump_dex_header(kevbin, name, data):
+    """Print key fields from a DEX file header."""
+    import struct
+    if len(data) < 112 or data[:4] != b'dex\n':
+        kevbin.box.warn(f"{name}: not a valid DEX file")
+        return
+    ver = data[4:8].decode('ascii', errors='replace')
+    checksum = struct.unpack_from('<I', data, 8)[0]
+    file_size = struct.unpack_from('<I', data, 32)[0]
+    header_size = struct.unpack_from('<I', data, 36)[0]
+    endian_tag = struct.unpack_from('<I', data, 40)[0]
+    map_off = struct.unpack_from('<I', data, 52)[0]
+    string_ids = struct.unpack_from('<I', data, 56)[0]
+    type_ids = struct.unpack_from('<I', data, 60)[0]
+    proto_ids = struct.unpack_from('<I', data, 64)[0]
+    field_ids = struct.unpack_from('<I', data, 68)[0]
+    method_ids = struct.unpack_from('<I', data, 72)[0]
+    class_defs = struct.unpack_from('<I', data, 76)[0]
+    data_size = struct.unpack_from('<I', data, 80)[0]
+
+    endian = "Little" if endian_tag == 0x12345678 else "Big" if endian_tag == 0x78563412 else f"0x{endian_tag:08x}"
+
+    rows = [
+        ("File", name),
+        ("DEX version", ver),
+        ("File size", _fmt_bytes(file_size)),
+        ("Header size", f"{header_size} bytes"),
+        ("Endian", endian),
+        ("Checksum", f"0x{checksum:08x}"),
+        ("String IDs", f"{string_ids} entries"),
+        ("Type IDs", f"{type_ids} entries"),
+        ("Proto IDs", f"{proto_ids} entries"),
+        ("Field IDs", f"{field_ids} entries"),
+        ("Method IDs", f"{method_ids} entries"),
+        ("Class defs", f"{class_defs} entries"),
+        ("Data size", _fmt_bytes(data_size)),
+        ("Map offset", f"0x{map_off:08x}"),
+    ]
+    kevbin.box.table(rows, title=f"DEX Header — {name}")
+
+    # Walk map_list for section summary
+    if map_off > 0 and map_off + 4 < len(data):
+        map_size = struct.unpack_from('<I', data, map_off)[0]
+        sec_names = {
+            0x0000: "header", 0x0001: "string_id", 0x0002: "type_id",
+            0x0003: "proto_id", 0x0004: "field_id", 0x0005: "method_id",
+            0x0006: "class_def", 0x0007: "call_site_id", 0x0008: "method_handle",
+            0x1000: "map_list", 0x1001: "type_list", 0x1002: "annotation_set",
+            0x1003: "class_data", 0x1004: "code_item", 0x1005: "string_data",
+            0x1006: "debug_info", 0x1007: "annotation", 0x1008: "encoded_array",
+            0x1009: "annotations_directory", 0x2000: "hiddenapi_class",
+        }
+        sec_rows = [("Section", "Count", "Offset")]
+        mpos = map_off + 4
+        for _ in range(min(map_size, 64)):
+            if mpos + 12 > len(data):
+                break
+            mtype, unused, mcount = struct.unpack_from('<HHI', data, mpos)
+            moffset = struct.unpack_from('<I', data, mpos + 8)[0]
+            sec_rows.append((sec_names.get(mtype, f"0x{mtype:04x}"), str(mcount), f"0x{moffset:08x}"))
+            mpos += 12
+        if len(sec_rows) > 1:
+            kevbin.box.table(sec_rows, title="DEX Map Sections")
+
+
+def pp_offset_dump(kevbin):
+    """Dump PE / ELF binary offsets — sections, headers, imports, RVAs."""
+    import struct
+
+    kevbin.clear()
+    kevbin.box.title("PP OFFSET DUMPER")
+    kevbin.box.info("Parse PE (Windows) or ELF (Linux) binaries and dump offsets.")
+    path = kevbin.box.input("Path to binary: ").strip().strip('"').strip("'")
+    if not path or not os.path.isfile(path):
+        kevbin.box.error("File not found.")
+        kevbin.pause()
+        return
+
+    with open(path, 'rb') as f:
+        header = f.read(520)
+
+    # ——— PE ———
+    if header[:2] == b'MZ':
+        _dump_pe(kevbin, path)
+        return
+
+    # ——— ELF ———
+    if header[:4] == b'\x7fELF':
+        _dump_elf(kevbin, path)
+        return
+
+    kevbin.box.error("Unrecognised binary format (expected PE or ELF).")
+    kevbin.pause()
+
+
+def _dump_pe(kevbin, path):
+    """Parse and display PE header offsets."""
+    import struct
+    with open(path, 'rb') as f:
+        mz = f.read(64)
+    if mz[:2] != b'MZ':
+        kevbin.box.error("Not a PE file.")
+        kevbin.pause()
+        return
+
+    pe_off = struct.unpack_from('<I', mz, 60)[0]
+    with open(path, 'rb') as f:
+        f.seek(pe_off)
+        pe_sig = f.read(4)
+    if pe_sig != b'PE\x00\x00':
+        kevbin.box.error("Invalid PE signature.")
+        kevbin.pause()
+        return
+
+    with open(path, 'rb') as f:
+        f.seek(pe_off + 4)
+        coff = f.read(20)
+
+    machine_map = {0x0: "Unknown", 0x14c: "x86 (i386)", 0x8664: "x64 (AMD64)",
+                   0x1c0: "ARM", 0xaa64: "ARM64", 0x200: "IA64"}
+    machine = struct.unpack_from('<H', coff, 0)[0]
+    num_sections = struct.unpack_from('<H', coff, 2)[0]
+    timestamp = struct.unpack_from('<I', coff, 4)[0]
+    opt_hdr_size = struct.unpack_from('<H', coff, 16)[0]
+    chars = struct.unpack_from('<H', coff, 18)[0]
+
+    is_64 = False
+    with open(path, 'rb') as f:
+        f.seek(pe_off + 24)
+        opt_magic = f.read(2)
+        opt_magic_val = struct.unpack_from('<H', opt_magic)[0]
+        is_64 = (opt_magic_val == 0x20b)
+        if is_64:
+            f.seek(pe_off + 24 + 16)
+            img_base = struct.unpack_from('<Q', f.read(8))[0]
+            f.seek(pe_off + 24 + 32)
+            section_align = struct.unpack_from('<I', f.read(4))[0]
+            f.seek(pe_off + 24 + 40)
+            file_align = struct.unpack_from('<I', f.read(4))[0]
+        else:
+            f.seek(pe_off + 24 + 28)
+            img_base = struct.unpack_from('<I', f.read(4))[0]
+            f.seek(pe_off + 24 + 32)
+            section_align = struct.unpack_from('<I', f.read(4))[0]
+            f.seek(pe_off + 24 + 36)
+            file_align = struct.unpack_from('<I', f.read(4))[0]
+
+    import time as _time
+    ts_str = _time.strftime("%Y-%m-%d %H:%M:%S", _time.gmtime(timestamp)) if timestamp else "N/A"
+    rows = [
+        ("File", os.path.basename(path)),
+        ("Format", f"PE{'64' if is_64 else '32'}"),
+        ("Machine", machine_map.get(machine, f"0x{machine:04x}")),
+        ("Sections", str(num_sections)),
+        ("Timestamp", f"{ts_str} (0x{timestamp:08x})"),
+        ("Image Base", f"0x{img_base:016x}" if is_64 else f"0x{img_base:08x}"),
+        ("Section Align", f"0x{section_align:x}"),
+        ("File Align", f"0x{file_align:x}"),
+        ("Opt Header Size", f"{opt_hdr_size} bytes"),
+        ("Characteristics", f"0x{chars:04x}"),
+        ("PE Offset", f"0x{pe_off:08x}"),
+    ]
+    kevbin.box.table(rows, title="PE Header")
+
+    # Section table
+    with open(path, 'rb') as f:
+        sec_start = pe_off + 24 + opt_hdr_size
+        f.seek(sec_start)
+        sec_data = f.read(num_sections * 40)
+
+    sec_rows = [("Name", "VirtSize", "VirtAddr", "RawSize", "RawOffset", "Flags")]
+    for i in range(num_sections):
+        off = i * 40
+        if off + 40 > len(sec_data):
+            break
+        name = sec_data[off:off+8].rstrip(b'\x00').decode('ascii', errors='replace')
+        vsize = struct.unpack_from('<I', sec_data, off + 8)[0]
+        vaddr = struct.unpack_from('<I', sec_data, off + 12)[0]
+        raw_size = struct.unpack_from('<I', sec_data, off + 16)[0]
+        raw_off = struct.unpack_from('<I', sec_data, off + 20)[0]
+        flags = struct.unpack_from('<I', sec_data, off + 36)[0]
+        flag_str = []
+        if flags & 0x00000020: flag_str.append("CODE")
+        if flags & 0x00000040: flag_str.append("IDATA")
+        if flags & 0x00000080: flag_str.append("UDATA")
+        if flags & 0x20000000: flag_str.append("EXEC")
+        if flags & 0x40000000: flag_str.append("READ")
+        if flags & 0x80000000: flag_str.append("WRITE")
+        sec_rows.append((name, f"0x{vsize:08x}", f"0x{vaddr:08x}",
+                         f"0x{raw_size:08x}", f"0x{raw_off:08x}", " ".join(flag_str) or f"0x{flags:08x}"))
+    if len(sec_rows) > 1:
+        kevbin.box.table(sec_rows, title="Section Table")
+
+    kevbin.pause()
+
+
+def _dump_elf(kevbin, path):
+    """Parse and display ELF header offsets."""
+    import struct
+    with open(path, 'rb') as f:
+        data = f.read(4096)
+
+    if data[:4] != b'\x7fELF':
+        kevbin.box.error("Not an ELF file.")
+        kevbin.pause()
+        return
+
+    ei_class = data[4]  # 1=32-bit, 2=64-bit
+    ei_data = data[5]   # 1=LE, 2=BE
+    is_64 = (ei_class == 2)
+    is_le = (ei_data == 1)
+    endian = '<' if is_le else '>'
+
+    if is_64:
+        if len(data) < 64:
+            kevbin.box.error("ELF header too short for 64-bit.")
+            kevbin.pause()
+            return
+        e_type, e_machine = struct.unpack_from(endian + 'HH', data, 16)
+        e_entry = struct.unpack_from(endian + 'Q', data, 24)[0]
+        e_phoff = struct.unpack_from(endian + 'Q', data, 28)[0]
+        e_shoff = struct.unpack_from(endian + 'Q', data, 40)[0]
+        e_flags = struct.unpack_from(endian + 'I', data, 48)[0]
+        e_ehsize = struct.unpack_from(endian + 'H', data, 52)[0]
+        e_phentsize = struct.unpack_from(endian + 'H', data, 54)[0]
+        e_phnum = struct.unpack_from(endian + 'H', data, 56)[0]
+        e_shentsize = struct.unpack_from(endian + 'H', data, 58)[0]
+        e_shnum = struct.unpack_from(endian + 'H', data, 60)[0]
+        e_shstrndx = struct.unpack_from(endian + 'H', data, 62)[0]
+    else:
+        if len(data) < 52:
+            kevbin.box.error("ELF header too short for 32-bit.")
+            kevbin.pause()
+            return
+        e_type, e_machine = struct.unpack_from(endian + 'HH', data, 16)
+        e_entry = struct.unpack_from(endian + 'I', data, 24)[0]
+        e_phoff = struct.unpack_from(endian + 'I', data, 28)[0]
+        e_shoff = struct.unpack_from(endian + 'I', data, 32)[0]
+        e_flags = struct.unpack_from(endian + 'I', data, 36)[0]
+        e_ehsize = struct.unpack_from(endian + 'H', data, 40)[0]
+        e_phentsize = struct.unpack_from(endian + 'H', data, 42)[0]
+        e_phnum = struct.unpack_from(endian + 'H', data, 44)[0]
+        e_shentsize = struct.unpack_from(endian + 'H', data, 46)[0]
+        e_shnum = struct.unpack_from(endian + 'H', data, 48)[0]
+        e_shstrndx = struct.unpack_from(endian + 'H', data, 50)[0]
+
+    type_map = {1: "REL (Relocatable)", 2: "EXEC (Executable)", 3: "DYN (Shared object)", 4: "CORE"}
+    mach_map = {0x03: "x86", 0x08: "MIPS", 0x14: "ARM", 0x28: "AArch64",
+                0x3E: "x86-64", 0x2C: "SPARC", 0xB7: "AArch64"}
+
+    rows = [
+        ("File", os.path.basename(path)),
+        ("Class", "ELF64" if is_64 else "ELF32"),
+        ("Endian", "Little" if is_le else "Big"),
+        ("Type", type_map.get(e_type, f"0x{e_type:04x}")),
+        ("Machine", mach_map.get(e_machine, f"0x{e_machine:04x}")),
+        ("Entry", f"0x{e_entry:016x}" if is_64 else f"0x{e_entry:08x}"),
+        ("PH offset", f"0x{e_phoff:x}"),
+        ("SH offset", f"0x{e_shoff:x}"),
+        ("Flags", f"0x{e_flags:08x}"),
+        ("EH size", f"{e_ehsize} bytes"),
+        ("Segments", str(e_phnum)),
+        ("Sections", str(e_shnum)),
+        ("SH strndx", str(e_shstrndx)),
+    ]
+    kevbin.box.table(rows, title="ELF Header")
+
+    # Section headers
+    if e_shnum > 0 and e_shoff > 0:
+        with open(path, 'rb') as f:
+            f.seek(e_shoff)
+            sec_data = f.read(e_shnum * e_shentsize)
+
+        # Read string table
+        strtab_off = e_shoff + e_shstrndx * e_shentsize
+        with open(path, 'rb') as f:
+            f.seek(strtab_off)
+            strtab_hdr = f.read(e_shentsize)
+        if is_64:
+            strtab_sh_off = struct.unpack_from(endian + 'Q', strtab_hdr, 24)[0]
+            strtab_sh_size = struct.unpack_from(endian + 'Q', strtab_hdr, 32)[0]
+        else:
+            strtab_sh_off = struct.unpack_from(endian + 'I', strtab_hdr, 16)[0]
+            strtab_sh_size = struct.unpack_from(endian + 'I', strtab_hdr, 20)[0]
+
+        with open(path, 'rb') as f:
+            f.seek(strtab_sh_off)
+            strtab = f.read(strtab_sh_size)
+
+        def _sh_name(idx):
+            end = strtab.index(b'\x00', idx) if b'\x00' in strtab[idx:] else len(strtab)
+            return strtab[idx:end].decode('ascii', errors='replace')
+
+        sec_rows = [("Name", "Addr", "Offset", "Size", "Type")]
+        for i in range(e_shnum):
+            off = i * e_shentsize
+            if off + e_shentsize > len(sec_data):
+                break
+            sh_name_idx = struct.unpack_from(endian + 'I', sec_data, off)[0]
+            sh_type = struct.unpack_from(endian + 'I', sec_data, off + 4)[0]
+            if is_64:
+                sh_addr = struct.unpack_from(endian + 'Q', sec_data, off + 16)[0]
+                sh_off = struct.unpack_from(endian + 'Q', sec_data, off + 24)[0]
+                sh_size = struct.unpack_from(endian + 'Q', sec_data, off + 32)[0]
+            else:
+                sh_addr = struct.unpack_from(endian + 'I', sec_data, off + 12)[0]
+                sh_off = struct.unpack_from(endian + 'I', sec_data, off + 16)[0]
+                sh_size = struct.unpack_from(endian + 'I', sec_data, off + 20)[0]
+            sname = _sh_name(sh_name_idx) if sh_name_idx < len(strtab) else f"sec{i}"
+            type_map2 = {0: "NULL", 1: "PROGBITS", 2: "SYMTAB", 3: "STRTAB",
+                         4: "RELA", 5: "HASH", 6: "DYNAMIC", 7: "NOTE",
+                         8: "NOBITS", 9: "REL", 11: "DYNSYM", 14: "INIT_ARRAY",
+                         15: "FINI_ARRAY", 17: "GNU_HASH"}
+            sec_rows.append((sname, f"0x{sh_addr:016x}" if is_64 else f"0x{sh_addr:08x}",
+                             f"0x{sh_off:08x}", f"0x{sh_size:08x}",
+                             type_map2.get(sh_type, f"0x{sh_type:08x}")))
+        if len(sec_rows) > 1:
+            kevbin.box.table(sec_rows[:40], title="Section Headers")
+
+    kevbin.pause()

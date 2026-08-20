@@ -141,10 +141,10 @@ def run(kevbin):
     while True:
         kevbin.clear()
         kevbin.section_header("😀", "Emoji Lookup")
-        kevbin.cprint("primary", "  1. Search by name/keyword")
-        kevbin.cprint("primary", "  2. Browse by category")
-        kevbin.cprint("primary", "  3. Random emoji")
-        kevbin.cprint("dim", "  0. Back")
+        kevbin.cprint(kevbin.t.primary, "  1. Search by name/keyword")
+        kevbin.cprint(kevbin.t.primary, "  2. Browse by category")
+        kevbin.cprint(kevbin.t.primary, "  3. Random emoji")
+        kevbin.cprint(kevbin.t.dim, "  0. Back")
         kevbin.line()
         choice = kevbin.input_choice("Select option")
         
@@ -195,8 +195,8 @@ def _browse(kevbin):
         cats = list(categories.keys())
         for i, cat in enumerate(cats, 1):
             count = len(categories[cat])
-            kevbin.cprint("primary", f"  {i}. {cat} ({count})")
-        kevbin.cprint("dim", "  0. Back")
+            kevbin.cprint(kevbin.t.primary, f"  {i}. {cat} ({count})")
+        kevbin.cprint(kevbin.t.dim, "  0. Back")
         kevbin.line()
         choice = kevbin.input_choice("Select category")
         

@@ -7,8 +7,8 @@ def _menu(kevbin, options, title):
     kevbin.clear()
     kevbin.section_header("🔤", title)
     for i, (key, desc) in enumerate(options.items(), 1):
-        kevbin.cprint("primary", f"  {i}. {key}")
-        kevbin.cprint("dim", f"     {desc}")
+        kevbin.cprint(kevbin.t.primary, f"  {i}. {key}")
+        kevbin.cprint(kevbin.t.dim, f"     {desc}")
     kevbin.line()
     choice = kevbin.input_choice("Select option (number or name)")
     return choice
@@ -84,7 +84,7 @@ def sort(kevbin):
     
     kevbin.clear()
     kevbin.section_header("📋", "Sort Lines")
-    kevbin.cprint("dim", "Enter lines (empty line to finish):")
+    kevbin.cprint(kevbin.t.dim, "Enter lines (empty line to finish):")
     lines = []
     while True:
         line = kevbin.input_choice("> ")
@@ -115,7 +115,7 @@ def sort(kevbin):
 def wordcount(kevbin):
     kevbin.clear()
     kevbin.section_header("📊", "Word Count")
-    kevbin.cprint("dim", "Enter text (empty line to finish):")
+    kevbin.cprint(kevbin.t.dim, "Enter text (empty line to finish):")
     lines = []
     while True:
         line = kevbin.input_choice("> ")
@@ -229,7 +229,7 @@ def url_encode(kevbin):
 def stats(kevbin):
     kevbin.clear()
     kevbin.section_header("📈", "Readability Statistics")
-    kevbin.cprint("dim", "Enter text (empty line to finish):")
+    kevbin.cprint(kevbin.t.dim, "Enter text (empty line to finish):")
     lines = []
     while True:
         line = kevbin.input_choice("> ")
@@ -310,9 +310,9 @@ def run(kevbin):
         kevbin.clear()
         kevbin.section_header("🔤", "Text Tools")
         for i, (key, desc) in enumerate(options.items(), 1):
-            kevbin.cprint("primary", f"  {i}. {key}")
-            kevbin.cprint("dim", f"     {desc}")
-        kevbin.cprint("dim", "  0. Back")
+            kevbin.cprint(kevbin.t.primary, f"  {i}. {key}")
+            kevbin.cprint(kevbin.t.dim, f"     {desc}")
+        kevbin.cprint(kevbin.t.dim, "  0. Back")
         kevbin.line()
         choice = kevbin.input_choice("Select tool")
         if choice in ("0", "back", ""):

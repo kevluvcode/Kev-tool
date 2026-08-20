@@ -6,14 +6,14 @@ def run(kevbin):
     kevbin.clear()
     kevbin.section_header("📊", "CSV Viewer")
     
-    kevbin.cprint("primary", "  1. Paste CSV text")
-    kevbin.cprint("primary", "  2. Load from file")
+    kevbin.cprint(kevbin.t.primary, "  1. Paste CSV text")
+    kevbin.cprint(kevbin.t.primary, "  2. Load from file")
     kevbin.line()
     choice = kevbin.input_choice("Select input method")
     
     csv_text = ""
     if choice == "1":
-        kevbin.cprint("dim", "Enter CSV (empty line to finish):")
+        kevbin.cprint(kevbin.t.dim, "Enter CSV (empty line to finish):")
         lines = []
         while True:
             line = kevbin.input_choice("> ")
@@ -27,14 +27,14 @@ def run(kevbin):
             with open(path, 'r', encoding='utf-8') as f:
                 csv_text = f.read()
         except Exception as e:
-            kevbin.cprint("error", f"Error reading file: {e}")
+            kevbin.cprint(kevbin.t.error, f"Error reading file: {e}")
             kevbin.pause()
             return
     else:
         return
     
     if not csv_text.strip():
-        kevbin.cprint("warning", "No CSV data provided")
+        kevbin.cprint(kevbin.t.warning, "No CSV data provided")
         kevbin.pause()
         return
     
@@ -42,12 +42,12 @@ def run(kevbin):
         reader = csv.reader(io.StringIO(csv_text))
         rows = list(reader)
     except Exception as e:
-        kevbin.cprint("error", f"CSV parse error: {e}")
+        kevbin.cprint(kevbin.t.error, f"CSV parse error: {e}")
         kevbin.pause()
         return
     
     if not rows:
-        kevbin.cprint("warning", "Empty CSV")
+        kevbin.cprint(kevbin.t.warning, "Empty CSV")
         kevbin.pause()
         return
     
@@ -61,7 +61,7 @@ def run(kevbin):
         line = " │ ".join(padded)
         if i == 0:
             kevbin.box_top()
-            kevbin.cprint("primary", f" {line}")
+            kevbin.cprint(kevbin.t.primary, f" {line}")
             kevbin.box_mid()
         else:
             kevbin.box_row("", line)

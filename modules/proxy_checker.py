@@ -209,7 +209,7 @@ def run(kevbin):
     except KeyboardInterrupt:
         kevbin.cprint(kevbin.t.warning, "\n  [!] Interrupted.")
 
-    kevbin.cprint(kevbin.t.highlight + kevbin.t.B,
+    kevbin.cprint(kevbin.t.highlight,
                   f"\n  [+] Tested {status['done']} | Working {len(results)} | Failed {status['done'] - len(results)}")
     if results:
         kevbin.cprint(kevbin.t.success, f"  [*] Working proxies saved to: {OUT_PATH}")

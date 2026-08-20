@@ -390,6 +390,8 @@ MENU_TABS = [
                 ('file_checksum', 'run'), ('hex_dump', 'binary'),
                 ('misc_tools', 'dir_tree'), ('misc_tools', 'file_search'),
                 ('misc_tools', 'file_sizes'), ('misc_tools', 'path_info')]},
+    {"n": 13, "short": "SETTINGS", "title": "THEMES & SETTINGS", "icon": "⚙️",
+     "tools": [], "mapped": []},
 ]
 
 def load_json(path):
@@ -491,8 +493,11 @@ def get_theme():
     return THEMES.get(name, THEMES['modern'])
 
 def clr():
-    sys.stdout.write('\x1b[2J\x1b[H')
-    sys.stdout.flush()
+    if os.name == 'nt':
+        os.system('cls')
+    else:
+        sys.stdout.write('\x1b[2J\x1b[H')
+        sys.stdout.flush()
 
 def cprint_horizontal(color, text):
     cfg = get_config()
@@ -829,68 +834,7 @@ class KevTool:
         except Exception as e:
             self.cprint(self.t.num, f"  [!] {e}")
             self.pause()
-
-    def tool_menu(self, title, icon, tools, tab=None, tabs=13):
-        page = 0
-        per_page = int(self.settings.get('per_page', 14))
-        while True:
-            cl = get_theme()
-            clr()
-            total = len(tools)
-            pages = max(1, (total + per_page - 1) // per_page)
-            start = page * per_page
-            end = min(start + per_page, total)
-            cats = [(str(i + 1), tools[i][0]) for i in range(start, end)]
-            cats.append(('0', 'Return to Main Menu'))
-
-            print(cprint_horizontal(cl['head'], Center.XCenter(f"  {icon}  {title}  ")))
-            sub = f"v{VERSION}"
-            if tab:
-                sub += f" | Tab {tab}/{tabs}"
-            if pages > 1:
-                sub += f" | Page {page + 1}/{pages}   [N] next  [P] prev"
-            sub += f" | {PC_USER}@kevbin"
-            print(cprint_horizontal(cl['sub'], Center.XCenter(sub)))
-            print()
-            draw_menu_grid(cats)
-
-            choice = self.input_choice()
-            if choice == '0':
-                return
-            if choice.lower() == 'n' and page < pages - 1:
-                page += 1
-                continue
-            if choice.lower() == 'p' and page > 0:
-                page -= 1
-                continue
-            try:
-                idx = int(choice) - 1
-                if 0 <= idx < total:
-                    mod, func = tools[idx][2]
-                    self.run_module(mod, func)
-            except (ValueError, IndexError):
-                pass
-
-    def main_menu(self):
-        while True:
-            cl = get_theme()
-            clr()
-            print_banner()
-            print(cprint_horizontal(cl['sub'], Center.XCenter(f"v{VERSION} | Theme: {self.theme_name} | {PC_USER}@kevbin")))
-            print()
-            self._draw_tab_bar(0)
-            print()
-            draw_menu_grid([(str(t['n']), t['title'].title()) for t in MENU_TABS])
-            self.cprint(cl['num'], "  [ 0]  Exit")
-            choice = self.input_choice()
-            if choice == '0':
-                clr()
-                self.cprint(self.t.head, f"\n  Goodbye, {PC_USER}. — {AUTHOR}\n")
-                sys.exit(0)
-            if choice == '13':
-                self.menu_settings()
-            elif choice.isdigit() and 1 <= int(choice) <= len(MENU_TABS):
-                self.tool_menu(int(choice))
+        self.clear()
 
     def _draw_tab_bar(self, active):
         cl = get_theme()
@@ -960,15 +904,48 @@ class KevTool:
             print()
             self._draw_tab_bar(tab)
             print()
+
+            if info['n'] == 13:
+                self._settings_body()
+                footer = " [N] NEXT TAB    [P] PREV TAB    [0] EXIT "
+                print(cprint_horizontal(cl['sub'], " " * max(0, (shutil.get_terminal_size().columns - _vis_len(footer)) // 2) + footer))
+                choice = self.input_choice()
+                if choice == '0':
+                    clr()
+                    self.cprint(self.t.head, f"\n  Goodbye, {PC_USER}. — {AUTHOR}\n")
+                    sys.exit(0)
+                if choice.lower() == 'n':
+                    tab = tab % len(tabs) + 1
+                    continue
+                if choice.lower() == 'p':
+                    tab = (tab - 2) % len(tabs) + 1
+                    continue
+                if choice.lower() == 'u':
+                    check_update()
+                    self.pause()
+                    continue
+                if choice.isdigit() and 1 <= int(choice) <= len(sorted(THEMES)):
+                    new_theme = sorted(THEMES)[int(choice) - 1]
+                    self.settings['current_theme'] = new_theme
+                    save_json(CONFIG_PATH, self.settings)
+                    self.theme_name = new_theme
+                    self._refresh_t()
+                    self.cprint(self.t.head, f"\n  [+] Theme -> {new_theme.upper()}")
+                    theme_wave(new_theme)
+                    time.sleep(0.3)
+                    continue
+                continue
+
             total = len(info['tools'])
             draw_menu_grid([(str(i + 1), info['tools'][i][0]) for i in range(total)])
-            footer = " [N] NEXT TAB    [P] PREV TAB    [0] MAIN MENU "
+            footer = " [N] NEXT TAB    [P] PREV TAB    [0] EXIT "
             print(cprint_horizontal(cl['sub'], " " * max(0, (shutil.get_terminal_size().columns - _vis_len(footer)) // 2) + footer))
 
             choice = self.input_choice()
             if choice == '0':
-                self.main_menu()
-                continue
+                clr()
+                self.cprint(self.t.head, f"\n  Goodbye, {PC_USER}. — {AUTHOR}\n")
+                sys.exit(0)
             if choice.lower() == 'n':
                 tab = tab % len(tabs) + 1
                 continue
@@ -983,40 +960,15 @@ class KevTool:
             except (ValueError, IndexError):
                 pass
 
-
-    def menu_settings(self):
-        while True:
-            cl = get_theme()
-            clr()
-            print_banner()
-            print(cprint_horizontal(cl['sub'], Center.XCenter(f"v{VERSION} | Theme: {self.theme_name} | {PC_USER}@kevbin")))
-            print()
-
-            theme_names = sorted(THEMES)
-            items = {}
-            for i, name in enumerate(theme_names, 1):
-                flag = " (current)" if self.theme_name == name else ""
-                items[str(i)] = name.replace("_", " ").title() + flag
-            items["U"] = "Check for updates"
-            items["0"] = "Return to Main Menu"
-            draw_card_box("THEMES & SETTINGS", items)
-
-            choice = self.input_choice()
-            if choice == '0':
-                return
-            if choice.lower() == 'u':
-                check_update()
-                continue
-
-            if choice.isdigit() and 1 <= int(choice) <= len(theme_names):
-                new_theme = theme_names[int(choice) - 1]
-                self.settings['current_theme'] = new_theme
-                save_json(CONFIG_PATH, self.settings)
-                self.theme_name = new_theme
-                self._refresh_t()
-                self.cprint(self.t.head, f"\n  [+] Theme -> {new_theme.upper()}")
-                theme_wave(new_theme)
-                time.sleep(0.3)
+    def _settings_body(self):
+        cl = get_theme()
+        theme_names = sorted(THEMES)
+        items = {}
+        for i, name in enumerate(theme_names, 1):
+            flag = " *" if self.theme_name == name else ""
+            items[str(i)] = name.replace("_", " ").title() + flag
+        items["U"] = "Check for updates"
+        draw_card_box("THEMES & SETTINGS", items)
 
 class _Box:
     """`kevbin.box.*` namespace API used by modules."""

@@ -45,4 +45,4 @@ def run(kevbin):
 
 
 def binary(kevbin):
-    run(navi)
+    run(kevbin)

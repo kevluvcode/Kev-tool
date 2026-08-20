@@ -22,7 +22,7 @@ def whois_lookup(kevbin):
     try:
         import whois
         w = whois.whois(domain)
-        kevbin.cprint(kevbin.t.highlight + kevbin.t.B, f"\n  ┌─ WHOIS: {domain} {'─' * (40 - len(domain))}")
+        kevbin.cprint(kevbin.t.highlight, f"\n  ┌─ WHOIS: {domain} {'─' * (40 - len(domain))}")
         for key in ['domain_name', 'registrar', 'creation_date', 'expiration_date', 'name_servers', 'org', 'country', 'emails']:
             val = w.get(key, 'N/A')
             if isinstance(val, list):
@@ -47,7 +47,7 @@ def dns_resolver(kevbin):
     try:
         import dns.resolver
         types = ['A', 'AAAA', 'MX', 'TXT', 'CNAME', 'NS', 'SOA']
-        kevbin.cprint(kevbin.t.highlight + kevbin.t.B, f"\n  ┌─ DNS: {domain} {'─' * (42 - len(domain))}")
+        kevbin.cprint(kevbin.t.highlight, f"\n  ┌─ DNS: {domain} {'─' * (42 - len(domain))}")
         for rtype in types:
             try:
                 answers = dns.resolver.resolve(domain, rtype)
@@ -76,7 +76,7 @@ def ip_info(kevbin):
     try:
         r = requests.get('https://ipinfo.io/json', timeout=10)
         data = r.json()
-        kevbin.cprint(kevbin.t.highlight + kevbin.t.B, f"  ┌─ IP INFO {'─' * 42}")
+        kevbin.cprint(kevbin.t.highlight, f"  ┌─ IP INFO {'─' * 42}")
         for key in ['ip', 'city', 'region', 'country', 'loc', 'org', 'timezone', 'postal']:
             val = data.get(key, 'N/A')
             kevbin.cprint(kevbin.t.secondary, f"  │ {key:12s} {val}")
@@ -135,7 +135,7 @@ def metadata_scan(kevbin):
         img = Image.open(path)
         exif_data = img._getexif()
         if exif_data:
-            kevbin.cprint(kevbin.t.highlight + kevbin.t.B, f"\n  ┌─ METADATA: {os.path.basename(path)}")
+            kevbin.cprint(kevbin.t.highlight, f"\n  ┌─ METADATA: {os.path.basename(path)}")
             for tag_id, value in exif_data.items():
                 tag = TAGS.get(tag_id, str(tag_id))
                 val = str(value)[:60]
@@ -175,7 +175,7 @@ def username_check(kevbin):
         ('Discord', f'https://discord.com', 200, 404),
     ]
 
-    kevbin.cprint(kevbin.t.highlight + kevbin.t.B, f"\n  Checking '{username}'...\n")
+    kevbin.cprint(kevbin.t.highlight, f"\n  Checking '{username}'...\n")
     for name, url, taken_code, avail_code in platforms:
         try:
             resp = requests.head(url, timeout=8, allow_redirects=True,

@@ -137,9 +137,9 @@ def _inline(text):
     return text
 
 def _escape_html(text):
-    t = text.replace("&", "&")
-    t = t.replace("<", "<")
-    t = t.replace(">", ">")
-    t = t.replace('"', '"')
-    t = t.replace("'", "'")
+    t = text.replace("&", "&amp;")
+    t = t.replace("<", "&lt;")
+    t = t.replace(">", "&gt;")
+    t = t.replace('"', "&quot;")
+    t = t.replace("'", "&#39;")
     return t

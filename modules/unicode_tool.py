@@ -4,9 +4,9 @@ def run(kevbin):
     kevbin.clear()
     kevbin.section_header("🔤", "Unicode Lookup")
     
-    kevbin.cprint("primary", "  1. Character → Info")
-    kevbin.cprint("primary", "  2. Codepoint → Character")
-    kevbin.cprint("primary", "  3. Search by name")
+    kevbin.cprint(kevbin.t.primary, "  1. Character → Info")
+    kevbin.cprint(kevbin.t.primary, "  2. Codepoint → Character")
+    kevbin.cprint(kevbin.t.primary, "  3. Search by name")
     kevbin.line()
     choice = kevbin.input_choice("Select mode")
     
@@ -55,12 +55,12 @@ def _codepoint_to_char(kevbin):
         else:
             codepoint = int(cp)
     except ValueError:
-        kevbin.cprint("error", "Invalid codepoint")
+        kevbin.cprint(kevbin.t.error, "Invalid codepoint")
         kevbin.pause()
         return
     
     if codepoint < 0 or codepoint > 0x10FFFF:
-        kevbin.cprint("error", "Codepoint out of range")
+        kevbin.cprint(kevbin.t.error, "Codepoint out of range")
         kevbin.pause()
         return
     

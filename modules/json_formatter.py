@@ -4,7 +4,7 @@ import xml.etree.ElementTree as ET
 def run(kevbin):
     kevbin.clear()
     kevbin.section_header("📋", "JSON Formatter")
-    kevbin.cprint("dim", "Enter JSON (empty line to finish):")
+    kevbin.cprint(kevbin.t.dim, "Enter JSON (empty line to finish):")
     
     lines = []
     while True:
@@ -21,7 +21,7 @@ def run(kevbin):
     try:
         parsed = json.loads(text)
     except json.JSONDecodeError as e:
-        kevbin.cprint("error", f"Invalid JSON: {e}")
+        kevbin.cprint(kevbin.t.error, f"Invalid JSON: {e}")
         kevbin.pause()
         return
     
@@ -38,7 +38,7 @@ def run(kevbin):
 def xml(kevbin):
     kevbin.clear()
     kevbin.section_header("🔄", "JSON to XML")
-    kevbin.cprint("dim", "Enter JSON (empty line to finish):")
+    kevbin.cprint(kevbin.t.dim, "Enter JSON (empty line to finish):")
     
     lines = []
     while True:
@@ -55,7 +55,7 @@ def xml(kevbin):
     try:
         parsed = json.loads(text)
     except json.JSONDecodeError as e:
-        kevbin.cprint("error", f"Invalid JSON: {e}")
+        kevbin.cprint(kevbin.t.error, f"Invalid JSON: {e}")
         kevbin.pause()
         return
     

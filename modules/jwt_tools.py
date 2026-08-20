@@ -40,7 +40,7 @@ def run(kevbin):
             try:
                 header = json.loads(_b64url_decode(parts[0]))
                 payload = json.loads(_b64url_decode(parts[1]))
-                kevbin.cprint(kevbin.t.highlight + kevbin.t.B, "\n  ┌─ HEADER ─────────────────────────")
+                kevbin.cprint(kevbin.t.highlight, "\n  ┌─ HEADER ─────────────────────────")
                 for k, v in header.items():
                     kevbin.cprint(kevbin.t.accent, f"  │ {k}: {v}")
                 kevbin.cprint(kevbin.t.highlight, "  ├─ PAYLOAD ────────────────────────")

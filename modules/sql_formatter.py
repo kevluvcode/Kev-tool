@@ -14,7 +14,7 @@ KEYWORDS = {
 def run(kevbin):
     kevbin.clear()
     kevbin.section_header("🗄️", "SQL Formatter")
-    kevbin.cprint("dim", "Enter SQL (empty line to finish):")
+    kevbin.cprint(kevbin.t.dim, "Enter SQL (empty line to finish):")
     
     lines = []
     while True:

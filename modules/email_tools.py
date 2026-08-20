@@ -81,8 +81,8 @@ def run(kevbin):
 
 
 def validate(kevbin):
-    run(navi)
+    run(kevbin)
 
 
 def reputation(kevbin):
-    run(navi)
+    run(kevbin)

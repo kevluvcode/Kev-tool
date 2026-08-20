@@ -67,7 +67,7 @@ def run(kevbin):
                 kevbin.cprint(kevbin.t.accent, f"  Shannon Entropy: {entropy:.2f} bits/char")
                 kevbin.cprint(kevbin.t.accent, f"  Total Entropy:   {entropy * len(pwd):.1f} bits\n")
                 for check, passed in checks.items():
-                    icon = kevbin.t.success + '✓' if passed else kevbin.t.error + '✗'
+                    icon = '✓' if passed else '✗'
                     kevbin.cprint(kevbin.t.secondary, f"    {icon} {check}{kevbin.t.R}")
                 kevbin.cprint(kevbin.t.accent, f"\n  Score: {score}/8")
             kevbin.pause()

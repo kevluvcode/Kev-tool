@@ -75,5 +75,5 @@ def run(kevbin):
         kevbin.line()
         choice = kevbin.input_choice()
         if choice == '0': return
-        if choice == '1': tester(navi)
-        elif choice == '2': delete(navi)
+        if choice == '1': tester(kevbin)
+        elif choice == '2': delete(kevbin)
