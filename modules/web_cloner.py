@@ -10,6 +10,8 @@ try:
 except ImportError:
     requests = None
 
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 
 def _resolve(base, href):
     """Resolve a potentially-relative URL against a base."""
@@ -75,7 +77,7 @@ def run(kevbin):
     parsed = urlparse(url)
     base = f"{parsed.scheme}://{parsed.netloc}"
     domain = re.sub(r'[^a-zA-Z0-9]', '_', parsed.netloc)
-    out_dir = os.path.join(os.getcwd(), f'cloned_{domain}')
+    out_dir = os.path.join(ROOT, f'cloned_{domain}')
     os.makedirs(out_dir, exist_ok=True)
 
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
@@ -249,7 +251,8 @@ def run(kevbin):
 
     kevbin.cprint(kevbin.t.success, f"\n  [✓] Cloned to: {out_dir}")
     kevbin.cprint(kevbin.t.success, f"  [✓] {len(files_saved)} files saved ({downloaded} downloads)")
+    kevbin.cprint(kevbin.t.txt, f"  Open: {os.path.join(out_dir, 'index.html')}")
     if files_saved:
         rows = [("File", "Size")] + [(n, f"{s:,} bytes") for n, s in sorted(files_saved, key=lambda x: -x[1])[:20]]
-        kevbin.box.table(rows, title="Saved Files")
+        kevbin.box_table(rows, title="Saved Files")
     kevbin.pause()
