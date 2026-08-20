@@ -2,7 +2,7 @@
 
 a CLI multitool i made for learning/testing. bunch of scripts mostly for osint, security stuff, text encoding, roblox tools, discord stuff, and random generators. nothing crazy but it works.
 
-**version 1.1.1**
+**version 1.2.0**
 
 ---
 
@@ -38,9 +38,11 @@ works on **python 3.6+**, all platforms (windows, linux, macOS). if you dont hav
 
 ## what it does
 
-theres like 100+ tools split into 13 categories. loading screen takes 3 seconds, has a progress bar and the kevbin ascii banner. prompt looks like `username@kev>` and theres 9 themes you can switch between.
+theres like 100+ tools split into 13 categories. loading screen takes 3 seconds, has a progress bar and the kevbin ascii banner. prompt looks like `username@kev>` and theres 9 themes you can switch between. on windows the console window title flickers/randomizes as an anti-close touch.
 
 it auto-checks for updates on startup. compares the local `version.txt` to whats on github and if theres a new version it tells you and clones it.
+
+**proxy scraper/checker**: the scraper pulls http/https/socks4/socks5 from public lists (TheSpeedX/PROXY-List, proxifly/free-proxy-list, monogramm, roosterkid, jetkai, ...) and saves them to `proxies/http.txt`, `https.txt`, `socks4.txt`, `socks5.txt` + a combined `all.txt`. the checker validates them multi-threaded and writes every working one to **`valid_proxies.txt`** — use option **3 "Check ALL scraped lists"** to test everything at once (HTTP needs no deps, SOCKS needs `PySocks`).
 
 ---
 
@@ -52,6 +54,7 @@ it auto-checks for updates on startup. compares the local `version.txt` to whats
 - **Account Info** — pull account info from token
 - **Server Info** — get server info with bot
 - **Status Rotator** — status rotation reference
+- **Bot Invite** — build bot invite URL
 
 ### 🔍 osint & intelligence
 - **Whois Lookup** — domain registration info
@@ -92,6 +95,9 @@ it auto-checks for updates on startup. compares the local `version.txt` to whats
 - **Tor Check** — check if IP is a tor exit node
 - **Link Tools** — expand/track/info on URLs
 - **IP Pinger** — ICMP ping
+- **System Info** — CPU/RAM/disk/OS details (no psutil needed)
+- **Proxy Scraper** — grab public proxies (TheSpeedX, proxifly, etc.) → saves to `proxies/`
+- **Proxy Checker** — multi-threaded validation; working ones go to `valid_proxies.txt`
 
 ### 🌐 web & network tools
 - **Page Clone** — clone full websites
@@ -153,6 +159,8 @@ it auto-checks for updates on startup. compares the local `version.txt` to whats
 ### 🎮 game suite (roblox)
 - **User Intel** — look up roblox users
 - **Group Intel** — look up roblox groups
+- **Name History** — previous usernames
+- **Username Check** — is a username available
 - **Cookie Login** — validate .ROBLOSECURITY
 - **Asset Downloader** — download roblox assets
 - **Inventory Viewer** — view user inventories
@@ -167,6 +175,17 @@ it auto-checks for updates on startup. compares the local `version.txt` to whats
 - **Lorem Ipsum** — placeholder text
 - **Fake Nitro Code** — random nitro-style codes
 - **Server Template** — discord server JSON
+- **Fake Mail** — fake email + password
+- **Fake DDoS** — simulated DDoS output (no packets sent)
+- **Fake Wallet Miner** — simulated mining rig
+- **Social Botter** — simulated view counter
+- **Fake PayPal OTP** — fake OTP code
+- **Fake Account Gen** — fake credentials
+- **Fake Fortnite Check** — simulated skin checker
+- **Fake Exodus** — fake crypto seed phrase
+- **Hacker Terminal** — movie-style hacker typer
+- **Ransomware Sim** — simulated ransomware warn (nothing touched)
+- **Fake Bruteforcer** — simulated brute force counter
 - **ASCII Art** — text to ASCII art
 - **Stealth Art** — zalgo/glitch text
 - **Creeper Text** — creeper text effect
@@ -233,18 +252,20 @@ or just do `git pull origin main` yourself.
 Kev-tool/
 ├── kevtool.py          # main app
 ├── kevtool.bat         # windows launcher
-├── install.bat         # windows installer
-├── install.sh          # linux/macOS installer
-├── version.txt         # version tracking
-├── requirements.txt    # python dependencies
-├── readme.md           # you're reading this
-├── config/
-│   ├── settings.json   # your settings
-│   └── themes.json     # theme colors
+├── valid_proxies.txt   # working proxies (created by the checker)
+├── proxies/            # scraped proxy lists (runtime output)
 └── modules/
-    ├── osint.py        # osint tools
+    ├── config/         # settings.json + themes.json
+    ├── install.bat     # windows installer
+    ├── install.sh      # linux/macOS installer
+    ├── version.txt     # version tracking
+    ├── requirements.txt# python dependencies
+    ├── readme.md       # you're reading this
+    ├── system_info.py  # system info
+    ├── proxy_scraper.py# proxy grabber
+    ├── proxy_checker.py# proxy validator
     ├── discord_ops.py  # discord stuff
-    ├── crypto.py       # crypto tools
-    ├── obfuscator.py   # obfuscation
+    ├── roblox_intel.py # roblox lookups
+    ├── faker_suite.py  # simulation/generators
     └── ...             # more modules
 ```
