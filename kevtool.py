@@ -18,6 +18,7 @@ import shutil
 import random
 import re
 import threading
+import socket
 import urllib.request
 from types import SimpleNamespace
 
@@ -946,13 +947,26 @@ def _proxy_parse(line):
     return None, None
 
 
-def _proxy_test_one(addr, proto, timeout=5):
+def _proxy_test_one(addr, proto, timeout=2):
     if proto == 'http':
-        handler = urllib.request.ProxyHandler({'http': f'http://{addr}', 'https': f'http://{addr}'})
-        opener = urllib.request.build_opener(handler)
         try:
-            with opener.open(_PROXY_TEST_URL, timeout=timeout) as r:
-                return r.status in (200, 204)
+            host, port = addr.split(':')
+            s = socket.create_connection((host, int(port)), timeout=timeout)
+            s.sendall(b'GET /generate_204 HTTP/1.1\r\nHost: www.gstatic.com\r\nConnection: close\r\n\r\n')
+            resp = b''
+            s.settimeout(timeout)
+            while True:
+                try:
+                    chunk = s.recv(4096)
+                    if not chunk:
+                        break
+                    resp += chunk
+                    if len(resp) > 2048:
+                        break
+                except Exception:
+                    break
+            s.close()
+            return b' 200' in resp or b' 204' in resp
         except Exception:
             return False
     else:
@@ -967,7 +981,7 @@ def _proxy_test_one(addr, proto, timeout=5):
         try:
             s.connect(('www.gstatic.com', 80))
             s.send(b'GET /generate_204 HTTP/1.1\r\nHost: www.gstatic.com\r\nConnection: close\r\n\r\n')
-            resp = s.recv(4096).decode('utf-8', errors='ignore')
+            resp = s.recv(2048).decode('utf-8', errors='ignore')
             return ' 200' in resp or ' 204' in resp
         except Exception:
             return False
@@ -991,7 +1005,7 @@ def _proxy_worker(queue, valid_out, lock, done_count):
                 valid_out.append(f"{proto}://{addr}" if proto != 'http' else addr)
 
 
-def auto_proxy_check(max_proxies=500, threads=30):
+def auto_proxy_check(max_proxies=500, threads=80):
     """Fetch proxies from all sources, test them, save valid to valid_proxies.txt."""
     cl = get_theme()
     print(cprint_horizontal(cl['sub'], f"  [~] Fetching proxies from {len(PROXY_SOURCES)} sources..."))
@@ -1472,7 +1486,6 @@ def start_title_scramble(interval=0.001):
         return None
     try:
         import ctypes
-        import threading
     except Exception:
         return None
     chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*"
