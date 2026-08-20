@@ -642,35 +642,66 @@ def _ver_tuple(v):
     except Exception:
         return (0,)
 
-def check_update():
+def check_update(auto=False):
     try:
         import requests
-        cl = get_theme()
+    except ImportError:
+        return
+    cl = get_theme()
+    if not auto:
         print(cprint_horizontal(cl['sub'], "  Checking for updates..."))
+    try:
         resp = requests.get(GITHUB_RAW_VERSION, timeout=8)
-        if resp.status_code == 200:
-            remote_ver = resp.text.strip()
-            if remote_ver and _ver_tuple(remote_ver) > _ver_tuple(VERSION):
-                print(cprint_horizontal(cl['head'], f"\n  [!] New Version Detected: {remote_ver} (you have {VERSION})"))
-                print(cprint_horizontal(cl['txt'], f"  Download: https://github.com/{GITHUB_REPO}"))
-                choice = get_input("  Clone update now? (y/n): ")
-                if choice.lower() == 'y':
-                    print(cprint_horizontal(cl['txt'], "  Cloning repo..."))
-                    install_dir = os.path.join(BASE_DIR, f"KevTool_{remote_ver}")
-                    result = subprocess.run(['git', 'clone', GITHUB_CLONE, install_dir],
-                                            capture_output=True, text=True, timeout=60)
-                    if result.returncode == 0:
-                        print(cprint_horizontal(cl['head'], f"  [+] Cloned to: {install_dir}"))
-                    else:
-                        print(cprint_horizontal(cl['num'], f"  [!] Clone failed: {result.stderr.strip()}"))
-                get_input("  Press Enter...")
-            else:
+        if resp.status_code != 200:
+            if not auto:
+                print(cprint_horizontal(cl['num'], "  [!] Could not reach update server"))
+            return
+        remote_ver = resp.text.strip()
+        if not remote_ver:
+            return
+        remote_tup = _ver_tuple(remote_ver)
+        local_tup = _ver_tuple(VERSION)
+        if remote_tup <= local_tup:
+            if not auto:
                 print(cprint_horizontal(cl['head'], "  Already up to date"))
                 time.sleep(0.3)
+            return
+        print(cprint_horizontal(cl['head'], f"\n  [!] New Version Detected: {remote_ver} (you have {VERSION})"))
+        print(cprint_horizontal(cl['txt'], f"  Download: https://github.com/{GITHUB_REPO}"))
+        if not auto:
+            choice = get_input("  Auto-update now? (y/n): ")
         else:
-            time.sleep(0.3)
-    except Exception:
-        pass
+            choice = 'y'
+            time.sleep(0.5)
+        if choice.lower() == 'y':
+            install_dir = os.path.join(BASE_DIR, f"KevTool-{remote_ver}")
+            print(cprint_horizontal(cl['txt'], f"  Cloning to {install_dir}..."))
+            if os.path.isdir(install_dir):
+                import shutil as _shutil
+                try:
+                    _shutil.rmtree(install_dir)
+                except Exception:
+                    pass
+            result = subprocess.run(['git', 'clone', '--depth', '1', GITHUB_CLONE, install_dir],
+                                    capture_output=True, text=True, timeout=120)
+            if result.returncode == 0:
+                try:
+                    src_cfg = os.path.join(CONFIG_DIR, 'settings.json')
+                    dst_dir = os.path.join(install_dir, 'modules', 'config')
+                    if os.path.isfile(src_cfg) and os.path.isdir(dst_dir):
+                        import shutil as _shutil
+                        _shutil.copy2(src_cfg, os.path.join(dst_dir, 'settings.json'))
+                except Exception:
+                    pass
+                print(cprint_horizontal(cl['head'], f"  [+] Updated to v{remote_ver}!"))
+                print(cprint_horizontal(cl['txt'], f"  Run from: {install_dir}"))
+                print(cprint_horizontal(cl['dim'], "  Your settings were preserved."))
+            else:
+                print(cprint_horizontal(cl['num'], f"  [!] Clone failed: {result.stderr.strip()[:100]}"))
+        get_input("  Press Enter...")
+    except Exception as e:
+        if not auto:
+            print(cprint_horizontal(cl['num'], f"  [!] Update check failed: {e}"))
 
 class KevTool:
     def __init__(self):
@@ -1111,7 +1142,10 @@ def main():
     no_update = '--no-update' in args
     if not no_boot:
         loading_screen()
-    check_update()
+    if not no_update:
+        cfg = get_config()
+        if cfg.get('check_updates', True):
+            check_update(auto=True)
     KevTool().tool_menu(1)
 
 if __name__ == '__main__':
