@@ -425,10 +425,10 @@ def run(self=None):
         cprint("  \u2551      APP DECRYPTER / UNPACKER / REBUILDER         \u2551", "yellow")
         cprint("  \u255a" + "\u2550" * 50 + "\u255d", "yellow")
         print()
-        cprint("  \033[97m[1]  Full decrypt + rebuild (.exe/.dll/.so)")
-        cprint("       Scans all sections, decrypts what it can,")
-        cprint("       rebuilds the binary with decrypted sections\033[0m")
-        cprint("  \033[97m[2]  Quick decrypt (auto-detect + patch)\033[0m")
+        cprint("  \033[97m[1]  Full decrypt + rebuild (running process)")
+        cprint("       Enter process name, finds exe on disk,")
+        cprint("       scans all sections, decrypts, rebuilds\033[0m")
+        cprint("  \033[97m[2]  Quick decrypt (file path)\033[0m")
         cprint("  \033[97m[3]  Analyze only (no rebuild, just report)\033[0m")
         cprint("  \033[97m[4]  Decrypt specific section by name\033[0m")
         cprint("  \033[97m[5]  Batch decrypt (folder of executables)\033[0m")
@@ -439,7 +439,102 @@ def run(self=None):
         choice = prompt("\033[33m  choice > \033[0m")
         if choice == '0':
             return
-        elif choice in ('1', '2'):
+        elif choice == '1':
+            proc_name = prompt("\033[33m  process name (e.g. notepad, chrome) > \033[0m").strip()
+            if not proc_name:
+                cprint("  \033[91m[X] Need a name\033[0m")
+                pause()
+                continue
+            clear()
+            cprint(f"\n  \033[36mLooking up: {proc_name}\033[0m\n")
+            found = []
+            if os.name == 'nt':
+                try:
+                    import subprocess
+                    result = subprocess.run(
+                        ['tasklist', '/FI', f'IMAGENAME eq {proc_name}*', '/FO', 'CSV', '/NH'],
+                        capture_output=True, text=True, timeout=10
+                    )
+                    for line in result.stdout.strip().split('\n'):
+                        if not line.strip():
+                            continue
+                        parts = [p.strip('"') for p in line.split('","')]
+                        if len(parts) >= 2:
+                            found.append({"name": parts[0], "pid": parts[1]})
+                except Exception as e:
+                    cprint(f"  \033[91m[X] Error: {e}\033[0m")
+            else:
+                try:
+                    import subprocess
+                    result = subprocess.run(['pgrep', '-af', proc_name], capture_output=True, text=True, timeout=10)
+                    for line in result.stdout.strip().split('\n'):
+                        if not line.strip():
+                            continue
+                        parts = line.split(' ', 1)
+                        if len(parts) == 2:
+                            found.append({"pid": parts[0], "name": parts[1]})
+                except Exception as e:
+                    cprint(f"  \033[91m[X] Error: {e}\033[0m")
+            if not found:
+                cprint(f"  \033[93mNo process found matching '{proc_name}'\033[0m")
+                pause()
+                continue
+            cprint(f"  \033[92mFound {len(found)} process(es):\033[0m\n")
+            for i, p in enumerate(found, 1):
+                cprint(f"    \033[97m[{i}] PID: {p['pid']:<8} {p['name']}\033[0m")
+            if len(found) == 1:
+                idx = 1
+            else:
+                try:
+                    idx = int(prompt("\033[33m  select process # > \033[0m"))
+                except:
+                    idx = 1
+            idx = max(1, min(len(found), idx))
+            pid = int(found[idx - 1]['pid'])
+            exe_name = found[idx - 1]['name']
+            cprint(f"\n  \033[36mLocating executable for PID {pid} ({exe_name})...\033[0m")
+            exe_path = ""
+            if os.name == 'nt':
+                try:
+                    import subprocess
+                    result = subprocess.run(
+                        ['wmic', 'process', 'where', f'ProcessId={pid}', 'get', 'ExecutablePath', '/FO', 'CSV', '/NH'],
+                        capture_output=True, text=True, timeout=10
+                    )
+                    for line in result.stdout.strip().split('\n'):
+                        if not line.strip():
+                            continue
+                        p = line.strip().strip('"')
+                        if p and os.path.isfile(p):
+                            exe_path = p
+                            break
+                except:
+                    pass
+            if not exe_path or not os.path.isfile(exe_path):
+                cprint(f"  \033[91m[X] Could not locate executable on disk for PID {pid}\033[0m")
+                cprint(f"  \033[93mTip: option [2] lets you decrypt a file directly\033[0m")
+                pause()
+                continue
+            cprint(f"  \033[92mFound: {exe_path}\033[0m")
+            name_part, ext = os.path.splitext(exe_name)
+            output_path = prompt(f"\033[33m  output path (default: {name_part}_decrypted{ext}) > \033[0m") or f"{name_part}_decrypted{ext}"
+            clear()
+            cprint("\n  \033[36mDecrypting and rebuilding...\033[0m\n")
+            out, log = decrypt_and_rebuild(exe_path, output_path)
+            log_path = os.path.splitext(output_path)[0] + "_log.txt"
+            with open(log_path, 'w', encoding='utf-8', errors='replace') as f:
+                f.write('\n'.join(log))
+            clear()
+            if out:
+                cprint(f"\n  \033[92mDECRYPT COMPLETE\033[0m")
+                cprint(f"  \033[92mOutput:   {out}\033[0m")
+                cprint(f"  \033[36mLog:      {log_path}\033[0m")
+                cprint(f"  \033[97mSections: {len([l for l in log if 'PATCHED' in l])} decrypted\033[0m")
+            else:
+                cprint(f"\n  \033[91mCould not decrypt/rebuild\033[0m")
+                cprint(f"  \033[93mCheck log: {log_path}\033[0m")
+            pause()
+        elif choice == '2':
             path = prompt("\033[33m  file path (.exe/.dll/.so/.bin) > \033[0m").strip().strip('"').strip("'")
             if not os.path.isfile(path):
                 cprint("  \033[91m[X] File not found\033[0m")
@@ -447,12 +542,7 @@ def run(self=None):
                 continue
             clear()
             cprint("\n  \033[36mDecrypting and rebuilding...\033[0m\n")
-            output_path = None
-            if choice == '1':
-                name, ext = os.path.splitext(path)
-                output_path = prompt(f"\033[33m  output path (default: {name}_decrypted{ext}) > \033[0m") or f"{name}_decrypted{ext}"
-            else:
-                output_path = os.path.splitext(path)[0] + "_decrypted" + os.path.splitext(path)[1]
+            output_path = os.path.splitext(path)[0] + "_decrypted" + os.path.splitext(path)[1]
 
             out, log = decrypt_and_rebuild(path, output_path)
             log_path = os.path.splitext(output_path)[0] + "_log.txt"
