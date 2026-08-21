@@ -500,19 +500,32 @@ def run(self=None):
             if os.name == 'nt':
                 try:
                     import subprocess
-                    result = subprocess.run(
-                        ['wmic', 'process', 'where', f'ProcessId={pid}', 'get', 'ExecutablePath', '/FO', 'CSV', '/NH'],
-                        capture_output=True, text=True, timeout=10
+                    r = subprocess.run(
+                        ['powershell', '-NoProfile', '-Command',
+                         f'(Get-CimInstance Win32_Process -Filter "ProcessId={pid}").ExecutablePath'],
+                        capture_output=True, text=True, timeout=15
                     )
-                    for line in result.stdout.strip().split('\n'):
-                        if not line.strip():
-                            continue
-                        p = line.strip().strip('"')
-                        if p and os.path.isfile(p):
-                            exe_path = p
-                            break
+                    p = r.stdout.strip().strip('"')
+                    if p and os.path.isfile(p):
+                        exe_path = p
                 except:
                     pass
+                if not exe_path:
+                    try:
+                        import subprocess
+                        r = subprocess.run(
+                            ['wmic', 'process', 'where', f'ProcessId={pid}', 'get', 'ExecutablePath', '/FO', 'CSV', '/NH'],
+                            capture_output=True, text=True, timeout=10
+                        )
+                        for line in r.stdout.strip().split('\n'):
+                            if not line.strip():
+                                continue
+                            p = line.strip().strip('"')
+                            if p and os.path.isfile(p):
+                                exe_path = p
+                                break
+                    except:
+                        pass
             if not exe_path or not os.path.isfile(exe_path):
                 cprint(f"  \033[91m[X] Could not locate executable on disk for PID {pid}\033[0m")
                 cprint(f"  \033[93mTip: option [2] lets you decrypt a file directly\033[0m")
@@ -684,29 +697,47 @@ def run(self=None):
                     pid = int(found[0]['pid'])
                     exe_name = found[0].get('name', name)
                     cprint(f"\n  \033[36mLocating executable for PID {pid}...\033[0m")
+                    exe_path = ""
                     try:
                         import subprocess
-                        result = subprocess.run(
-                            ['wmic', 'process', 'where', f'ProcessId={pid}', 'get', 'ExecutablePath', '/FO', 'CSV', '/NH'],
-                            capture_output=True, text=True, timeout=10
+                        r = subprocess.run(
+                            ['powershell', '-NoProfile', '-Command',
+                             f'(Get-CimInstance Win32_Process -Filter "ProcessId={pid}").ExecutablePath'],
+                            capture_output=True, text=True, timeout=15
                         )
-                        exe_path = result.stdout.strip().split('"')[1] if '"' in result.stdout else ""
-                        if exe_path and os.path.isfile(exe_path):
-                            cprint(f"  \033[92mFound: {exe_path}\033[0m")
-                            out, log = decrypt_and_rebuild(exe_path)
-                            log_path = os.path.splitext(exe_path)[0] + "_log.txt"
-                            with open(log_path, 'w', encoding='utf-8', errors='replace') as f:
-                                f.write('\n'.join(log))
-                            if out:
-                                cprint(f"\n  \033[92mDECRYPT COMPLETE\033[0m")
-                                cprint(f"  \033[92mOutput: {out}\033[0m")
-                                cprint(f"  \033[36mLog: {log_path}\033[0m")
-                            else:
-                                cprint(f"  \033[93mCould not decrypt\033[0m")
+                        exe_path = r.stdout.strip().strip('"')
+                    except:
+                        pass
+                    if not exe_path:
+                        try:
+                            import subprocess
+                            result = subprocess.run(
+                                ['wmic', 'process', 'where', f'ProcessId={pid}', 'get', 'ExecutablePath', '/FO', 'CSV', '/NH'],
+                                capture_output=True, text=True, timeout=10
+                            )
+                            for line in result.stdout.strip().split('\n'):
+                                if not line.strip():
+                                    continue
+                                p = line.strip().strip('"')
+                                if p and os.path.isfile(p):
+                                    exe_path = p
+                                    break
+                        except:
+                            pass
+                    if exe_path and os.path.isfile(exe_path):
+                        cprint(f"  \033[92mFound: {exe_path}\033[0m")
+                        out, log = decrypt_and_rebuild(exe_path)
+                        log_path = os.path.splitext(exe_path)[0] + "_log.txt"
+                        with open(log_path, 'w', encoding='utf-8', errors='replace') as f:
+                            f.write('\n'.join(log))
+                        if out:
+                            cprint(f"\n  \033[92mDECRYPT COMPLETE\033[0m")
+                            cprint(f"  \033[92mOutput: {out}\033[0m")
+                            cprint(f"  \033[36mLog: {log_path}\033[0m")
                         else:
-                            cprint(f"  \033[93mCould not find executable path (try option 7 to dump memory)\033[0m")
-                    except Exception as e:
-                        cprint(f"  \033[91m[X] Error: {e}\033[0m")
+                            cprint(f"  \033[93mCould not decrypt\033[0m")
+                    else:
+                        cprint(f"  \033[93mCould not find executable path (try option 7 to decrypt by file path)\033[0m")
             else:
                 cprint(f"  \033[93mNo process found matching '{name}'\033[0m")
             print()
