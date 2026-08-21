@@ -1058,7 +1058,7 @@ def _proxy_parse(line):
     return None, None
 
 
-def _proxy_test_one(addr, proto, timeout=2):
+def _proxy_test_one(addr, proto, timeout=0.8):
     if proto == 'http':
         try:
             host, port = addr.split(':')
@@ -1103,7 +1103,7 @@ def _proxy_test_one(addr, proto, timeout=2):
                 pass
 
 
-def _proxy_worker(queue, valid_out, lock, done_count):
+def _proxy_worker(queue, valid_out, lock, done_count, fail_count):
     while True:
         try:
             addr, proto = queue.pop()
@@ -1114,26 +1114,33 @@ def _proxy_worker(queue, valid_out, lock, done_count):
             done_count[0] += 1
             if ok:
                 valid_out.append(f"{proto}://{addr}" if proto != 'http' else addr)
+            else:
+                fail_count[0] += 1
 
 
-def auto_proxy_check(max_proxies=500, threads=80):
+def auto_proxy_check(max_proxies=500, threads=200):
     """Fetch proxies from all sources, test them, save valid to valid_proxies.txt."""
     if os.path.isfile(VALID_PROXIES_PATH):
         age_hours = (time.time() - os.path.getmtime(VALID_PROXIES_PATH)) / 3600
         if age_hours < 1:
             return
     cl = get_theme()
-    print(cprint_horizontal(cl['sub'], f"  [~] Fetching proxies from {len(PROXY_SOURCES)} sources..."))
+
+    total_sources = len(PROXY_SOURCES)
+    print(cprint_horizontal(cl['sub'], f"  [~] Fetching proxies from {total_sources} sources..."))
+    print()
     seen = set()
     queue = []
     fetch_lock = threading.Lock()
-    fetch_stats = [0, 0]  # [ok, fail]
+    fetch_done = [0]
+    fetch_ok = [0]
+    fetch_fail = [0]
 
     def _fetch_one(name_url):
         name, url = name_url
         try:
             req = urllib.request.Request(url, headers={'User-Agent': 'KevTool'})
-            with urllib.request.urlopen(req, timeout=10) as r:
+            with urllib.request.urlopen(req, timeout=8) as r:
                 raw = r.read().decode('utf-8', errors='ignore')
             count = 0
             for line in raw.splitlines():
@@ -1143,18 +1150,38 @@ def auto_proxy_check(max_proxies=500, threads=80):
                     queue.append((addr, proto))
                     count += 1
             with fetch_lock:
-                fetch_stats[0] += 1
+                fetch_done[0] += 1
+                fetch_ok[0] += 1
         except Exception:
             with fetch_lock:
-                fetch_stats[1] += 1
+                fetch_done[0] += 1
+                fetch_fail[0] += 1
 
     fetch_threads = [threading.Thread(target=_fetch_one, args=(s,), daemon=True) for s in PROXY_SOURCES]
+    t0 = time.time()
     for t in fetch_threads:
         t.start()
-    for t in fetch_threads:
-        t.join(timeout=15)
 
-    print(cprint_horizontal(cl['sub'], f"  [+] {fetch_stats[0]} sources reached, {fetch_stats[1]} failed — {len(queue)} proxies collected"))
+    while any(t.is_alive() for t in fetch_threads):
+        elapsed = time.time() - t0
+        done = fetch_done[0]
+        bar_w = 40
+        pct = done / total_sources if total_sources else 1
+        filled = int(bar_w * pct)
+        bar = "█" * filled + "░" * (bar_w - filled)
+        sys.stdout.write(
+            f"\r  \033[36m[{bar}]\033[0m {done}/{total_sources} sources "
+            f"(\033[32m{fetch_ok[0]} ok\033[0m / \033[31m{fetch_fail[0]} fail\033[0m) "
+            f"~{len(queue)} proxies | {elapsed:.1f}s "
+        )
+        sys.stdout.flush()
+        time.sleep(0.15)
+
+    sys.stdout.write("\r" + " " * 90 + "\r")
+    sys.stdout.flush()
+
+    elapsed = time.time() - t0
+    print(cprint_horizontal(cl['head'], f"  [+] Fetch complete: {fetch_ok[0]}/{total_sources} sources reached, {len(queue)} proxies collected ({elapsed:.1f}s)"))
     if not queue:
         print(cprint_horizontal(cl['num'], "  [!] No proxies found from any source"))
         return
@@ -1163,33 +1190,50 @@ def auto_proxy_check(max_proxies=500, threads=80):
         queue = queue[:max_proxies]
     random.shuffle(queue)
     total = len(queue)
-    print(cprint_horizontal(cl['sub'], f"  [~] Testing {total} proxies ({threads} threads)..."))
+    print()
+    print(cprint_horizontal(cl['sub'], f"  [~] Testing {total} proxies ({threads} threads, 0.8s timeout)..."))
+    print()
     valid = []
     lock = threading.Lock()
     done_count = [0]
-    workers = [threading.Thread(target=_proxy_worker, args=(queue, valid, lock, done_count), daemon=True)
+    fail_count = [0]
+    workers = [threading.Thread(target=_proxy_worker, args=(queue, valid, lock, done_count, fail_count), daemon=True)
                for _ in range(min(threads, total))]
+    t1 = time.time()
     for t in workers:
         t.start()
     try:
         while done_count[0] < total:
-            time.sleep(0.3)
-            pct = int(done_count[0] / total * 100) if total else 0
-            sys.stdout.write(f"\r  [~] Testing proxies... {done_count[0]}/{total} ({pct}%) valid: {len(valid)}  ")
+            time.sleep(0.2)
+            elapsed = time.time() - t1
+            done = done_count[0]
+            pct = done / total if total else 1
+            bar_w = 40
+            filled = int(bar_w * pct)
+            bar = "█" * filled + "░" * (bar_w - filled)
+            speed = done / elapsed if elapsed > 0 else 0
+            eta = (total - done) / speed if speed > 0 else 0
+            sys.stdout.write(
+                f"\r  \033[36m[{bar}]\033[0m {done}/{total} ({pct*100:.1f}%) "
+                f"|\033[32m valid:{len(valid)}\033[0m "
+                f"|\033[31m fail:{fail_count[0]}\033[0m "
+                f"| {speed:.0f}/s ETA:{eta:.0f}s "
+            )
             sys.stdout.flush()
     except KeyboardInterrupt:
         pass
     for t in workers:
-        t.join(timeout=5)
-    sys.stdout.write("\r" + " " * 60 + "\r")
+        t.join(timeout=2)
+    sys.stdout.write("\r" + " " * 100 + "\r")
     sys.stdout.flush()
+    elapsed = time.time() - t1
     if valid:
         try:
             with open(VALID_PROXIES_PATH, 'w', encoding='utf-8') as f:
                 f.write('\n'.join(valid) + '\n')
         except Exception:
             pass
-        print(cprint_horizontal(cl['head'], f"  [+] {len(valid)} working proxies saved to valid_proxies.txt"))
+        print(cprint_horizontal(cl['head'], f"  [+] {len(valid)} working proxies saved ({elapsed:.1f}s, {len(valid)/elapsed:.0f}/s)"))
     else:
         print(cprint_horizontal(cl['num'], "  [!] No working proxies found"))
 
