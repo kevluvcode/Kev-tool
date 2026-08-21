@@ -436,7 +436,7 @@ def run(self=None):
         cprint("  \033[97m[4]  Decrypt specific section by name\033[0m")
         cprint("  \033[97m[5]  Batch decrypt (folder of executables)\033[0m")
         cprint("  \033[97m[6]  Lookup process by name\033[0m")
-        cprint("  \033[97m[7]  Decrypt running process memory\033[0m")
+        cprint("  \033[97m[7]  Full decrypt + rebuild (file path)\033[0m")
         cprint("  \033[91m[0]  Back\033[0m")
         print()
         choice = prompt("\033[33m  choice > \033[0m")
@@ -712,138 +712,28 @@ def run(self=None):
             print()
             pause()
         elif choice == '7':
-            name = prompt("\033[33m  process name (e.g. notepad, chrome) > \033[0m").strip()
-            if not name:
-                cprint("  \033[91m[X] Need a name\033[0m")
-                pause()
-                continue
-            if os.name != 'nt':
-                cprint("  \033[91m[X] Process memory dump only works on Windows\033[0m")
+            path = prompt("\033[33m  file path (.exe/.dll/.so/.bin) > \033[0m").strip().strip('"').strip("'")
+            if not os.path.isfile(path):
+                cprint("  \033[91m[X] File not found\033[0m")
                 pause()
                 continue
             clear()
-            cprint(f"\n  \033[36mLooking up: {name}\033[0m\n")
-            pids = []
-            try:
-                import subprocess
-                result = subprocess.run(
-                    ['tasklist', '/FI', f'IMAGENAME eq {name}*', '/FO', 'CSV', '/NH'],
-                    capture_output=True, text=True, timeout=10
-                )
-                for line in result.stdout.strip().split('\n'):
-                    if not line.strip():
-                        continue
-                    parts = [p.strip('"') for p in line.split('","')]
-                    if len(parts) >= 2:
-                        pids.append({"name": parts[0], "pid": parts[1]})
-            except Exception as e:
-                cprint(f"  \033[91m[X] Error: {e}\033[0m")
-                pause()
-                continue
-            if not pids:
-                cprint(f"  \033[93mNo process found matching '{name}'\033[0m")
-                pause()
-                continue
-            cprint(f"  \033[92mFound {len(pids)} process(es):\033[0m\n")
-            for i, p in enumerate(pids, 1):
-                cprint(f"    \033[97m[{i}] PID: {p['pid']:<8} {p['name']}\033[0m")
-            if len(pids) == 1:
-                idx = 1
+            cprint("\n  \033[36mDecrypting and rebuilding...\033[0m\n")
+            name_part, ext = os.path.splitext(os.path.basename(path))
+            output_path = prompt(f"\033[33m  output path (default: {name_part}_decrypted{ext}) > \033[0m") or f"{name_part}_decrypted{ext}"
+            out, log = decrypt_and_rebuild(path, output_path)
+            log_path = os.path.splitext(output_path)[0] + "_log.txt"
+            with open(log_path, 'w', encoding='utf-8', errors='replace') as f:
+                f.write('\n'.join(log))
+            clear()
+            if out:
+                cprint(f"\n  \033[92mDECRYPT COMPLETE\033[0m")
+                cprint(f"  \033[92mOutput:   {out}\033[0m")
+                cprint(f"  \033[36mLog:      {log_path}\033[0m")
+                cprint(f"  \033[97mSections: {len([l for l in log if 'PATCHED' in l])} decrypted\033[0m")
             else:
-                try:
-                    idx = int(prompt("\033[33m  select process # > \033[0m"))
-                except:
-                    idx = 1
-            idx = max(1, min(len(pids), idx))
-            pid = int(pids[idx - 1]['pid'])
-            proc_name = pids[idx - 1]['name']
-            cprint(f"\n  \033[36mDumping memory of PID {pid} ({proc_name})...\033[0m")
-            try:
-                import ctypes
-                from ctypes import wintypes
-                PROCESS_VM_READ = 0x0010
-                PROCESS_QUERY_INFORMATION = 0x0400
-                kernel32 = ctypes.windll.kernel32
-                handle = kernel32.OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, False, pid)
-                if not handle:
-                    cprint("  \033[91m[X] OpenProcess failed (try running as Administrator)\033[0m")
-                    pause()
-                    continue
-                class MEMORY_BASIC_INFORMATION(ctypes.Structure):
-                    _fields_ = [
-                        ("BaseAddress", ctypes.c_void_p),
-                        ("AllocationBase", ctypes.c_void_p),
-                        ("AllocationProtect", wintypes.DWORD),
-                        ("RegionSize", ctypes.c_size_t),
-                        ("State", wintypes.DWORD),
-                        ("Protect", wintypes.DWORD),
-                        ("Type", wintypes.DWORD),
-                    ]
-                mbi = MEMORY_BASIC_INFORMATION()
-                mbi_size = ctypes.sizeof(mbi)
-                address = 0
-                regions = []
-                while address < 0x7FFFFFFFFFFFFFFF:
-                    result = kernel32.VirtualQueryEx(handle, ctypes.c_void_p(address), ctypes.byref(mbi), mbi_size)
-                    if result == 0:
-                        break
-                    if mbi.State == 0x1000 and mbi.Protect in (0x02, 0x04, 0x08, 0x20, 0x40, 0x80):
-                        buf = ctypes.create_string_buffer(mbi.RegionSize)
-                        bytes_read = ctypes.c_size_t(0)
-                        if kernel32.ReadProcessMemory(handle, mbi.BaseAddress, buf, mbi.RegionSize, ctypes.byref(bytes_read)):
-                            regions.append({
-                                "base": mbi.BaseAddress,
-                                "size": bytes_read.value,
-                                "data": buf.raw[:bytes_read.value],
-                                "protect": mbi.Protect,
-                            })
-                    address += mbi.RegionSize
-                    if len(regions) > 200:
-                        break
-                kernel32.CloseHandle(handle)
-                if not regions:
-                    cprint("  \033[91m[X] Could not read any memory regions\033[0m")
-                    pause()
-                    continue
-                total_size = sum(r['size'] for r in regions)
-                cprint(f"\n  \033[92mDumped {len(regions)} regions, {total_size:,} bytes total\033[0m\n")
-                safe_name = proc_name.replace('.exe', '').replace('.dll', '')
-                out_file = f"{safe_name}_pid{pid}_dump.bin"
-                with open(out_file, 'wb') as f:
-                    for r in regions:
-                        f.write(r['data'])
-                cprint(f"  \033[92mSaved raw dump to: {out_file}\033[0m")
-                protect_map = {0x02: "READONLY", 0x04: "READWRITE", 0x08: "WRITECOPY",
-                               0x20: "EXECUTE", 0x40: "EXECUTE_READ", 0x80: "EXECUTE_READWRITE"}
-                log_file = f"{safe_name}_pid{pid}_regions.txt"
-                with open(log_file, 'w') as f:
-                    f.write(f"Memory Dump: {proc_name} (PID {pid})\n")
-                    f.write(f"Regions: {len(regions)}  Total: {total_size:,} bytes\n\n")
-                    for i, r in enumerate(regions):
-                        prot = protect_map.get(r['protect'], f"0x{r['protect']:x}")
-                        f.write(f"Region {i+1}: 0x{r['base']:016x}  size={r['size']:,}  protect={prot}\n")
-                        chunk = r['data'][:256]
-                        hex_lines = []
-                        for j in range(0, len(chunk), 16):
-                            line = chunk[j:j+16]
-                            h = ' '.join(f'{b:02x}' for b in line)
-                            a = ''.join(chr(b) if 32 <= b <= 126 else '.' for b in line)
-                            hex_lines.append(f"    {r['base']+j:016x}  {h:<48}  {a}")
-                        f.write('\n'.join(hex_lines) + '\n\n')
-                cprint(f"  \033[36mRegion log saved to: {log_file}\033[0m")
-                show = prompt("\033[33m  hexdump first region? (y/n) > \033[0m")
-                if show.lower() == 'y':
-                    r = regions[0]
-                    clear()
-                    cprint(f"\n  \033[36m=== REGION 1: 0x{r['base']:016x} ({r['size']:,} bytes) ===\033[0m\n")
-                    for j in range(0, min(r['size'], 512), 16):
-                        chunk = r['data'][j:j+16]
-                        h = ' '.join(f'{b:02x}' for b in chunk)
-                        a = ''.join(chr(b) if 32 <= b <= 126 else '.' for b in chunk)
-                        cprint(f"  \033[90m{r['base']+j:016x}\033[0m  {h:<48}  \033[97m{a}\033[0m")
-            except Exception as e:
-                cprint(f"  \033[91m[X] Error: {e}\033[0m")
-            print()
+                cprint(f"\n  \033[91mCould not decrypt/rebuild\033[0m")
+                cprint(f"  \033[93mCheck log: {log_path}\033[0m")
             pause()
         else:
             cprint("  \033[91minvalid choice\033[0m")
