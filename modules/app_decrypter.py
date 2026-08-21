@@ -72,6 +72,20 @@ def detect_file(data):
         return "Mach-O"
     return "Unknown"
 
+def is_likely_encrypted(data):
+    if not data or len(data) < 32:
+        return False
+    entropy = 0
+    freq = [0] * 256
+    for b in data:
+        freq[b] += 1
+    length = len(data)
+    for f in freq:
+        if f:
+            p = f / length
+            entropy -= p * math.log2(p)
+    return entropy > 7.2
+
 # ─── PE Section Reader ───────────────────────────────────────────────
 def read_pe_sections(data):
     try:
@@ -428,9 +442,8 @@ def run(self=None):
         cprint("  \u2551      APP DECRYPTER / UNPACKER / REBUILDER         \u2551", "yellow")
         cprint("  \u255a" + "\u2550" * 50 + "\u255d", "yellow")
         print()
-        cprint("  \033[97m[1]  Full decrypt + rebuild (running process)")
-        cprint("       Enter process name, finds exe on disk,")
-        cprint("       scans all sections, decrypts, rebuilds\033[0m")
+        cprint("  \033[97m[1]  Live decrypt (running process, runtime memory)")
+        cprint("       Dumps live memory, decrypts, rebuilds\033[0m")
         cprint("  \033[97m[2]  Quick decrypt (file path)\033[0m")
         cprint("  \033[97m[3]  Analyze only (no rebuild, just report)\033[0m")
         cprint("  \033[97m[4]  Decrypt specific section by name\033[0m")
@@ -449,7 +462,7 @@ def run(self=None):
                 pause()
                 continue
             clear()
-            cprint(f"\n  \033[36mLooking up: {proc_name}\033[0m\n")
+            cprint(f"\n  \033[36m[*] Looking up: {proc_name}\033[0m\n")
             found = []
             if os.name == 'nt':
                 try:
@@ -495,60 +508,147 @@ def run(self=None):
             idx = max(1, min(len(found), idx))
             pid = int(found[idx - 1]['pid'])
             exe_name = found[idx - 1]['name']
-            cprint(f"\n  \033[36mLocating executable for PID {pid} ({exe_name})...\033[0m")
-            exe_path = ""
-            if os.name == 'nt':
-                try:
-                    import subprocess
-                    r = subprocess.run(
-                        ['powershell', '-NoProfile', '-Command',
-                         f'(Get-CimInstance Win32_Process -Filter "ProcessId={pid}").ExecutablePath'],
-                        capture_output=True, text=True, timeout=15
-                    )
-                    p = r.stdout.strip().strip('"')
-                    if p and os.path.isfile(p):
-                        exe_path = p
-                except:
-                    pass
-                if not exe_path:
-                    try:
-                        import subprocess
-                        r = subprocess.run(
-                            ['wmic', 'process', 'where', f'ProcessId={pid}', 'get', 'ExecutablePath', '/FO', 'CSV', '/NH'],
-                            capture_output=True, text=True, timeout=10
-                        )
-                        for line in r.stdout.strip().split('\n'):
-                            if not line.strip():
-                                continue
-                            p = line.strip().strip('"')
-                            if p and os.path.isfile(p):
-                                exe_path = p
-                                break
-                    except:
-                        pass
-            if not exe_path or not os.path.isfile(exe_path):
-                cprint(f"  \033[91m[X] Could not locate executable on disk for PID {pid}\033[0m")
-                cprint(f"  \033[93mTip: option [2] lets you decrypt a file directly\033[0m")
+            safe = os.path.splitext(exe_name)[0]
+            name_part, ext = os.path.splitext(exe_name)
+            output_path = prompt(f"\033[33m  output path (default: {safe}_live_decrypted{ext}) > \033[0m") or f"{safe}_live_decrypted{ext}"
+            clear()
+
+            def _pct(step, total, label):
+                pct = int((step / total) * 100) if total else 0
+                bar_len = 30
+                filled = int(bar_len * step / total) if total else 0
+                bar = "\033[92m" + "\u2588" * filled + "\033[90m" + "\u2591" * (bar_len - filled) + "\033[0m"
+                cprint(f"\r  \033[36m[{bar}] \033[97m{pct:3d}%\033[0m \033[93m{label}\033[0m", end="")
+
+            if os.name != 'nt':
+                cprint("  \033[91m[X] Live process decrypt only works on Windows\033[0m")
                 pause()
                 continue
-            cprint(f"  \033[92mFound: {exe_path}\033[0m")
-            name_part, ext = os.path.splitext(exe_name)
-            output_path = prompt(f"\033[33m  output path (default: {name_part}_decrypted{ext}) > \033[0m") or f"{name_part}_decrypted{ext}"
-            clear()
-            cprint("\n  \033[36mDecrypting and rebuilding...\033[0m\n")
-            out, log = decrypt_and_rebuild(exe_path, output_path)
-            log_path = os.path.splitext(output_path)[0] + "_log.txt"
-            with open(log_path, 'w', encoding='utf-8', errors='replace') as f:
-                f.write('\n'.join(log))
-            clear()
-            if out:
-                cprint(f"\n  \033[92mDECRYPT COMPLETE\033[0m")
-                cprint(f"  \033[92mOutput:   {out}\033[0m")
+
+            cprint(f"  \033[36m[*] Attaching to PID {pid} ({exe_name})...\033[0m\n")
+            _pct(0, 10, "opening process handle")
+            try:
+                import ctypes
+                from ctypes import wintypes
+                kernel32 = ctypes.windll.kernel32
+                PROCESS_VM_READ = 0x0010
+                PROCESS_QUERY_INFORMATION = 0x0400
+                handle = kernel32.OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, False, pid)
+                if not handle:
+                    cprint("\n  \033[91m[X] OpenProcess failed (try running as Administrator)\033[0m")
+                    pause()
+                    continue
+                _pct(1, 10, "handle opened")
+
+                class MEMORY_BASIC_INFORMATION(ctypes.Structure):
+                    _fields_ = [
+                        ("BaseAddress", ctypes.c_void_p),
+                        ("AllocationBase", ctypes.c_void_p),
+                        ("AllocationProtect", wintypes.DWORD),
+                        ("RegionSize", ctypes.c_size_t),
+                        ("State", wintypes.DWORD),
+                        ("Protect", wintypes.DWORD),
+                        ("Type", wintypes.DWORD),
+                    ]
+
+                _pct(2, 10, "scanning memory regions")
+                mbi = MEMORY_BASIC_INFORMATION()
+                mbi_size = ctypes.sizeof(mbi)
+                address = 0
+                regions = []
+                while address < 0x7FFFFFFFFFFFFFFF:
+                    kernel32.VirtualQueryEx(handle, ctypes.c_void_p(address), ctypes.byref(mbi), mbi_size)
+                    if mbi.RegionSize == 0:
+                        break
+                    if mbi.State == 0x1000 and mbi.Protect in (0x02, 0x04, 0x08, 0x20, 0x40, 0x80):
+                        buf = ctypes.create_string_buffer(mbi.RegionSize)
+                        bytes_read = ctypes.c_size_t(0)
+                        if kernel32.ReadProcessMemory(handle, mbi.BaseAddress, buf, mbi.RegionSize, ctypes.byref(bytes_read)):
+                            regions.append({
+                                "base": mbi.BaseAddress,
+                                "size": bytes_read.value,
+                                "data": buf.raw[:bytes_read.value],
+                                "protect": mbi.Protect,
+                            })
+                    address += mbi.RegionSize
+                    if len(regions) > 500:
+                        break
+
+                kernel32.CloseHandle(handle)
+                _pct(3, 10, f"dumped {len(regions)} regions")
+
+                if not regions:
+                    cprint("\n  \033[91m[X] Could not read any memory regions\033[0m")
+                    pause()
+                    continue
+
+                total_size = sum(r['size'] for r in regions)
+                _pct(4, 10, f"analyzing {total_size:,} bytes")
+
+                all_data = bytearray()
+                for r in regions:
+                    all_data.extend(r['data'])
+                _pct(5, 10, "merged memory")
+
+                ftype = detect_file(bytes(all_data))
+                _pct(6, 10, f"format: {ftype}")
+
+                log = []
+                log.append(f"Live decrypt: {exe_name} (PID {pid})")
+                log.append(f"Memory regions: {len(regions)}")
+                log.append(f"Total memory: {total_size:,} bytes")
+                log.append(f"Detected format: {ftype}")
+                log.append("")
+
+                out_data = bytearray(all_data)
+                patched = 0
+                total_regions = len(regions)
+
+                _pct(7, 10, "decrypting sections")
+                for ri, r in enumerate(regions):
+                    chunk = r['data']
+                    if len(chunk) < 16:
+                        continue
+                    for method_name, method_fn in [
+                        ("XOR", lambda d: bytes(b ^ 0xFF for b in d)),
+                        ("SUB", lambda d: bytes((b - 1) & 0xFF for b in d)),
+                        ("ADD", lambda d: bytes((b + 1) & 0xFF for b in d)),
+                        ("ROT13", lambda d: bytes(((b - 65) % 26 + 65) if 65 <= b <= 90 else ((b - 97) % 26 + 97) if 97 <= b <= 122 else b for b in d)),
+                    ]:
+                        try:
+                            dec = method_fn(chunk)
+                            _, sub_sections = read_pe_sections(dec) if ftype == "PE" else (None, [])
+                            if sub_sections:
+                                for sec in sub_sections:
+                                    raw = dec[sec['raw_ptr']:sec['raw_ptr'] + sec['raw_size']] if sec['raw_size'] <= len(dec) - sec['raw_ptr'] else b''
+                                    if raw and is_likely_encrypted(raw):
+                                        out_data[r['base']:r['base'] + r['size']] = dec[:r['size']] if r['size'] <= len(dec) else dec
+                                        log.append(f"  PATCHED region {ri+1} @ 0x{r['base']:016x} ({r['size']:,} bytes) via {method_name}")
+                                        patched += 1
+                                        break
+                                else:
+                                    continue
+                                break
+                        except:
+                            continue
+                    _pct(7 + int(3 * (ri + 1) / total_regions), 10, f"region {ri+1}/{total_regions}")
+
+                _pct(10, 10, "writing output")
+                log.append(f"\nSections decrypted: {patched}")
+
+                with open(output_path, 'wb') as f:
+                    f.write(bytes(out_data))
+                log_path = os.path.splitext(output_path)[0] + "_log.txt"
+                with open(log_path, 'w', encoding='utf-8', errors='replace') as f:
+                    f.write('\n'.join(log))
+                clear()
+                cprint(f"\n  \033[92mLIVE DECRYPT COMPLETE\033[0m")
+                cprint(f"  \033[92mOutput:   {output_path}\033[0m")
                 cprint(f"  \033[36mLog:      {log_path}\033[0m")
-                cprint(f"  \033[97mSections: {len([l for l in log if 'PATCHED' in l])} decrypted\033[0m")
-            else:
-                cprint(f"\n  \033[91mCould not decrypt/rebuild\033[0m")
-                cprint(f"  \033[93mCheck log: {log_path}\033[0m")
+                cprint(f"  \033[97mRegions:  {len(regions)} scanned, {patched} patched\033[0m")
+                cprint(f"  \033[97mMemory:   {total_size:,} bytes\033[0m")
+            except Exception as e:
+                cprint(f"\n  \033[91m[X] Error: {e}\033[0m")
             pause()
         elif choice == '2':
             path = prompt("\033[33m  file path (.exe/.dll/.so/.bin) > \033[0m").strip().strip('"').strip("'")
