@@ -1,5 +1,5 @@
 @echo off
-title KevTool - KevBin Educational Suite
+title KevTool
 color 0F
 chcp 65001 >nul 2>&1
 mode con: cols=90 lines=45
@@ -7,7 +7,7 @@ mode con: cols=90 lines=45
 where python >nul 2>&1
 if %errorlevel% neq 0 (
     echo.
-    echo  [X] Python is required to run KevTool.
+    echo  [X] Python is required to run KevTool DumbNut.
     echo  Download: https://www.python.org/downloads/
     echo.
     pause
