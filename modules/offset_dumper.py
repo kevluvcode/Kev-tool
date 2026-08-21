@@ -162,6 +162,8 @@ def run(self=None):
         cprint("  [7]  File info + magic bytes", "white")
         cprint("  [8]  Compare two files (binary diff)", "white")
         cprint("  [9]  Extract data at offset + length", "white")
+        cprint("  [A]  Lookup running process by name", "white")
+        cprint("  [B]  Dump process memory from name", "white")
         cprint("  [0]  Back", "red")
         print()
         choice = prompt("\033[33m  choice > \033[0m")
@@ -426,6 +428,183 @@ def run(self=None):
                 cprint(f"  ASCII: {data.decode('ascii', errors='replace')}", "green")
             except:
                 pass
+            print()
+            pause()
+        elif choice.lower() == 'a':
+            name = prompt("\033[33m  process name (e.g. chrome, notepad) > \033[0m").strip()
+            if not name:
+                cprint("  [X] Need a name", "red")
+                pause()
+                continue
+            clear()
+            cprint(f"\n  Looking up: {name}\n", "cyan")
+            found = []
+            if os.name == 'nt':
+                try:
+                    import subprocess
+                    result = subprocess.run(
+                        ['tasklist', '/FI', f'IMAGENAME eq {name}*', '/FO', 'CSV', '/NH'],
+                        capture_output=True, text=True, timeout=10
+                    )
+                    for line in result.stdout.strip().split('\n'):
+                        if not line.strip():
+                            continue
+                        parts = [p.strip('"') for p in line.split('","')]
+                        if len(parts) >= 5:
+                            found.append({"name": parts[0], "pid": parts[1], "mem": parts[4], "session": parts[2]})
+                except Exception as e:
+                    cprint(f"  [X] Error: {e}", "red")
+            else:
+                try:
+                    import subprocess
+                    result = subprocess.run(['pgrep', '-af', name], capture_output=True, text=True, timeout=10)
+                    for line in result.stdout.strip().split('\n'):
+                        if not line.strip():
+                            continue
+                        parts = line.split(' ', 1)
+                        if len(parts) == 2:
+                            found.append({"pid": parts[0], "cmd": parts[1]})
+                except Exception as e:
+                    cprint(f"  [X] Error: {e}", "red")
+            if found:
+                cprint(f"  Found {len(found)} process(es):\n", "green")
+                for i, p in enumerate(found, 1):
+                    if os.name == 'nt':
+                        cprint(f"    [{i}] PID: {p['pid']:<8} Name: {p['name']:<25} Memory: {p['mem']}", "white")
+                    else:
+                        cprint(f"    [{i}] PID: {p['pid']:<8}  {p.get('cmd', '')[:60]}", "white")
+            else:
+                cprint(f"  No process found matching '{name}'", "yellow")
+            print()
+            pause()
+        elif choice.lower() == 'b':
+            name = prompt("\033[33m  process name (e.g. notepad, chrome) > \033[0m").strip()
+            if not name:
+                cprint("  [X] Need a name", "red")
+                pause()
+                continue
+            if os.name != 'nt':
+                cprint("  [X] Process memory dump only works on Windows", "red")
+                pause()
+                continue
+            clear()
+            cprint(f"\n  Looking up: {name}\n", "cyan")
+            pids = []
+            try:
+                import subprocess
+                result = subprocess.run(
+                    ['tasklist', '/FI', f'IMAGENAME eq {name}*', '/FO', 'CSV', '/NH'],
+                    capture_output=True, text=True, timeout=10
+                )
+                for line in result.stdout.strip().split('\n'):
+                    if not line.strip():
+                        continue
+                    parts = [p.strip('"') for p in line.split('","')]
+                    if len(parts) >= 2:
+                        pids.append({"name": parts[0], "pid": parts[1]})
+            except Exception as e:
+                cprint(f"  [X] Error: {e}", "red")
+                pause()
+                continue
+            if not pids:
+                cprint(f"  No process found matching '{name}'", "yellow")
+                pause()
+                continue
+            cprint(f"  Found {len(pids)} process(es):\n", "green")
+            for i, p in enumerate(pids, 1):
+                cprint(f"    [{i}] PID: {p['pid']:<8} {p['name']}", "white")
+            if len(pids) == 1:
+                idx = 1
+            else:
+                try:
+                    idx = int(prompt("\033[33m  select process # > \033[0m"))
+                except:
+                    idx = 1
+            idx = max(1, min(len(pids), idx))
+            pid = int(pids[idx - 1]['pid'])
+            proc_name = pids[idx - 1]['name']
+            cprint(f"\n  Dumping memory of PID {pid} ({proc_name})...", "cyan")
+            try:
+                import ctypes
+                from ctypes import wintypes
+                PROCESS_VM_READ = 0x0010
+                PROCESS_QUERY_INFORMATION = 0x0400
+                kernel32 = ctypes.windll.kernel32
+                handle = kernel32.OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, False, pid)
+                if not handle:
+                    cprint("  [X] OpenProcess failed (try running as Administrator)", "red")
+                    pause()
+                    continue
+                class MEMORY_BASIC_INFORMATION(ctypes.Structure):
+                    _fields_ = [
+                        ("BaseAddress", ctypes.c_void_p),
+                        ("AllocationBase", ctypes.c_void_p),
+                        ("AllocationProtect", wintypes.DWORD),
+                        ("RegionSize", ctypes.c_size_t),
+                        ("State", wintypes.DWORD),
+                        ("Protect", wintypes.DWORD),
+                        ("Type", wintypes.DWORD),
+                    ]
+                mbi = MEMORY_BASIC_INFORMATION()
+                mbi_size = ctypes.sizeof(mbi)
+                address = 0
+                regions = []
+                while address < 0x7FFFFFFFFFFFFFFF:
+                    result = kernel32.VirtualQueryEx(handle, ctypes.c_void_p(address), ctypes.byref(mbi), mbi_size)
+                    if result == 0:
+                        break
+                    if mbi.State == 0x1000 and mbi.Protect in (0x02, 0x04, 0x08, 0x20, 0x40, 0x80):
+                        buf = ctypes.create_string_buffer(mbi.RegionSize)
+                        bytes_read = ctypes.c_size_t(0)
+                        if kernel32.ReadProcessMemory(handle, mbi.BaseAddress, buf, mbi.RegionSize, ctypes.byref(bytes_read)):
+                            regions.append({
+                                "base": mbi.BaseAddress,
+                                "size": bytes_read.value,
+                                "data": buf.raw[:bytes_read.value],
+                                "protect": mbi.Protect,
+                            })
+                    address += mbi.RegionSize
+                    if len(regions) > 200:
+                        break
+                kernel32.CloseHandle(handle)
+                if not regions:
+                    cprint("  [X] Could not read any memory regions", "red")
+                    pause()
+                    continue
+                total_size = sum(r['size'] for r in regions)
+                cprint(f"\n  Dumped {len(regions)} regions, {total_size:,} bytes total\n", "green")
+                safe_name = proc_name.replace('.exe', '').replace('.dll', '')
+                out_file = f"{safe_name}_pid{pid}_dump.bin"
+                with open(out_file, 'wb') as f:
+                    for r in regions:
+                        f.write(r['data'])
+                cprint(f"  Saved raw dump to: {out_file}", "green")
+                protect_map = {0x02: "READONLY", 0x04: "READWRITE", 0x08: "WRITECOPY",
+                               0x20: "EXECUTE", 0x40: "EXECUTE_READ", 0x80: "EXECUTE_READWRITE"}
+                log_file = f"{safe_name}_pid{pid}_regions.txt"
+                with open(log_file, 'w') as f:
+                    f.write(f"Memory Dump: {proc_name} (PID {pid})\n")
+                    f.write(f"Regions: {len(regions)}  Total: {total_size:,} bytes\n\n")
+                    for i, r in enumerate(regions):
+                        prot = protect_map.get(r['protect'], f"0x{r['protect']:x}")
+                        f.write(f"Region {i+1}: 0x{r['base']:016x}  size={r['size']:,}  protect={prot}\n")
+                        chunk = r['data'][:256]
+                        hex_lines = []
+                        for j in range(0, len(chunk), 16):
+                            line = chunk[j:j+16]
+                            h = ' '.join(f'{b:02x}' for b in line)
+                            a = ''.join(chr(b) if 32 <= b <= 126 else '.' for b in line)
+                            hex_lines.append(f"    {r['base']+j:016x}  {h:<48}  {a}")
+                        f.write('\n'.join(hex_lines) + '\n\n')
+                cprint(f"  Region log saved to: {log_file}", "green")
+                show = prompt("\033[33m  hexdump first region? (y/n) > \033[0m")
+                if show.lower() == 'y':
+                    r = regions[0]
+                    clear()
+                    cprint(f"\n  === REGION 1: 0x{r['base']:016x} ({r['size']:,} bytes) ===\n", "cyan")
+                    print(hexdump(r['data'][:512], r['base']))
+            except Exception as e:
+                cprint(f"  [X] Error: {e}", "red")
             print()
             pause()
         else:
