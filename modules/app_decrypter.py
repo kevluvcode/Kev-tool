@@ -518,7 +518,12 @@ def run(self=None):
                 bar_len = 30
                 filled = int(bar_len * step / total) if total else 0
                 bar = "\033[92m" + "\u2588" * filled + "\033[90m" + "\u2591" * (bar_len - filled) + "\033[0m"
-                cprint(f"\r  \033[36m[{bar}] \033[97m{pct:3d}%\033[0m \033[93m{label}\033[0m", end="")
+                msg = f"\r  \033[36m[{bar}] \033[97m{pct:3d}%\033[0m \033[93m{label}\033[0m"
+                try:
+                    sys.stdout.write(msg)
+                    sys.stdout.flush()
+                except:
+                    print(msg)
 
             if os.name != 'nt':
                 cprint("  \033[91m[X] Live process decrypt only works on Windows\033[0m")
@@ -565,7 +570,7 @@ def run(self=None):
                         bytes_read = ctypes.c_size_t(0)
                         if kernel32.ReadProcessMemory(handle, mbi.BaseAddress, buf, mbi.RegionSize, ctypes.byref(bytes_read)):
                             regions.append({
-                                "base": mbi.BaseAddress,
+                                "base": int(mbi.BaseAddress),
                                 "size": bytes_read.value,
                                 "data": buf.raw[:bytes_read.value],
                                 "protect": mbi.Protect,
