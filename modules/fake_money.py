@@ -165,7 +165,7 @@ def money_counter(bills):
     cprint(f"\n    {'TOTAL':>8}   {len(bills):>4}   {total:>12,.2f}", "green")
     print()
 
-def run():
+def run(self=None):
     while True:
         clear()
         cprint("  \u2554" + "\u2550" * 50 + "\u2557", "yellow")

@@ -404,7 +404,7 @@ def display_portfolio(balance_usd, holdings, tx_history):
 
 import random
 
-def run():
+def run(self=None):
     while True:
         clear()
         cprint("  ╔══════════════════════════════════════════════════╗", "yellow")

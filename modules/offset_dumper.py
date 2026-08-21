@@ -146,7 +146,7 @@ def find_elf_sections(data):
     except:
         return []
 
-def run():
+def run(self=None):
     while True:
         clear()
         cprint("  \u2554" + "\u2550" * 50 + "\u2557", "yellow")
