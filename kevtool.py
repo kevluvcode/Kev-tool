@@ -1013,6 +1013,10 @@ def _proxy_worker(queue, valid_out, lock, done_count):
 
 def auto_proxy_check(max_proxies=500, threads=80):
     """Fetch proxies from all sources, test them, save valid to valid_proxies.txt."""
+    if os.path.isfile(VALID_PROXIES_PATH):
+        age_hours = (time.time() - os.path.getmtime(VALID_PROXIES_PATH)) / 3600
+        if age_hours < 3:
+            return
     cl = get_theme()
     print(cprint_horizontal(cl['sub'], f"  [~] Fetching proxies from {len(PROXY_SOURCES)} sources..."))
     seen = set()
