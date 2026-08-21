@@ -20,7 +20,10 @@ except ImportError:
     def num(*a): return str(a)
     def head(*a): return str(a)
     def sub(*a): return str(a)
-    def prompt(*a): return input()
+    def prompt(msg=''):
+        if msg:
+            print(msg, end='', flush=True)
+        return input()
     def cprint(*a, **kw): print(*[x for x in a if isinstance(x, str)])
 
 def clear():
