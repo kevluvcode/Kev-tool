@@ -2,7 +2,7 @@
 
 a CLI multitool for learning/testing. 215+ tools across 14 tabs -- osint, security, malware builders, discord ops, roblox tools, text encoding, generators, and more.
 
-**version 1.9.0**
+**version 1.9.4**
 
 ---
 
@@ -21,16 +21,16 @@ this is strictly for educational and testing use. im not responsible if you do s
 
 ### the easy way (linux / macOS)
 1. grab the repo
-2. run ash install.sh -- it handles the rest
+2. run bash install.sh -- it handles the rest
 3. launch with python3 kevtool.py
 
 ### manual
-`
+```
 git clone https://github.com/kevluvcode/Kev-tool.git
 cd Kev-tool
 pip install -r requirements.txt
 python kevtool.py
-`
+```
 
 works on **python 3.6+**, all platforms (windows, linux, macOS). if you dont have python get it from python.org
 
@@ -44,13 +44,13 @@ works on **python 3.6+**, all platforms (windows, linux, macOS). if you dont hav
 
 ## auto-updating
 
-it auto-checks for updates on every launch. compares local ersion.txt to github. if there is a newer version it downloads the zip archive, extracts to a KevTool-{version}/ folder, copies your settings.json over, and launches the new version. you never lose your theme/settings. can be toggled in settings or with check_updates: false in modules/config/settings.json.
+it auto-checks for updates on every launch. compares local version.txt to github. if there is a newer version it downloads the zip archive, extracts to a KevTool-{version}/ folder, copies your settings.json over, and launches the new version. you never lose your theme/settings. can be toggled in settings or with check_updates: false in modules/config/settings.json.
 
 ---
 
 ## auto proxy validation
 
-on every boot it fetches the latest proxy list from **150+ sources** in parallel, tests them multi-threaded with 200 threads and 0.8s socket timeout, and saves working ones to alid_proxies.txt. you see a live progress bar with ETA and speed during both the fetch and test phases. valid proxies are always fresh without you having to run the checker manually. skips scan if alid_proxies.txt is less than 1 hour old.
+on every boot it fetches the latest proxy list from **150+ sources** in parallel, tests them multi-threaded with 200 threads and 0.8s socket timeout, and saves working ones to valid_proxies.txt. you see a live progress bar with ETA and speed during both the fetch and test phases. valid proxies are always fresh without you having to run the checker manually. skips scan if valid_proxies.txt is less than 1 hour old.
 
 ---
 
@@ -103,24 +103,42 @@ the **Lua obfuscator** was also upgraded with XOR string encrypt, control flow f
 - Obfuscator V3, Web Cloner, Cryptography, QR Generator, Hash Tool, Base64 Image, Ciphers, JWT Tools, CORS Tester, Entropy, Password Check, Timestamp, Security Headers, CSP Analyzer, Honeypot Detector, HTTP Status, Port Scanner, Traceroute, Tor Check, Link Tools, IP Pinger, System Info, Proxy Scraper, Proxy Checker, OTP Generator, Hex Dump, Hash Cracker, VirusTotal
 
 ### malware & builders
-- **Discord RAT** -- full Discord webhook RAT builder (.py/.exe) with shell, screenshot, WiFi dump, clipboard, file download, persistence, stealth mode
+
+- **Discord RAT** -- full Discord C2 RAT with WebSocket Gateway client (.py/.exe). shell, screenshot, WiFi dump, clipboard, file download, webcam capture, audio recording, keylogger, browser data theft, UAC/AMSI bypass, persistence, stealth mode.
+
+  connects via WebSocket Gateway (not REST polling). uses intents GUILDS + GUILD_MESSAGES + MESSAGE_CONTENT. webhook used for sending responses/files back to Discord. shows offline in Discord (normal -- no gateway status updates).
+
+  **persistence** -- triple-method: registry Run key + startup folder shortcut + scheduled task. randomized filename from disguises list (csrss, svchost, RuntimeBroker, etc). skips if already persisted.
+
+  **stealth** -- anti-VM (file artifacts, WMI manufacturer, BIOS serial), anti-debug (IsDebuggerPresent, sandbox resource checks), console hidden, randomized window title, sleep jitter, reconnect backoff with jitter.
 
   RAT commands (prefix + command):
+
   | Command | Description |
   |---------|-------------|
   | `info` | System info (user, PC, OS, IP) |
+  | `sysinfo` | Detailed system info (RAM, disks) |
   | `shell <cmd>` | Run shell command |
   | `cd <path>` | Change directory |
   | `ls [path]` | List directory contents |
-  | `screenshot` | Capture screen (sent via webhook as BMP) |
+  | `screenshot` | Capture screen (PowerShell System.Drawing, sent as PNG) |
   | `clipboard` | Get clipboard content |
+  | `setclip <txt>` | Set clipboard content |
   | `wifi` | Show saved WiFi passwords |
+  | `processes` | List running processes |
+  | `killproc <name>` | Kill process by name |
   | `download <file>` | Send file via webhook |
-  | `persist` | Install persistence (copies to %APPDATA%, sets Run key) |
+  | `webcam` | Capture webcam image (dshow/VFW) |
+  | `audio [sec]` | Record audio 1-30s (winmm waveIn, default 5s) |
+  | `keylog` | Start in-process keylogger (webhook exfil) |
+  | `keylog_stop` | Stop keylogger and dump captured keystrokes |
+  | `steal_browser` | Steal Chrome/Edge/Firefox Login Data, Cookies, History |
+  | `uac` | Attempt UAC bypass (fodhelper registry debugger) |
+  | `amsi` | Bypass AMSI for current session (AmsiUtils patch) |
+  | `persist` | Install persistence (triple-method) |
   | `kill` | Terminate RAT |
-  | `help` | Show command list |
 
-  Builder options: webhook URL, bot token (for commands), channel ID, command prefix, persistence toggle, stealth mode, beacon interval.
+  **builder options** -- webhook URL, bot token (for commands), channel ID, command prefix, persistence toggle, stealth mode, beacon interval, custom .ico icon, custom persistence filename, custom output directory, debug mode.
 
 - **Token Grabber** -- build Discord token grabber .exe with browser data exfil
 - **Keylogger Builder** -- live keylogger + builder with webhook exfil, persistence, stealth
@@ -182,7 +200,7 @@ each theme controls banner gradient, header color, number color, text color, sub
 
 ## file structure
 
-`
+```
 Kev-tool/
   kevtool.py              # main app (14 tabs, 215+ tools)
   kevtool.bat             # windows launcher
@@ -197,7 +215,7 @@ Kev-tool/
     lua_obfuscator.py     # lua obfuscation
     discord_ops.py        # discord operations (16 functions)
     hwid_spoofer.py       # HWID spoofer v2 (15 options)
-    discord_rat.py        # RAT builder (.py/.exe)
+    discord_rat.py        # RAT builder (.py/.exe) -- WebSocket Gateway, 21 commands
     token_grabber.py      # token grabber builder (.py/.exe)
     keylogger.py          # keylogger builder (.py/.exe)
     crypto_clipper.py     # clipboard swapper builder (.py/.exe)
@@ -208,7 +226,7 @@ Kev-tool/
     ddos_tool.py          # layer 7 HTTP flood
     app_decrypter.py      # decrypt/rebuild .exe .dll .so
     offset_dumper.py      # hex view + PE/ELF sections
-    guns_viewbot.py       # HTTP flood viewbot
+    guns_viewbot.py       # honest HTTP flood viewbot
     wifi_scanner.py       # saved WiFi + passwords
     github_dorker.py      # GitHub secret dorker
     virus_total.py        # VT file/URL/hash scan
@@ -216,4 +234,4 @@ Kev-tool/
     phone_lookup.py       # phone number OSINT
     ip_grabber.py         # IP grabber link builder
     ...                   # 100+ more modules
-`
+```
