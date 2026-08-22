@@ -103,18 +103,36 @@ the **Lua obfuscator** was also upgraded with XOR string encrypt, control flow f
 - Obfuscator V3, Web Cloner, Cryptography, QR Generator, Hash Tool, Base64 Image, Ciphers, JWT Tools, CORS Tester, Entropy, Password Check, Timestamp, Security Headers, CSP Analyzer, Honeypot Detector, HTTP Status, Port Scanner, Traceroute, Tor Check, Link Tools, IP Pinger, System Info, Proxy Scraper, Proxy Checker, OTP Generator, Hex Dump, Hash Cracker, VirusTotal
 
 ### malware & builders
-- Discord RAT (full RAT builder, .py/.exe, shell, screenshot, WiFi dump, clipboard, persistence, stealth)
-- Token Grabber (build .exe with browser data exfil)
-- Keylogger Builder (webhook exfil, persistence, stealth)
-- Crypto Clipper (clipboard swapper with Discord webhook notifications)
-- Recovery Tool (browser data extraction)
-- HWID Spoofer (MAC, UUID, ProductId, Hostname, BIOS, BaseBoard, Disk, Volume Serial, registry noise, backup/restore, debug mode)
-- SQL Scanner (SQL injection scanner)
-- Doxxer Tool (dox tracker & creator)
-- Email Bomber (bulk email sender via SMTP)
-- DDoS Tool (layer 7 HTTP flood stress test)
-- App Decrypter (decrypt/rebuild .exe .dll .so, live runtime decrypt)
-- Offset Dumper (hex view + search + PE/ELF sections)
+- **Discord RAT** -- full Discord webhook RAT builder (.py/.exe) with shell, screenshot, WiFi dump, clipboard, file download, persistence, stealth mode
+
+  RAT commands (prefix + command):
+  | Command | Description |
+  |---------|-------------|
+  | `info` | System info (user, PC, OS, IP) |
+  | `shell <cmd>` | Run shell command |
+  | `cd <path>` | Change directory |
+  | `ls [path]` | List directory contents |
+  | `screenshot` | Capture screen (sent via webhook as BMP) |
+  | `clipboard` | Get clipboard content |
+  | `wifi` | Show saved WiFi passwords |
+  | `download <file>` | Send file via webhook |
+  | `persist` | Install persistence (copies to %APPDATA%, sets Run key) |
+  | `kill` | Terminate RAT |
+  | `help` | Show command list |
+
+  Builder options: webhook URL, bot token (for commands), channel ID, command prefix, persistence toggle, stealth mode, beacon interval.
+
+- **Token Grabber** -- build Discord token grabber .exe with browser data exfil
+- **Keylogger Builder** -- live keylogger + builder with webhook exfil, persistence, stealth
+- **Crypto Clipper** -- clipboard monitor & crypto address swapper with Discord webhook notifications
+- **Recovery Tool** -- browser data extraction (passwords, cookies, history)
+- **HWID Spoofer** -- spoof all HWID identifiers (MAC, UUID, ProductId, Hostname, BIOS, BaseBoard, Disk, Volume Serial, registry noise) with backup/restore and debug mode
+- **SQL Scanner** -- SQL injection scanner
+- **Doxxer Tool** -- dox tracker & creator
+- **Email Bomber** -- bulk email sender via SMTP
+- **DDoS Tool** -- layer 7 HTTP flood stress test
+- **App Decrypter** -- decrypt/rebuild .exe .dll .so with live runtime decrypt
+- **Offset Dumper** -- hex view + search + PE/ELF sections
 
 ### web & network tools
 - Web Cloner, Site Viewer, Web Search, Webhook Tester, Webhook Delete, Link Bypass, Link Spoof, Link Tracker, Browser FP, WebRTC Leak, DNS over HTTPS, Subdomain Enum, Subnet Calculator, Curl Builder, URL Parser, User-Agent Gen, WAF Detector, Directory Brute, Calculator, Guns Viewbot
