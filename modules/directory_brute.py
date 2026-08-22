@@ -8,39 +8,277 @@ import urllib.parse
 
 
 COMMON_DIRS = [
-    'admin', 'login', 'wp-admin', 'wp-login.php', 'administrator',
-    'phpmyadmin', 'phpMyAdmin', 'cpanel', 'webmail', 'mail',
-    'backup', 'backups', 'old', 'new', 'temp', 'tmp', 'test',
-    'dev', 'development', 'staging', 'stage', 'beta', 'demo',
-    'api', 'v1', 'v2', 'v3', 'rest', 'graphql', 'swagger',
-    'docs', 'documentation', 'help', 'support', 'faq',
-    'uploads', 'upload', 'files', 'media', 'images', 'img', 'assets',
-    'static', 'css', 'js', 'javascript', 'scripts', 'fonts',
-    'config', 'configuration', 'settings', 'setup', 'install',
-    '.env', '.git', '.svn', '.htaccess', '.htpasswd',
-    'robots.txt', 'sitemap.xml', 'crossdomain.xml', 'favicon.ico',
-    'server-status', 'server-info', 'info.php', 'phpinfo.php',
-    'shell', 'cmd', 'console', 'terminal', 'ssh',
-    'database', 'db', 'sql', 'mysql', 'postgres', 'mongo',
-    'config.php', 'config.json', 'config.yml', 'config.xml',
+    # Authentication / administration
+    'admin', 'admins', 'administrator', 'administrators', 'adminpanel',
+    'admin-panel', 'admin_panel', 'adminarea', 'admin-area', 'admincp',
+    'admin-cp', 'adminconsole', 'admin-console', 'adminlogin', 'admin-login',
+    'admin1', 'admin2', 'admin3', 'adm', 'manage', 'management',
+    'manager', 'control', 'controlpanel', 'control-panel', 'cp',
+    'cpanel', 'whm', 'panel', 'dashboard', 'portal', 'backend',
+    'backoffice', 'office', 'staff', 'staffonly', 'internal',
+
+    # Login / account
+    'login', 'log-in', 'signin', 'sign-in', 'signon', 'auth',
+    'authentication', 'authorize', 'authorization', 'oauth', 'oauth2',
+    'sso', 'logout', 'signout', 'sign-out', 'register', 'registration',
+    'signup', 'sign-up', 'create-account', 'join', 'forgot',
+    'forgot-password', 'forgotpassword', 'reset', 'reset-password',
+    'password-reset', 'recover', 'recovery', 'verify', 'verification',
+    'activate', 'activation', 'account', 'accounts', 'profile',
+    'profiles', 'user', 'users', 'member', 'members', 'me',
+
+    # WordPress
+    'wp-admin', 'wp-login.php', 'wp-content', 'wp-includes',
     'wp-config.php', 'wp-config.php.bak', 'wp-config.php.old',
-    '.DS_Store', 'Thumbs.db', 'web.config', 'elmah.axd',
-    'trace.axd', 'status', 'health', 'ping', 'metrics',
-    'cgi-bin', 'scripts', 'ssi', '.well-known',
-    'swagger-ui', 'redoc', 'openapi.json',
-    'wp-content', 'wp-includes', 'xmlrpc.php',
-    'editor', 'filemanager', 'ftp', 'sftp',
-    'register', 'signup', 'create', 'forgot', 'reset',
-    'profile', 'account', 'dashboard', 'panel', 'portal',
-    'search', 'sitemap', 'archive', 'archives', 'blog',
-    'feed', 'rss', 'atom', 'json', 'xml', 'csv',
-    'debug', 'log', 'logs', 'error', 'errors', '404', '500',
-    '.env.bak', '.env.old', '.env.example', '.env.local',
-    'Makefile', 'Dockerfile', 'docker-compose.yml', 'Vagrantfile',
-    'README.md', 'LICENSE', 'CHANGELOG.md',
+    'wp-config.php~', 'wp-json', 'wp-cron.php', 'wp-load.php',
+    'wp-settings.php', 'xmlrpc.php', 'wp-comments-post.php',
+    'wp-trackback.php', 'wp-signup.php', 'wp-activate.php',
+    'wp-content/uploads', 'wp-content/plugins', 'wp-content/themes',
+    'wp-content/cache', 'wp-content/debug.log',
+
+    # CMS / common platforms
+    'administrator', 'joomla', 'drupal', 'sites', 'modules',
+    'themes', 'core', 'typo3', 'contao', 'magento', 'shop',
+    'store', 'prestashop', 'opencart', 'ghost', 'cms',
+    'cmsadmin', 'cms-admin', 'umbraco', 'sitecore',
+
+    # Database / database tools
+    'phpmyadmin', 'phpMyAdmin', 'pma', 'myadmin', 'adminer',
+    'dbadmin', 'db-admin', 'database', 'databases', 'db',
+    'sql', 'mysql', 'mysqli', 'postgres', 'postgresql',
+    'mongo', 'mongodb', 'redis', 'elasticsearch',
+
+    # APIs
+    'api', 'api-docs', 'api-doc', 'api-docs/', 'apis',
+    'v1', 'v2', 'v3', 'v4', 'api/v1', 'api/v2', 'api/v3',
+    'rest', 'rest-api', 'graphql', 'graphql-playground',
+    'graphiql', 'swagger', 'swagger-ui', 'swagger.json',
+    'swagger.yaml', 'openapi', 'openapi.json', 'openapi.yaml',
+    'redoc', 'redocly', 'docs/api',
+
+    # Documentation / help
+    'docs', 'doc', 'documentation', 'developer', 'developers',
+    'devdocs', 'api-docs', 'guide', 'guides', 'manual',
+    'help', 'support', 'support-center', 'supportcenter',
+    'faq', 'kb', 'knowledgebase', 'wiki', 'readme',
+    'README', 'README.md', 'CHANGELOG', 'CHANGELOG.md',
+    'LICENSE', 'LICENSE.md',
+
+    # Development / testing / staging
+    'dev', 'development', 'develop', 'developer', 'stage',
+    'staging', 'staging1', 'staging2', 'test', 'testing',
+    'tests', 'qa', 'uat', 'sandbox', 'beta', 'alpha',
+    'demo', 'preview', 'preprod', 'pre-production',
+    'production', 'prod', 'local', 'localhost',
+
+    # Files / uploads / media
+    'uploads', 'upload', 'uploaded', 'files', 'file',
+    'downloads', 'download', 'dl', 'media', 'images',
+    'image', 'img', 'imgs', 'pictures', 'photos',
+    'photo', 'video', 'videos', 'audio', 'assets',
+    'asset', 'static', 'public', 'resources', 'resource',
+    'storage', 'content', 'contents', 'attachments',
+    'documents', 'document', 'data', 'dataset',
+
+    # Frontend assets
+    'css', 'js', 'javascript', 'scripts', 'script',
+    'fonts', 'font', 'icons', 'icon', 'svg', 'favicon.ico',
+    'dist', 'build', 'bundle', 'bundles', 'vendor',
+    'vendors', 'node_modules', 'packages', 'components',
+
+    # Configuration
+    'config', 'configs', 'configuration', 'settings',
+    'setting', 'setup', 'install', 'installer', 'install.php',
+    'config.php', 'config.json', 'config.yml', 'config.yaml',
+    'config.xml', 'settings.json', 'settings.php',
+    'application.yml', 'application.yaml', 'application.properties',
+    'appsettings.json', 'web.config', 'web.xml',
+    'database.yml', 'database.yaml',
+
+    # Environment / repository artifacts
+    '.env', '.env.local', '.env.dev', '.env.development',
+    '.env.test', '.env.testing', '.env.stage', '.env.staging',
+    '.env.prod', '.env.production', '.env.example',
+    '.env.sample', '.env.bak', '.env.backup', '.env.old',
+    '.env.save', '.git', '.git/config', '.gitignore',
+    '.gitattributes', '.github', '.gitlab', '.svn',
+    '.svn/entries', '.hg', '.bzr',
+
+    # Backups / temporary files
+    'backup', 'backups', 'backup.zip', 'backup.tar',
+    'backup.tar.gz', 'site-backup', 'db-backup',
+    'database-backup', 'old', 'oldsite', 'old-site',
+    'archive', 'archives', 'archived', 'copy', 'copies',
+    'previous', 'temp', 'tmp', 'cache', 'cached',
+    'logs', 'log', 'debug', 'debug.log', 'error',
+    'errors', 'error.log', 'access.log',
+
+    # Server / diagnostics
+    'server-status', 'server-info', 'status', 'health',
+    'healthz', 'ready', 'readiness', 'liveness', 'ping',
+    'metrics', 'stats', 'statistics', 'monitoring',
+    'diagnostics', 'debug', 'trace', 'trace.axd',
+    'elmah.axd', 'info.php', 'phpinfo.php', 'phpinfo',
+    'test.php', 'status.php',
+
+    # Web server files
+    '.htaccess', '.htpasswd', '.user.ini', 'web.config',
+    'robots.txt', 'sitemap.xml', 'sitemap.txt', 'sitemap',
+    'crossdomain.xml', 'clientaccesspolicy.xml',
+    '.well-known', '.well-known/security.txt',
+    'security.txt', 'humans.txt',
+
+    # CGI / server paths
+    'cgi-bin', 'cgi', 'fcgi-bin', 'scripts', 'script',
+    'ssi', 'bin', 'server', 'servers', 'console',
+    'terminal', 'cmd', 'shell', 'ssh', 'ftp', 'sftp',
+    'webmail', 'mail', 'mailbox', 'email',
+
+    # Common application routes
+    'home', 'index', 'index.php', 'index.html',
+    'app', 'application', 'apps', 'service', 'services',
+    'search', 'browse', 'list', 'directory', 'catalog',
+    'explore', 'discover', 'feed', 'rss', 'atom',
+    'news', 'blog', 'blogs', 'article', 'articles',
+    'post', 'posts', 'category', 'categories', 'tag', 'tags',
+
+    # E-commerce
+    'shop', 'store', 'cart', 'checkout', 'payment',
+    'payments', 'billing', 'invoice', 'invoices',
+    'orders', 'order', 'products', 'product', 'catalog',
+    'wishlist', 'coupons', 'coupon',
+
+    # User-facing application pages
+    'dashboard', 'home', 'settings', 'preferences',
+    'notifications', 'messages', 'message', 'inbox',
+    'chat', 'chats', 'contact', 'contacts', 'about',
+    'privacy', 'terms', 'legal', 'tos', 'policy',
+    'security', 'report', 'reports', 'abuse',
+
+    # Monitoring / infrastructure
+    'grafana', 'prometheus', 'kibana', 'jenkins',
+    'ci', 'cd', 'ci-cd', 'build', 'deploy', 'deployment',
+    'monitor', 'monitoring', 'metrics', 'healthcheck',
+    'actuator', 'actuator/health', 'actuator/env',
+    'actuator/info', 'management',
+
+    # Framework-related paths
+    'laravel', 'symfony', 'yii', 'cake', 'codeigniter',
+    'rails', 'django', 'flask', 'fastapi', 'express',
+    'spring', 'actuator', 'aspnet', '.net',
+
+    # Node / JavaScript ecosystem
+    'package.json', 'package-lock.json', 'yarn.lock',
+    'pnpm-lock.yaml', 'node_modules', '.npmrc',
+    'next', '_next', 'nuxt', '_nuxt', 'vite',
+    'webpack', 'manifest.json',
+
+    # Python ecosystem
+    'requirements.txt', 'requirements-dev.txt',
+    'pyproject.toml', 'setup.py', 'setup.cfg',
+    'Pipfile', 'Pipfile.lock', 'venv', '.venv',
+    '__pycache__', 'manage.py', 'wsgi.py', 'asgi.py',
+
+    # Containers / deployment
+    'Dockerfile', 'docker-compose.yml', 'docker-compose.yaml',
+    'compose.yml', 'compose.yaml', '.dockerignore',
+    'kubernetes', 'k8s', 'helm', 'charts',
+    'Vagrantfile', 'terraform', '.terraform',
+    'ansible', 'playbook.yml', 'deploy.yml',
+
+    # Cloud / CI configuration
+    '.github/workflows', '.gitlab-ci.yml', '.travis.yml',
+    'azure-pipelines.yml', 'bitbucket-pipelines.yml',
+    'vercel.json', 'netlify.toml', 'wrangler.toml',
+    'firebase.json', 'amplify.yml',
+
+    # Common file formats
+    'json', 'xml', 'csv', 'yaml', 'yml', 'txt',
+    'pdf', 'zip', 'tar', 'gz', 'bak', 'old',
+
+    # Miscellaneous common paths
+    'private', 'protected', 'secure', 'restricted',
+    'hidden', 'secret', 'secrets', 'keys', 'key',
+    'cert', 'certs', 'certificate', 'certificates',
+    'ssl', 'tls', 'public_html', 'htdocs', 'www',
+    'site', 'website', 'web', 'root', 'main',
+    '404', '403', '401', '500', '502', '503',
+    'error', 'maintenance', 'maintenance.html',
+    'offline', 'coming-soon',
 ]
 
-COMMON_EXTENSIONS = ['', '.php', '.html', '.txt', '.asp', '.aspx', '.jsp', '.py', '.bak', '.old', '.swp']
+COMMON_EXTENSIONS = [
+    '',
+
+    # Web / server-side
+    '.php', '.php3', '.php4', '.php5', '.php7', '.phtml',
+    '.html', '.htm', '.xhtml', '.shtml',
+    '.asp', '.aspx', '.ashx', '.asmx',
+    '.jsp', '.jspx', '.jsf',
+    '.cgi', '.pl', '.fcgi',
+
+    # Programming / application
+    '.py', '.pyc',
+    '.rb', '.java', '.class',
+    '.cs', '.vb',
+    '.go', '.rs',
+    '.lua',
+
+    # JavaScript / frontend
+    '.js', '.mjs', '.cjs',
+    '.json', '.map',
+
+    # Text / config
+    '.txt', '.text',
+    '.xml', '.yaml', '.yml',
+    '.ini', '.conf', '.config',
+    '.cfg', '.cnf',
+    '.properties', '.toml',
+    '.env',
+
+    # Backup / old versions
+    '.bak', '.backup', '.back',
+    '.old', '.orig', '.original',
+    '.copy', '.save', '.saved',
+    '.tmp', '.temp',
+    '.swp', '.swo', '.swn',
+    '~',
+
+    # Archives
+    '.zip', '.rar', '.7z',
+    '.tar', '.gz', '.bz2', '.xz',
+    '.tgz', '.tar.gz',
+    '.tar.bz2', '.tar.xz',
+
+    # Database
+    '.sql', '.sqlite', '.sqlite3',
+    '.db', '.mdb', '.accdb',
+
+    # Logs
+    '.log', '.logs',
+    '.debug', '.trace',
+
+    # Documents / exports
+    '.csv', '.tsv',
+    '.pdf',
+    '.doc', '.docx',
+    '.xls', '.xlsx',
+
+    # Common sensitive config formats
+    '.pem', '.key', '.crt', '.cer',
+    '.p12', '.pfx',
+
+    # Source / repository artifacts
+    '.md', '.rst',
+    '.lock',
+    '.gitignore',
+    '.dockerignore',
+
+    # Miscellaneous
+    '.dat', '.cache',
+    '.dump', '.dmp',
+    '.bin',
+]
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
