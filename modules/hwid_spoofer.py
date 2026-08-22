@@ -35,7 +35,17 @@ def _run_ps(cmd):
 
 def _run_reg(cmd):
     try:
-        r = subprocess.run(["reg", cmd], capture_output=True, text=True, timeout=10)
+        full = f"reg {cmd}"
+        r = subprocess.run(full, shell=True, capture_output=True, text=True, timeout=10)
+        return r.stdout.strip(), r.returncode
+    except Exception as e:
+        return str(e), 1
+
+def _run_reg_ps(key, name, value):
+    try:
+        ps = f'Set-ItemProperty -Path "{key}" -Name "{name}" -Value "{value}" -Force -ErrorAction Stop'
+        r = subprocess.run(["powershell", "-NoProfile", "-Command", ps],
+                           capture_output=True, text=True, timeout=10)
         return r.stdout.strip(), r.returncode
     except Exception as e:
         return str(e), 1
@@ -191,16 +201,22 @@ if ($adapter) {{
 def _spoof_uuid(debug=False):
     new_uuid = _random_uuid()
     if debug: cprint(f"  \033[90m[DBG] New UUID: {new_uuid}\033[0m")
-    out, code = _run_reg(f'add "HKLM\\SOFTWARE\\Microsoft\\Cryptography" /v MachineGuid /t REG_SZ /d "{new_uuid}" /f')
+    out, code = _run_reg_ps(r"HKLM:\SOFTWARE\Microsoft\Cryptography", "MachineGuid", new_uuid)
     ok = code == 0
+    if not ok:
+        out2, code2 = _run_reg(f'add "HKLM\\SOFTWARE\\Microsoft\\Cryptography" /v MachineGuid /t REG_SZ /d "{new_uuid}" /f')
+        ok = code2 == 0
     if debug: cprint(f"  \033[{'92' if ok else '91'}m[{'OK' if ok else 'X'}] MachineGuid -> {new_uuid}\033[0m")
     return ok, new_uuid
 
 def _spoof_product_id(debug=False):
     new_pid = _random_product_id()
     if debug: cprint(f"  \033[90m[DBG] New ProductId: {new_pid}\033[0m")
-    out, code = _run_reg(f'add "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion" /v ProductId /t REG_SZ /d "{new_pid}" /f')
+    out, code = _run_reg_ps(r"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion", "ProductId", new_pid)
     ok = code == 0
+    if not ok:
+        out2, code2 = _run_reg(f'add "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion" /v ProductId /t REG_SZ /d "{new_pid}" /f')
+        ok = code2 == 0
     if debug: cprint(f"  \033[{'92' if ok else '91'}m[{'OK' if ok else 'X'}] ProductId -> {new_pid}\033[0m")
     return ok, new_pid
 
@@ -228,7 +244,7 @@ def _spoof_disk_serial(debug=False):
 def _spoof_bios_serial(debug=False):
     new_sn = _random_bios_serial()
     if debug: cprint(f"  \033[90m[DBG] New BIOS Serial: {new_sn}\033[0m")
-    if debug: cprint(f"  \033[93m[!] BIOS serial spoof requires BIOS flash / registry noise\033[0m")
+    _run_reg_ps(r"HKLM:\HARDWARE\DESCRIPTION\System\BIOS", "SystemSerialNumber", new_sn)
     _run_reg(f'add "HKLM\\HARDWARE\\DESCRIPTION\\System\\BIOS" /v SystemSerialNumber /t REG_SZ /d "{new_sn}" /f')
     return True, new_sn
 
@@ -243,6 +259,7 @@ def _spoof_registry_noise(debug=False):
     for _ in range(random.randint(5, 15)):
         key_name = ''.join(random.choices(string.ascii_letters, k=random.randint(6, 12)))
         val = ''.join(random.choices(string.ascii_letters + string.digits, k=random.randint(8, 30)))
+        _run_reg_ps(r"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion", key_name, val)
         _run_reg(f'add "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion" /v {key_name} /t REG_SZ /d "{val}" /f')
         count += 1
     if debug: cprint(f"  \033[90m[DBG] Wrote {count} noise registry entries\033[0m")

