@@ -1,12 +1,16 @@
 __pycache__/
 *.pyc
 *.pyo
+*.spec
 fix_md.py
 fix_md2.py
+rat.py
 KevTool_*/
 KevTool-*/
 cloned_*/
 kevtool_obf.py
+dist/
+build/
 
 # proxy runtime outputs
 proxies/
