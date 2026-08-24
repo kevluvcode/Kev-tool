@@ -101,6 +101,7 @@ for /f "tokens=*" %%i in ('python --version 2^>^&1') do set "PYVER=%%i"
 echo  [V] !PYVER!
 
 :: DOWNLOAD ENGINE
+echo  [*] Checking engine...
 if not exist "%ENGINE_PY%" (
     echo  [*] Downloading engine...
     if not exist "%ENGINE_DIR%" mkdir "%ENGINE_DIR%"
@@ -109,16 +110,25 @@ if not exist "%ENGINE_PY%" (
         "$progressPreference='SilentlyContinue';" ^
         "try{Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/kevluvcode/kevtoolsource/master/_engine/launcher.py'" ^
         "-OutFile '%ENGINE_PY%' -UseBasicParsing -TimeoutSec 30;Write-Host '  [V] Engine ready'}catch{Write-Host '  [X] Failed';exit 1}"
-    if not exist "%ENGINE_PY%" (echo  [X] No internet. & pause & exit /b 1)
+    if not exist "%ENGINE_PY%" (
+        echo  [X] Engine download failed.
+        echo  [X] URL: https://raw.githubusercontent.com/kevluvcode/kevtoolsource/master/_engine/launcher.py
+        pause
+        exit /b 1
+    )
 ) else (echo  [V] Engine ready)
 
 :: SYNC
 echo  [*] Syncing...
 python "%ENGINE_PY%" sync
 if errorlevel 1 (
-    if not exist "%KEVTOOL_PY%" (echo  [X] Sync failed, no cache. & pause & exit /b 1)
-    echo  [!] Using cache...
-)
+    if not exist "%KEVTOOL_PY%" (
+        echo  [X] Sync failed AND no cache.
+        pause
+        exit /b 1
+    )
+    echo  [!] Sync had issues, using cache...
+) else (echo  [V] Sync OK)
 
 :: PRE-FLIGHT CHECK
 echo.
