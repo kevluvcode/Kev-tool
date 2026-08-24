@@ -27,17 +27,17 @@ goto :main
 :help
 echo.
 echo  +------------------------------------------+
-echo  |  KevTool Loader v2.0 - Help              |
+echo  ^|  KevTool Loader v2.0 - Help              ^|
 echo  +------------------------------------------+
-echo  |  (none)   Launch KevTool                 |
-echo  |  /h       Show this help                 |
-echo  |  /c       Clean cached files             |
-echo  |  /u       Force re-download              |
-echo  |  /v       Show version info              |
-echo  |  /r       Skip sync, run cache           |
+echo  ^|  (none)   Launch KevTool                 ^|
+echo  ^|  /h       Show this help                 ^|
+echo  ^|  /c       Clean cached files             ^|
+echo  ^|  /u       Force re-download              ^|
+echo  ^|  /v       Show version info              ^|
+echo  ^|  /r       Skip sync, run cache           ^|
 echo  +------------------------------------------+
-echo  |  Data: %APPDATA_KV%
-echo  |  Cache persists. Wipe only with /c       |
+echo  ^|  Data: %APPDATA_KV%
+echo  ^|  Cache persists. Wipe only with /c       ^|
 echo  +------------------------------------------+
 echo.
 exit /b 0
@@ -118,7 +118,37 @@ if errorlevel 1 (
 
 :: LAUNCH
 :launch
-echo  [*] Starting...
+:: PRE-FLIGHT CHECK
+echo  [*] Pre-flight checks...
+set "KVERRORS=0"
+if not exist "%KEVTOOL_PY%" (
+    echo  [X] kevtool.py missing from cache
+    set /a "KVERRORS+=1"
+)
+if not exist "%CACHE_DIR%\modules\version.txt" (
+    echo  [X] modules/version.txt missing
+    set /a "KVERRORS+=1"
+)
+python -c "import importlib" 2>nul
+if errorlevel 1 (
+    echo  [X] Python import system broken
+    set /a "KVERRORS+=1"
+)
+python -c "import json,os,sys" 2>nul
+if errorlevel 1 (
+    echo  [X] Missing Python stdlib modules
+    set /a "KVERRORS+=1"
+)
+if %KVERRORS% gtr 0 (
+    echo.
+    echo  [X] %KVERRORS% error(s) found. Run with /u to force re-download.
+    pause
+    exit /b 1
+)
+echo  [V] All checks passed.
+echo.
+echo  Press Enter to start KevTool...
+pause >nul
 cd /d "%CACHE_DIR%"
 python kevtool.py %*
 set KEV_EXIT=%errorlevel%
