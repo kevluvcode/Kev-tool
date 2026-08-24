@@ -19,3 +19,9 @@ valid_proxies.txt
 # recovery tool outputs
 recovery_*/
 recovery_*.txt
+
+# loader runtime cache
+_cache/
+manifest.json
+_audit*.py
+_test*.py
