@@ -37,14 +37,13 @@ echo  ^|  /v       Show version info              ^|
 echo  ^|  /r       Skip sync, run cache           ^|
 echo  +------------------------------------------+
 echo  ^|  Data: %APPDATA_KV%
-echo  ^|  Cache persists. Wipe only with /c       ^|
 echo  +------------------------------------------+
 echo.
 exit /b 0
 
 :version
 echo.
-echo  KevTool v2.0 ^| kevtoolsource
+echo  KevTool v2.0
 if exist "%CACHE_DIR%\modules\version.txt" (
     set /p KV_LOCAL=<"%CACHE_DIR%\modules\version.txt"
     echo  Version: !KV_LOCAL!
@@ -64,7 +63,7 @@ if exist "%ENGINE_PY%" python "%ENGINE_PY%" cleanup 2>nul
 if exist "%CACHE_DIR%" rmdir /s /q "%CACHE_DIR%" 2>nul
 if exist "%ENGINE_DIR%" rmdir /s /q "%ENGINE_DIR%" 2>nul
 python -c "import gc,sys;[sys.modules.pop(k,None) for k in list(sys.modules) if 'kevtool' in k or k.startswith('modules')];gc.collect()" 2>nul
-echo  [V] Cache wiped. Rebuilds on next launch.
+echo  [V] Cache wiped.
 echo.
 exit /b 0
 
@@ -86,12 +85,17 @@ echo.
 :: CHECK PYTHON
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo  [X] Python not found. Install? ^(Y/N^)
+    echo  [X] Python not found.
+    echo  [?] Would you like to auto-install Python 3.11? ^(Y/N^)
     set /p "PYCHOICE=  > "
-    if /i "!PYCHOICE!"=="Y" (goto :install_python)
-    echo  Get it: https://www.python.org/downloads/
-    pause
-    exit /b 1
+    if /i "!PYCHOICE!"=="Y" (
+        call :install_python
+        if errorlevel 1 goto :pyfail
+    ) else (
+        echo  Get it: https://www.python.org/downloads/
+        pause
+        exit /b 1
+    )
 )
 for /f "tokens=*" %%i in ('python --version 2^>^&1') do set "PYVER=%%i"
 echo  [V] !PYVER!
@@ -104,7 +108,7 @@ if not exist "%ENGINE_PY%" (
         "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12;" ^
         "$progressPreference='SilentlyContinue';" ^
         "try{Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/kevluvcode/kevtoolsource/master/_engine/launcher.py'" ^
-        "-OutFile '%ENGINE_PY%' -UseBasicParsing -TimeoutSec 30;Write-Host '  [V] Engine ready'}catch{Write-Host '  [X] Download failed';exit 1}"
+        "-OutFile '%ENGINE_PY%' -UseBasicParsing -TimeoutSec 30;Write-Host '  [V] Engine ready'}catch{Write-Host '  [X] Failed';exit 1}"
     if not exist "%ENGINE_PY%" (echo  [X] No internet. & pause & exit /b 1)
 ) else (echo  [V] Engine ready)
 
@@ -113,42 +117,39 @@ echo  [*] Syncing...
 python "%ENGINE_PY%" sync
 if errorlevel 1 (
     if not exist "%KEVTOOL_PY%" (echo  [X] Sync failed, no cache. & pause & exit /b 1)
-    echo  [!] Issues, using cache...
+    echo  [!] Using cache...
 )
 
-:: LAUNCH
-:launch
 :: PRE-FLIGHT CHECK
+echo.
 echo  [*] Pre-flight checks...
 set "KVERRORS=0"
 if not exist "%KEVTOOL_PY%" (
-    echo  [X] kevtool.py missing from cache
+    echo  [X] kevtool.py missing
     set /a "KVERRORS+=1"
 )
 if not exist "%CACHE_DIR%\modules\version.txt" (
-    echo  [X] modules/version.txt missing
+    echo  [X] version.txt missing
     set /a "KVERRORS+=1"
 )
-python -c "import importlib" 2>nul
+python -c "import json,os,sys,importlib" 2>nul
 if errorlevel 1 (
-    echo  [X] Python import system broken
+    echo  [X] Python modules broken
     set /a "KVERRORS+=1"
 )
-python -c "import json,os,sys" 2>nul
-if errorlevel 1 (
-    echo  [X] Missing Python stdlib modules
-    set /a "KVERRORS+=1"
-)
-if %KVERRORS% gtr 0 (
+if !KVERRORS! gtr 0 (
     echo.
-    echo  [X] %KVERRORS% error(s) found. Run with /u to force re-download.
+    echo  [X] !KVERRORS! error^(s^). Run with /u to re-download.
     pause
     exit /b 1
 )
 echo  [V] All checks passed.
 echo.
-echo  Press Enter to start KevTool...
+echo  Press Enter to start...
 pause >nul
+
+:: LAUNCH
+:launch
 cd /d "%CACHE_DIR%"
 python kevtool.py %*
 set KEV_EXIT=%errorlevel%
@@ -157,10 +158,10 @@ cd /d "%BAT_DIR%"
 :: SAVE STATE
 python "%ENGINE_PY%" sync_state 2>nul
 python -c "import gc,sys;[sys.modules.pop(k,None) for k in list(sys.modules) if 'kevtool' in k or k.startswith('modules')];gc.collect();gc.collect();gc.collect()" 2>nul
-echo  [V] Saved. Cache kept.
+echo  [V] Done. Cache kept.
 exit /b %KEV_EXIT%
 
-:: PYTHON INSTALL
+:: PYTHON INSTALL SUBROUTINE
 :install_python
 echo  [*] Downloading Python 3.11.9...
 set "PYINSTALLER=%TEMP%\python-installer.exe"
@@ -169,23 +170,34 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
     "$progressPreference='SilentlyContinue';" ^
     "try{Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe'" ^
     "-OutFile '%PYINSTALLER%' -UseBasicParsing -TimeoutSec 120;Write-Host '  [V] Downloaded'}catch{Write-Host '  [X] Failed';exit 1}"
-if not exist "%PYINSTALLER%" (echo  [X] Failed. & pause & exit /b 1)
-echo  [*] Installing...
+if not exist "%PYINSTALLER%" (
+    echo  [X] Download failed.
+    exit /b 1
+)
+echo  [*] Installing Python 3.11.9...
 "%PYINSTALLER%" /quiet InstallAllUsers=0 PrependPath=1 Include_pip=1 Include_test=0
 set /a "PW=0"
 :waitpy
-if %PW% geq 180 (echo  [X] Timeout. & goto :pyfail)
-timeout /t 2 /nobreak >nul
-set /a "PW+=2"
+if !PW! geq 180 (
+    echo  [X] Install timed out.
+    exit /b 1
+)
+timeout /t 3 /nobreak >nul
+set /a "PW+=3"
 tasklist /fi "imagename eq python-3.11.9-amd64.exe" 2>nul | find /i "python-3.11" >nul
 if not errorlevel 1 goto :waitpy
+:: Refresh PATH from registry
 for /f "tokens=2*" %%A in ('reg query "HKCU\Environment" /v Path 2^>nul') do set "PATH=%%B;%PATH%"
 for /f "tokens=2*" %%A in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v Path 2^>nul') do set "PATH=%%B;%PATH%"
 del /f /q "%PYINSTALLER%" 2>nul
 python --version >nul 2>&1
-if errorlevel 1 (echo  [X] Installed but not in PATH. Restart terminal. & goto :pyfail)
+if errorlevel 1 (
+    echo  [X] Installed but not in PATH.
+    echo  [!] Close this window and open a NEW terminal.
+    exit /b 1
+)
 echo  [V] Python installed!
-goto :main
+exit /b 0
 
 :pyfail
 echo  Manual: https://www.python.org/downloads/
