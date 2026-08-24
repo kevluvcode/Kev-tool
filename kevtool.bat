@@ -26,26 +26,25 @@ goto :main
 
 :help
 echo.
-echo  +-------------------------------------------+
-echo  |  KevTool Loader v2.0 - Help               |
-echo  +-------------------------------------------+
-echo  |  (none)   Launch KevTool                  |
-echo  |  /h       Show this help                  |
-echo  |  /c       Clean cached files              |
-echo  |  /u       Force re-download               |
-echo  |  /v       Show version info               |
-echo  |  /r       Skip sync, run cache            |
-echo  +-------------------------------------------+
-echo  |  Data:   %APPDATA_KV%
-echo  |  Cache persists. Wipe only with /c        |
-echo  |  Updates: delta - changed files only      |
-echo  +-------------------------------------------+
+echo  +------------------------------------------+
+echo  |  KevTool Loader v2.0 - Help              |
+echo  +------------------------------------------+
+echo  |  (none)   Launch KevTool                 |
+echo  |  /h       Show this help                 |
+echo  |  /c       Clean cached files             |
+echo  |  /u       Force re-download              |
+echo  |  /v       Show version info              |
+echo  |  /r       Skip sync, run cache           |
+echo  +------------------------------------------+
+echo  |  Data: %APPDATA_KV%
+echo  |  Cache persists. Wipe only with /c       |
+echo  +------------------------------------------+
 echo.
 exit /b 0
 
 :version
 echo.
-echo  KevTool v2.0 | kevtoolsource
+echo  KevTool v2.0 ^| kevtoolsource
 if exist "%CACHE_DIR%\modules\version.txt" (
     set /p KV_LOCAL=<"%CACHE_DIR%\modules\version.txt"
     echo  Version: !KV_LOCAL!
@@ -79,17 +78,15 @@ goto :launch
 
 :main
 echo.
-echo    _  __           __  ___      __
-echo   | |/ /__ _    __/  |/ (_)__  / /_
-echo   |   / -| | | / / / _/ / / _ \/ __/
-echo   |_|\_\ |_|__/ /\__/_/_/_//_/\__/
-echo              Loader v2.0
+echo   ==============================
+echo      K E V T O O L   v2.0
+echo   ==============================
 echo.
 
 :: CHECK PYTHON
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo  [X] Python not found. Install? (Y/N)
+    echo  [X] Python not found. Install? ^(Y/N^)
     set /p "PYCHOICE=  > "
     if /i "!PYCHOICE!"=="Y" (goto :install_python)
     echo  Get it: https://www.python.org/downloads/
