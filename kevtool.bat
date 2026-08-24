@@ -100,23 +100,19 @@ if errorlevel 1 (
 for /f "tokens=*" %%i in ('python --version 2^>^&1') do set "PYVER=%%i"
 echo  [V] !PYVER!
 
-:: DOWNLOAD ENGINE
-echo  [*] Checking engine...
+:: DOWNLOAD ENGINE (always fresh)
+echo  [*] Updating engine...
+if not exist "%ENGINE_DIR%" mkdir "%ENGINE_DIR%"
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+    "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12;" ^
+    "$progressPreference='SilentlyContinue';" ^
+    "try{Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/kevluvcode/kevtoolsource/master/_engine/launcher.py'" ^
+    "-OutFile '%ENGINE_PY%' -UseBasicParsing -TimeoutSec 30;Write-Host '  [V] Engine ready'}catch{Write-Host '  [X] Failed';exit 1}"
 if not exist "%ENGINE_PY%" (
-    echo  [*] Downloading engine...
-    if not exist "%ENGINE_DIR%" mkdir "%ENGINE_DIR%"
-    powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-        "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12;" ^
-        "$progressPreference='SilentlyContinue';" ^
-        "try{Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/kevluvcode/kevtoolsource/master/_engine/launcher.py'" ^
-        "-OutFile '%ENGINE_PY%' -UseBasicParsing -TimeoutSec 30;Write-Host '  [V] Engine ready'}catch{Write-Host '  [X] Failed';exit 1}"
-    if not exist "%ENGINE_PY%" (
-        echo  [X] Engine download failed.
-        echo  [X] URL: https://raw.githubusercontent.com/kevluvcode/kevtoolsource/master/_engine/launcher.py
-        pause
-        exit /b 1
-    )
-) else (echo  [V] Engine ready)
+    echo  [X] Engine download failed.
+    pause
+    exit /b 1
+)
 
 :: SYNC
 echo  [*] Syncing...
