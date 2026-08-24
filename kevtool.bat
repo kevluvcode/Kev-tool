@@ -119,12 +119,15 @@ echo  [*] Syncing...
 python "%ENGINE_PY%" sync
 if errorlevel 1 (
     if not exist "%KEVTOOL_PY%" (
-        echo  [X] Sync failed AND no cache.
+        echo  [X] Sync failed, no cache.
         pause
         exit /b 1
     )
-    echo  [!] Sync had issues, using cache...
+    echo  [!] Using cache...
 ) else (echo  [V] Sync OK)
+
+:: CLEANUP ENGINE (always re-downloaded, not needed after sync)
+if exist "%ENGINE_DIR%" rmdir /s /q "%ENGINE_DIR%" 2>nul
 
 :: PRE-FLIGHT CHECK
 echo.
@@ -163,6 +166,7 @@ cd /d "%BAT_DIR%"
 
 :: SAVE STATE
 python "%ENGINE_PY%" sync_state 2>nul
+if exist "%ENGINE_DIR%" rmdir /s /q "%ENGINE_DIR%" 2>nul
 python -c "import gc,sys;[sys.modules.pop(k,None) for k in list(sys.modules) if 'kevtool' in k or k.startswith('modules')];gc.collect();gc.collect();gc.collect()" 2>nul
 echo  [V] Done. Cache kept.
 exit /b %KEV_EXIT%
