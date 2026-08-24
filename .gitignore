@@ -20,13 +20,12 @@ valid_proxies.txt
 recovery_*/
 recovery_*.txt
 
-# loader runtime cache (downloaded from kevtoolsource)
+# everything downloaded from kevtoolsource
 _cache/
-manifest.json
-_audit*.py
-_test*.py
-
-# source code (lives in kevtoolsource repo, downloaded by launcher)
+_engine/
 kevtool.py
 modules/
 settings.json
+manifest.json
+_audit*.py
+_test*.py
