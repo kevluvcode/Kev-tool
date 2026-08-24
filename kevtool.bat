@@ -1,5 +1,4 @@
 @echo off
-chcp 65001 >nul 2>&1
 title KevTool v2.0
 color 0B
 setlocal enabledelayedexpansion
@@ -27,20 +26,20 @@ goto :main
 
 :help
 echo.
-echo  ╔═══════════════════════════════════════╗
-echo  ║  KevTool Loader v2.0 - Help           ║
-echo  ╠═══════════════════════════════════════╣
-echo  ║  (none)     Launch KevTool            ║
-echo  ║  /h         Show this help            ║
-echo  ║  /c         Clean cached files        ║
-echo  ║  /u         Force re-download         ║
-echo  ║  /v         Show version info         ║
-echo  ║  /r         Skip sync, run cache      ║
-echo  ╠═══════════════════════════════════════╣
-echo  ║  Data: %APPDATA_KV%
-echo  ║  Cache persists. Only wipe with /c    ║
-echo  ║  Updates: delta — changed files only  ║
-echo  ╚═══════════════════════════════════════╝
+echo  +-------------------------------------------+
+echo  |  KevTool Loader v2.0 - Help               |
+echo  +-------------------------------------------+
+echo  |  (none)   Launch KevTool                  |
+echo  |  /h       Show this help                  |
+echo  |  /c       Clean cached files              |
+echo  |  /u       Force re-download               |
+echo  |  /v       Show version info               |
+echo  |  /r       Skip sync, run cache            |
+echo  +-------------------------------------------+
+echo  |  Data:   %APPDATA_KV%
+echo  |  Cache persists. Wipe only with /c        |
+echo  |  Updates: delta - changed files only      |
+echo  +-------------------------------------------+
 echo.
 exit /b 0
 
@@ -80,11 +79,11 @@ goto :launch
 
 :main
 echo.
-echo   _  __           __  ___      __
-echo  ^| ^|/ /__ _    __/  ^|/ (_)__  / /_
-echo  ^|   / -^| ^| ^|/ / / ^|_/ / / _ \/ __/
-echo  ^|_^|\_\ ^|_^|__,__/\__/_/_/_//_/\__/
-echo          Loader v2.0
+echo    _  __           __  ___      __
+echo   | |/ /__ _    __/  |/ (_)__  / /_
+echo   |   / -| | | / / / _/ / / _ \/ __/
+echo   |_|\_\ |_|__/ /\__/_/_/_//_/\__/
+echo              Loader v2.0
 echo.
 
 :: CHECK PYTHON
