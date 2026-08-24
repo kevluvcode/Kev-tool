@@ -79,7 +79,7 @@ if not exist "_engine\launcher.py" (
     powershell -NoProfile -ExecutionPolicy Bypass -Command ^
         "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; " ^
         "$progressPreference='SilentlyContinue'; " ^
-        "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/kevluvcode/kevtoolsource/main/_engine/launcher.py' " ^
+        "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/kevluvcode/kevtoolsource/master/_engine/launcher.py' " ^
         "-OutFile '_engine\launcher.py' -UseBasicParsing" 2>nul
     if not exist "_engine\launcher.py" (
         echo  [X] Failed to download engine. Check internet.
